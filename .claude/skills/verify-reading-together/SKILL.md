@@ -7,12 +7,11 @@ description: "Launch the real Reading Together app (Next.js dev server + the exi
 
 Reading Together is a Next.js app backed by a local Supabase stack. Its one
 user-facing surface is the web UI: sign up, form a couple, upload and share
-a book, read it with progress synced live between partners. `/dev/reader`
-is a separate dev-only route that renders `fixtures/alice.epub` through the
-reader engine (`src/features/reader`, P13a) without needing auth or a
-couple — useful for reader-engine-only checks. Marks (P14) land on top of
-the real book page as P14b merges; see `features/README.md` for what's
-built today.
+a book, read it with progress synced live between partners, mark and
+discuss it together. `/dev/reader` is a separate dev-only route that
+renders `fixtures/alice.epub` through the reader engine (`src/features/reader`,
+P13a) without needing auth or a couple — useful for reader-engine-only
+checks. See `features/README.md` for what's built today.
 
 This skill never starts, stops or resets the Supabase stack — it only reads
 `pnpm supabase status`. Another worker may be using the same local instance.
@@ -87,6 +86,13 @@ A Node ESM module (import, don't execute) built on Playwright
 - `openReader`, `goTo`, `next`, `prev`, `setFontScale`, `selectText`,
   `paint`, `readPos`, `readPageEndPos` — built on `window.__reader`
   (`docs/interfaces.md`'s `ReaderHandle`), live today via `/dev/reader` only.
+- `toChapter1`, `pageUntil`, `locate`, `select`, `tap`, `thread`,
+  `overlays`, `paintAt`, `revealToast`, `syncPill` — drive marks, bookmarks,
+  spoiler reveal and sync on the real `/book/[id]` page (P14b/P21/P23/P51),
+  selectors and logic copied from `tests/e2e/helpers.ts` and
+  `marks.spec.ts`/`reveal.spec.ts`/`sync.spec.ts`, which already drive this
+  markup. `locate`/`select`/`tap` find text inside the book's real section
+  iframe (a `blob:` URL) — distinct from `/dev/reader`'s `selectText` above.
 - `closeAll()` — closes the shared browser.
 
 Per-feature recipes with exact calls and expected values live in
@@ -125,8 +131,9 @@ construction. If `server.env` is already gone, cleanup is a no-op (exit 0).
 
 ## Gotchas
 
-- `.verify/` isn't yet in `.gitignore` (out of scope for this skill) — flag
-  it to whoever owns `.gitignore`; until then, don't `git add -A`.
+- `.verify/` and `.env.local` are both in `.gitignore` — evidence and the
+  generated env file never need manual exclusion, but still avoid
+  `git add -A` out of habit (standing order 3).
 - Only run `pnpm supabase status` against the shared local stack — never
   `start`/`stop`/`reset`; another worker may depend on it staying up.
 - `pnpm dev --port N &` backgrounds fine from a non-interactive shell (no

@@ -111,6 +111,31 @@ isOneToOne: false
       referencedColumns: ["couple_id"]
     }
                   ]
+                },"goal": {
+                  Row: {
+                    "couple_id": string,"kind": Database["public"]['Enums']["goal_kind"],"target": number,"updated_at": string,"updated_by": string
+                  }
+                  Insert: {
+                    "couple_id": string,"kind": Database["public"]['Enums']["goal_kind"],"target": number,"updated_at"?: string,"updated_by": string
+                  }
+                  Update: {
+                    "couple_id"?: string,"kind"?: Database["public"]['Enums']["goal_kind"],"target"?: number,"updated_at"?: string,"updated_by"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "goal_couple_id_fkey"
+      columns: ["couple_id"]
+isOneToOne: true
+      referencedRelation: "couple"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "goal_couple_id_fkey"
+      columns: ["couple_id"]
+isOneToOne: true
+      referencedRelation: "couple_stats"
+      referencedColumns: ["couple_id"]
+    }
+                  ]
                 },"mark": {
                   Row: {
                     "author_id": string,"body": string | null,"book_id": string,"created_at": string,"emoji": Database["public"]['Enums']["reaction"] | null,"id": string,"kind": Database["public"]['Enums']["mark_kind"],"label": string | null,"locator": Json | null,"media_url": string | null,"parent_id": string | null,"pos": number
@@ -138,13 +163,13 @@ isOneToOne: false
                   ]
                 },"member": {
                   Row: {
-                    "avatar_url": string | null,"color": string | null,"couple_id": string,"name": string | null,"user_id": string
+                    "avatar_url": string | null,"color": string | null,"couple_id": string,"name": string | null,"timezone": string,"user_id": string
                   }
                   Insert: {
-                    "avatar_url"?: string | null,"color"?: string | null,"couple_id": string,"name"?: string | null,"user_id": string
+                    "avatar_url"?: string | null,"color"?: string | null,"couple_id": string,"name"?: string | null,"timezone"?: string,"user_id": string
                   }
                   Update: {
-                    "avatar_url"?: string | null,"color"?: string | null,"couple_id"?: string,"name"?: string | null,"user_id"?: string
+                    "avatar_url"?: string | null,"color"?: string | null,"couple_id"?: string,"name"?: string | null,"timezone"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -193,6 +218,25 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"reading_day": {
+                  Row: {
+                    "book_id": string,"day": string,"from_max_pos": number,"to_max_pos": number,"user_id": string
+                  }
+                  Insert: {
+                    "book_id": string,"day": string,"from_max_pos": number,"to_max_pos": number,"user_id": string
+                  }
+                  Update: {
+                    "book_id"?: string,"day"?: string,"from_max_pos"?: number,"to_max_pos"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "reading_day_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Views: {
@@ -209,6 +253,25 @@ isOneToOne: false
                         Relationships: [
                     
                   ]
+                },"reading_today": {
+                  Row: {
+                    "chapters": number | null,"couple_id": string | null,"day": string | null,"pages": number | null,"user_id": string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "member_couple_id_fkey"
+      columns: ["couple_id"]
+isOneToOne: false
+      referencedRelation: "couple"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "member_couple_id_fkey"
+      columns: ["couple_id"]
+isOneToOne: false
+      referencedRelation: "couple_stats"
+      referencedColumns: ["couple_id"]
+    }
+                  ]
                 }
           }
           Functions: {
@@ -217,6 +280,11 @@ isOneToOne: false
                            },
 "create_couple":
 { Args: { "color": string,"name": string }; Returns: string
+                           },
+"day_totals":
+{ Args: { "d": string,"uid": string }; Returns: {
+              "chapters": number,"pages": number
+            }[]
                            },
 "display_page":
 { Args: { "pos": number,"spine_lengths": (number)[] }; Returns: number
@@ -227,6 +295,9 @@ isOneToOne: false
 "is_couple_member":
 { Args: { "cid": string }; Returns: boolean
                            },
+"is_timezone":
+{ Args: { "tz": string }; Returns: boolean
+                           },
 "join_couple":
 { Args: { "color"?: string,"invite_code": string,"name"?: string }; Returns: string
                            },
@@ -235,10 +306,16 @@ isOneToOne: false
                            },
 "my_max_pos":
 { Args: { "bid": string }; Returns: number
+                           },
+"pos_chars":
+{ Args: { "pos": number,"spine_lengths": (number)[] }; Returns: number
+                           },
+"set_goal":
+{ Args: { "kind": Database["public"]['Enums']["goal_kind"],"target": number }; Returns: undefined
                            }
           }
           Enums: {
-            "answer_kind": "question"|"guess","event_type": "book_added"|"book_started"|"mark_created"|"chapter_finished"|"book_finished"|"answer_revealed"|"goal_met","mark_kind": "highlight"|"reaction"|"note"|"reply"|"bookmark"|"send"|"memory","reaction": "love"|"funny"|"emotional"|"surprised"|"interesting"|"favorite"|"think"
+            "answer_kind": "question"|"guess","event_type": "book_added"|"book_started"|"mark_created"|"chapter_finished"|"book_finished"|"answer_revealed"|"goal_met","goal_kind": "pages_per_day"|"chapters_per_day","mark_kind": "highlight"|"reaction"|"note"|"reply"|"bookmark"|"send"|"memory","reaction": "love"|"funny"|"emotional"|"surprised"|"interesting"|"favorite"|"think"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -358,7 +435,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "answer_kind": ["question", "guess"],"event_type": ["book_added", "book_started", "mark_created", "chapter_finished", "book_finished", "answer_revealed", "goal_met"],"mark_kind": ["highlight", "reaction", "note", "reply", "bookmark", "send", "memory"],"reaction": ["love", "funny", "emotional", "surprised", "interesting", "favorite", "think"]
+            "answer_kind": ["question", "guess"],"event_type": ["book_added", "book_started", "mark_created", "chapter_finished", "book_finished", "answer_revealed", "goal_met"],"goal_kind": ["pages_per_day", "chapters_per_day"],"mark_kind": ["highlight", "reaction", "note", "reply", "bookmark", "send", "memory"],"reaction": ["love", "funny", "emotional", "surprised", "interesting", "favorite", "think"]
           }
         }
 } as const

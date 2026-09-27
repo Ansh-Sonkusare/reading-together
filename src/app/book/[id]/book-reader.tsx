@@ -7,6 +7,7 @@ import { usePartnerProgress, useProgressSaver, type Progress } from '@/features/
 import { BookmarksPanel, RevealToast, SelectionMenu, ThreadPanel, createMark, toPaintMarks, useMarks, type Mark, type NewMark } from '@/features/marks';
 import { createReader, displayPage, ReaderPrefs, type Locator, type Pos, type ReaderHandle } from '@/features/reader';
 import { SyncInvite, SyncPill, useSync } from '@/features/sync';
+import { chapterTitle, discussHref } from '@/features/together/discussion';
 import { createBrowserClient } from '@/lib/supabase';
 
 type Selected = { locator: Locator; pos: Pos; rect: DOMRect };
@@ -36,6 +37,9 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
   const [threadCfi, setThreadCfi] = useState<string | null>(null);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
   const [toast, setToast] = useState<Mark | null>(null);
+  const [finished, setFinished] = useState<number | null>(null);
+  // The furthest spine reached, kept outside the debounced save so a fast page turn can't miss a chapter end.
+  const maxSpine = useRef(Math.floor(mine?.max_pos ?? 0));
   const [db] = useState(createBrowserClient);
   const { save, savedPos, savedMaxPos } = useProgressSaver(bookId, userId, mine);
   const theirs = usePartnerProgress(bookId, partner?.userId ?? null, partnerProgress);
@@ -86,6 +90,10 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
       });
       r.on('relocate', (e) => {
         setPos(e.pos);
+        if (e.spine > maxSpine.current) {
+          maxSpine.current = e.spine;
+          setFinished(e.spine - 1);
+        }
         save(e.pos, e.pageEndPos, e.locator);
         relocated(e.locator);
       });
@@ -141,6 +149,11 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
         <button className="ml-auto shrink-0 underline" aria-expanded={bookmarksOpen} onClick={() => setBookmarksOpen(!bookmarksOpen)}>
           Bookmarks
         </button>
+        {pos !== null && pos >= 1 && (
+          <Link href={discussHref(bookId, Math.floor(pos) - 1)} className="shrink-0 underline">
+            Discuss {chapterTitle(Math.floor(pos) - 1)}
+          </Link>
+        )}
         <p data-testid="progress-pair" className="shrink-0 font-medium">
           {partner && (
             <>
@@ -167,6 +180,21 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
         <p role="alert" className="px-3 py-1 text-sm text-red-600">
           Could not save that. Try again.
         </p>
+      )}
+      {finished !== null && (
+        // Floats over the page: taking layout space would reflow the book and move page boundaries.
+        <aside
+          aria-label="Chapter finished"
+          className="fixed inset-x-0 bottom-14 z-30 mx-auto flex w-fit max-w-[calc(100vw-1rem)] items-center gap-2 rounded-full border bg-rose-50 py-1 pr-1 pl-4 text-sm shadow-lg"
+        >
+          <span>You finished {chapterTitle(finished)}.</span>
+          <Link href={discussHref(bookId, finished)} className="font-medium underline">
+            Discuss it together →
+          </Link>
+          <button aria-label="Dismiss" className="ml-auto px-1" onClick={() => setFinished(null)}>
+            ×
+          </button>
+        </aside>
       )}
       <div ref={container} className="min-h-0 flex-1" />
       {selection && at && (

@@ -2,51 +2,61 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* docs/design.md tokens; the shadcn names below alias them so existing components pick them up. */
 :root {
   color-scheme: light;
-  --background: #ffffff;
-  --foreground: #171717;
-  --card: #ffffff;
-  --card-foreground: #171717;
-  --popover: #ffffff;
-  --popover-foreground: #171717;
-  --primary: #0f172a;
-  --primary-foreground: #f8fafc;
-  --secondary: #e2e8f0;
-  --secondary-foreground: #0f172a;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
-  --destructive: #dc2626;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #0f172a;
+  --paper: #fbfafd;
+  --leaf: #ffffff;
+  --ink: #26243a;
+  --pencil: #6e6a85;
+  --rule: #e6e3ee;
+  --wash: #f1eef8;
+  --danger: #b4284a;
+  --float: 0 8px 24px rgb(38 36 58 / 0.12);
 }
 
 .dark {
   color-scheme: dark;
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --card: #171717;
-  --card-foreground: #ededed;
-  --popover: #171717;
-  --popover-foreground: #ededed;
-  --primary: #f8fafc;
-  --primary-foreground: #0f172a;
-  --secondary: #1e293b;
-  --secondary-foreground: #f8fafc;
-  --accent: #1e293b;
-  --accent-foreground: #f8fafc;
-  --destructive: #ef4444;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --border: #1e293b;
-  --input: #1e293b;
-  --ring: #f8fafc;
+  --paper: #17161f;
+  --leaf: #201f2b;
+  --ink: #eceaf4;
+  --pencil: #a5a1ba;
+  --rule: #2e2c3d;
+  --wash: #252336;
+  --danger: #f28ba5;
+  --float: 0 8px 24px rgb(0 0 0 / 0.4);
+}
+
+:root,
+.dark {
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--leaf);
+  --card-foreground: var(--ink);
+  --popover: var(--leaf);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: var(--wash);
+  --secondary-foreground: var(--ink);
+  --accent: var(--wash);
+  --accent-foreground: var(--ink);
+  --muted: var(--wash);
+  --muted-foreground: var(--pencil);
+  --destructive: var(--danger);
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--pencil);
 }
 
 @theme inline {
+  --color-paper: var(--paper);
+  --color-leaf: var(--leaf);
+  --color-ink: var(--ink);
+  --color-pencil: var(--pencil);
+  --color-rule: var(--rule);
+  --color-wash: var(--wash);
+  --color-danger: var(--danger);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -65,12 +75,57 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-onest), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-literata), ui-serif, Georgia, serif;
+  --shadow-float: var(--float);
+  --radius-cover: 4px;
+  --radius-sheet: 14px;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Type scale 1.25: 14 / 16 / 20 / 25 / 31 / 39 (sm / base / xl / 2xl / 3xl / 4xl). */
+@theme {
+  --text-2xl: 1.5625rem;
+  --text-2xl--line-height: 1.25;
+  --text-3xl: 1.9375rem;
+  --text-3xl--line-height: 1.2;
+  --text-4xl: 2.4375rem;
+  --text-4xl--line-height: 1.15;
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    text-wrap: balance;
+  }
+  blockquote {
+    font-family: var(--font-serif);
+    font-style: italic;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

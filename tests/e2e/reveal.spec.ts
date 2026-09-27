@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { locate, myPos, overlays, pairUp, paintAt, select, thread, toChapter1, turn, uploadAndOpen, waitForSave } from './helpers';
 
 const SHOTS = '.verify/p21-p23';
-const ALEX = '#e11d48';
+const ALEX = '#d6336c';
 const CHAPTER_3_TEXT = 'They were indeed a queer-looking party';
 const inChapter3 = (pos: string | null) => pos?.startsWith('4.') ?? false;
 const toast = (page: Page) => page.getByRole('status').filter({ hasText: 'New from' });

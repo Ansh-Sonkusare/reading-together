@@ -86,15 +86,15 @@ test('app dark mode sets html.dark, restyles a Button and survives a reload', as
   const button = page.getByRole('button', { name: 'Sample' });
   const bg = () => button.evaluate((el) => getComputedStyle(el).backgroundColor);
   await expect(html).not.toHaveClass(/\bdark\b/);
-  expect(await bg()).toBe('rgb(15, 23, 42)');
+  expect(await bg()).toBe('rgb(38, 36, 58)');
 
   await page.getByLabel('App theme').selectOption('dark');
   await expect(html).toHaveClass(/\bdark\b/);
-  await expect.poll(bg).toBe('rgb(248, 250, 252)');
+  await expect.poll(bg).toBe('rgb(236, 234, 244)');
 
   await page.reload();
   await expect(html).toHaveClass(/\bdark\b/);
-  await expect.poll(bg).toBe('rgb(248, 250, 252)');
+  await expect.poll(bg).toBe('rgb(236, 234, 244)');
   await expect(page.getByLabel('App theme')).toHaveValue('dark');
 
   await page.getByLabel('App theme').selectOption('system');

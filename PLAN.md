@@ -48,6 +48,31 @@ Each phase ends in a **demo you can check in two browsers** (two accounts, one c
 ## Out of scope (for now)
 Public-domain catalogue (D1), native apps, groups of more than two, PDFs, DRM books, AI-generated discussion questions.
 
-## Open questions
-Answered decisions live in `docs/decisions.md`. Still open:
-- "Sarah finished Chapter 12" pushes and the exact partner position while they're ahead: are those spoilers? (Default for now: show them.)
+## Problems (worked one at a time; each ends in a check)
+
+`docs/idea.md` broken into problems. Each problem is one worktree, one merge, and fits the PR budget (≤20 files, ≤800 added lines). Status values: `todo`, `wip`, `done`, `parked`. Decision trail: `notes/trail.tsv`.
+
+| # | Problem | WS | Check that proves it | Status |
+|---|---|---|---|---|
+| P01 | Scaffold: Next.js, pnpm, Tailwind + shadcn, vitest, Supabase CLI as a dev dependency, scripts from AGENTS.md | orch | `pnpm build && pnpm typecheck && pnpm test` | todo |
+| P02 | Schema, RLS spoiler and reveal gates, event triggers, generated types | A | `pnpm test:db` runs the gate scenarios against local Supabase | todo |
+| P03 | Reader engine spike: foliate-js vs epub.js; compute `pos`, CFI and quote | B | A script shows one passage gets the same `pos` at two font sizes; the loser is written up in decisions | todo |
+| P04 | `verify-reading-together` skill: launch, doctor, two browser contexts as two partners | orch | The skill's own run passes and its evidence survives cleanup | todo |
+| P11 | Auth, couple, invite link, join (max 2) | D | verify: A invites, B joins, a third account is refused | todo |
+| P12 | Upload EPUB → Storage, `sha256` + `spine_lengths`, shared library | D | verify: A uploads, B sees the book | todo |
+| P13 | Reader page: open, paginate, save progress (debounced), restore position | B | verify: reopening restores the position | todo |
+| P14 | Marks: selection menu, highlight, 7 reactions, note, reply thread, per-person colours, realtime | C | verify: A reacts and B sees it within 2 seconds; B replies and A sees it | todo |
+| P15 | Progress pair bar "Alex p.42 · you p.38" | D | verify: both positions shown and updated live | todo |
+| P21 | Reveal-on-reach: marks ahead are invisible, then appear with "✨ new from Alex" | C | verify: gate scenario done by hand in the UI | todo |
+| P22 | Re-anchor a mark by text quote when its CFI misses | B | verify: a highlight lands on the same text at font sizes S and L | todo |
+| P23 | Bookmarks with labels, "Reminded me of you" send | C | verify: the send appears in the partner's inbox | todo |
+| P31 | Chapter-finished events, streaks, goals | E | unit tests on the streak calculation + verify: the streak shows | todo |
+| P32 | Chapter discussion and guess-the-reaction with blind reveal | E | `pnpm test:db` reveal gate + verify: reveal after both answer | todo |
+| P33 | Web push: service worker, subscriptions, edge function wording | D | the edge function test renders the personal wording; subscription stored | todo |
+| P41 | "Our Book" timeline | E | verify: timeline lists the day's events | todo |
+| P42 | Couple stats dashboard | E | SQL view test with literal counts | todo |
+| P43 | Couple memories (photo on a mark) | C | verify: a photo attached to a highlight shows for both | todo |
+| P44 | Themes, dark mode, font size, background | D | verify: prefs persist across reload | todo |
+| P51 | Sync reading mode (presence, follow the leader) | B | verify: B's page follows A's page turn | todo |
+
+Test book: a public-domain EPUB in `fixtures/` (test data only; D1 still holds for the product).

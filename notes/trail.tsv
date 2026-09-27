@@ -1,0 +1,5 @@
+ts	phase	decision	why	evidence	result
+2026-09-27T14:19:15Z	frame	exit condition: PLAN phases 0-5 each pass their two-browser demo driven by the verify-reading-together skill, plus typecheck and tests green on master	owner asked for an endless autonomous build; a countable predicate keeps it honest	PLAN.md	open
+2026-09-27T14:19:15Z	frame	run as Autonomous run with a Feature-style fan-out per phase, not the full Orchestrate store	one local repo, no remote, about 6 phases; the orch CLI and PR stack would be ceremony here	poteto-mode playbooks/orchestrate.md step 1	decided
+2026-09-27T14:19:15Z	frame	decided the open spoiler question: partner position and chapter-finished pushes stay visible	they reveal pace, not story content, and seeing the partner ahead nudges reading together; marks ahead stay fully hidden per D9	docs/decisions.md D10	decided
+2026-09-27T14:19:15Z	frame	no PRs: work lands as small verified commits on master	repo has no remote; opening-a-pr needs one	git remote -v empty	decided

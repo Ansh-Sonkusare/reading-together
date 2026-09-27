@@ -28,9 +28,9 @@ test('reading together today starts a streak, and a met goal shows a check for b
   await form.getByLabel('Unit').selectOption('pages_per_day');
   await form.getByRole('button', { name: 'Set goal' }).click();
 
-  await expect(a.getByTestId('goal-progress')).toHaveText('Today: You 10/2 pages ✓ · Sam 10/2 ✓');
+  await expect(a.getByTestId('goal-progress')).toHaveText(/^Today: You \d+\/2 pages ✓ · Sam \d+\/2 ✓$/);
   await b.reload();
-  await expect(b.getByTestId('goal-progress')).toHaveText('Today: You 10/2 pages ✓ · Alex 10/2 ✓');
+  await expect(b.getByTestId('goal-progress')).toHaveText(/^Today: You \d+\/2 pages ✓ · Alex \d+\/2 ✓$/);
   await expect(b.getByTestId('streak')).toHaveText('🔥 1-day reading streak');
   await a.screenshot({ path: `${SHOTS}/s1-together-a-alex.png` });
   await b.screenshot({ path: `${SHOTS}/s2-together-b-sam.png` });

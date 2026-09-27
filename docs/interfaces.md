@@ -17,7 +17,9 @@ book     (id, couple_id, title, author, sha256 text, storage_path, spine_lengths
 progress (user_id, book_id, pos numeric, max_pos numeric, locator jsonb, updated_at, pk(user_id, book_id))
          -- pos = start of the visible page (where to reopen); max_pos = greatest(max_pos, end of visible page), never decreases
 mark     (id, book_id, author_id, kind mark_kind, pos numeric, locator jsonb,
-          emoji reaction?, body text?, label text?, media_url text?, parent_id → mark?, created_at)
+          emoji reaction?, body text?, label text?, media_url text?, parent_id → mark?, color text?, created_at)
+         -- color (U1): null = the author's member ink; else one of inks(), only on highlight|note|bookmark,
+         -- and never the ink of another member of the book's couple (trigger mark_color_not_partners, 23514)
 answer   (id, book_id, spine int, kind answer_kind, prompt_key text, user_id, value text, created_at,
           unique(book_id, spine, prompt_key, user_id))
 event    (id, couple_id, book_id?, actor_id, type event_type, ref_id uuid?, pos numeric?, data jsonb, created_at)
@@ -75,7 +77,7 @@ Private bucket `memories` (P43), object path `{couple_id}/{mark_id}.{jpg|png|web
 ## Routes
 
 - `/together`: stats tiles, then the streak row (`data-testid="streak"`: `🔥 {n}-day reading streak` or `Start a streak: read today together`; `"goal-progress"`: `Today: You 7/10 pages · Sam 10/10 ✓`) and the goal form. Loading it syncs `member.timezone` from the browser.
-- `/book/[id]`: server checks membership, signs a 60 s Storage URL; the client restores `progress.locator` (else pos 0), saves on relocate. Font scale is per device in `localStorage['reader:fontScale']`. Test hooks: `data-testid="my-pos"` and `"saved-pos"` (pos, 6 decimals), `"progress-pair"` (the bar: `{partner} p.{n} · you p.{m}`, `{partner} hasn't started`, partner part hidden when solo; colours from `member.color`). Discussion entry points (F2): a header link `Discuss {chapterTitle(toc, spine - 1)}` once `pos >= 1` and that title is non-null, and a floating `complementary "Chapter finished"`: `You finished {chapterTitle(toc, n)}.` + `Discuss it together →` + Dismiss, shown only for a non-null title when a relocate enters a spine beyond the furthest reached (n = that spine − 1). Both go to `discussHref(bookId, n)`.
+- `/book/[id]`: server checks membership, signs a 60 s Storage URL; the client restores `progress.locator` (else pos 0), saves on relocate. Font scale is per device in `localStorage['reader:fontScale']`. Test hooks: `data-testid="my-pos"` and `"saved-pos"` (pos, 6 decimals), `"progress-pair"` (screen-reader text for the DuetRibbon: `{partner} p.{n} · you p.{m}`, `{partner} hasn't started`, partner part hidden when solo). Discussion entry points (F2): a header link `Discuss {chapterTitle(toc, spine - 1)}` once `pos >= 1` and that title is non-null, and a floating `complementary "Chapter finished"`: Toast `You finished {chapterTitle(toc, n)}.` + `Discuss it together` + Dismiss, shown only for a non-null title when a relocate enters a spine beyond the furthest reached (n = that spine − 1). Both go to `discussHref(bookId, n)`.
 - `/discuss/[bookId]/[spine]`: the chapter's questions and guess card (P32); 404 for front matter (`chapterTitle` null).
 - `/together/book/[bookId]`: the timeline; the `💬 You discussed {labels, joined by Intl.ListFormat}` line (front matter left out) links each chapter to its `/discuss` page.
 - `POST /api/push/dispatch`: called only by `event_push`; 401 without the secret. Loads the event with the service role, words it with `notificationFor`, sends Web Push (VAPID) to each of the partner's `push_sub` rows. `src/proxy.ts` must let it, `/sw.js` and `/manifest.webmanifest` through without a session (open follow-up from P33).
@@ -99,7 +101,8 @@ ReaderHandle.on('select',   e => { locator, pos, text, rect })          // locat
 ReaderHandle.on('markClick', e => { id, rect })
 ReaderHandle.on('lengthMismatch', e => { spine, expected, actual })
 ReaderHandle.on('anchorLost', e => { id, spine })   // mark couldn't be placed by CFI, offset or quote (P22)
-ReaderHandle.paint(marks: PaintMark[])     // full set, idempotent; PaintMark = { id, locator, color, kind: 'highlight'|'underline' }
+ReaderHandle.paint(marks: PaintMark[])     // full set, idempotent; PaintMark = { id, locator, color, kind: 'highlight'|'underline'|'note', fresh? }
+    // highlight fill = ink at 22%; note = that fill + a 2px underline in the same ink; fresh inks in once (0.7 s wipe, skipped under reduced motion)
 ReaderHandle.goTo(target: Locator | Pos)   // nothing renders until the first goTo
 ReaderHandle.next() / prev() / setFontScale(n) / clearSelection() / destroy()   // clearSelection: after a mark is made
 ReaderHandle.setTheme({ background, color })   // colours inside the book iframe; shares foliate's styles slot with setFontScale, both survive section loads (P44)
@@ -111,6 +114,7 @@ usePrefs(): [Prefs, (patch: Partial<Prefs>) => void]
 // locator.ts: resolveAnchor, toPos, fromPos, quoteAt, findByQuote, spineLengthsFromEpub, tocFromEpub, zipReader, canonicalText, offsetOf, rangeAt
 // together/discussion.ts: chapterTitle(toc: Toc | null, spine) → the TOC label at or before spine; null = front matter; toc null → `Chapter {spine+1}`
 displayPage(pos, spineLengths): number     // floor(chars before pos / 1500) + 1; display only, never stored
+pageCount(spineLengths): number   // ceil(all chars / 1500), at least 1; the DuetRibbon's total
 // goTo anchors on the first non-whitespace char at or after the target offset (inter-block whitespace has no box to scroll to)
 
 // features/marks
@@ -125,16 +129,22 @@ revealedBy({ ids, maxPos }, marks): Mark[]    // unseen, top-level, in-text mark
 <RevealToast mark partner onShow onClose />   // role=status "✨ New from {partner}: {emoji | 'a note' | 'a memory' | 'a highlight'}" + Show (opens
     // the thread); 8 s. Never a count or hint of marks still ahead (D9): it only describes marks RLS already returned
 // bookmark and send marks carry a locator but aren't anchors: groupByAnchor skips them, so they're never painted or threaded
-<BookmarksPanel bookmarks members onGo(mark) onClose />   // header "Bookmarks" button on /book; label + quote, click → goTo
+<BookmarksPanel bookmarks members onGo(mark) onClose />   // Sheet (dialog) "Bookmarks" from the /book top bar; ribbon in inkOf + label + quote, click → goTo
+// /book/[id]: a bookmark whose pos is within the visible page [pos, pageEndPos] hangs as a ribbon in its ink from the top edge of the page
+//   (<li role=img aria-label="Bookmark: {label}">); it never paints on the text
 BOOKMARK_LABELS   // First quote we both loved · Favorite chapter · Funny part · Important conversation (+ custom text)
 useInbox(meId): Mark[]   // the partner's sends, newest first, live over inbox:{meId} (client-side kind check)
 <Inbox meId partner books />   // /library "From {partner}": quote, optional message, link /book/{id}?mark={markId}
 // /book/[id]?mark={id}: the server reads that mark's locator (RLS) and the reader opens there instead of progress.locator
-toPaintMarks(anchors, members): PaintMark[]   // one per CFI; both partners → 'underline' in the blend of their colours
-<SelectionMenu rect onHighlight onReact(r) onNote(body) onBookmark(label) partnerName? onSend(message|null) onDismiss />
+toPaintMarks(anchors, members): PaintMark[]   // one per CFI in each author's latest coloured mark there (else their ink); a note → 'note';
+    // both partners → 'underline' in the blend of their two inks
+inkOf(mark, members): string   // mark.color, unless null or now the partner's ink → the author's member ink
+<SelectionMenu rect myColor partnerColor? onHighlight(color?) onReact(r) onNote(body, color?) onBookmark(label, color?) partnerName? onSend(message|null) onDismiss />
+    // InkSwatches radios "Ink" (every ink but the partner's; default my ink, then the last one picked on this device, localStorage['marks:ink'])
+    // apply to Highlight, Note and Bookmark; reactions and sends stay in the author's ink
     // 7 reactions by aria-label + Highlight + Note + Bookmark (label picker) + "Send to {partner}" (optional message; solo: hidden);
     // kept inside the viewport; dismisses on Escape, a click outside it, or a click into the book (window blur)
-<ThreadPanel anchor members meId onReply(body) onClose />   // bottom sheet below md, side panel at md+; Escape closes
+<ThreadPanel anchor members meId onReply(body) onClose />   // Sheet (dialog) titled "In the margin": bottom sheet below md, side panel at md+; Escape or Close closes; each line's dot in inkOf
     // memories render in time order with the anchor's marks as <li aria-label="Memory"> (img alt "Memory photo", "📸 {You|name}: caption");
     // "Add a memory 📸" opens form "Add a memory" (Photo, Caption, Save memory) and calls addMemory itself; the mark arrives over marks:{bookId}
 // /book/[id]: select → SelectionMenu; markClick(id) → ThreadPanel for anchors.find(a => a.cfi === id);
@@ -147,10 +157,13 @@ reduce(s: SyncState, e: SyncEvent, me): SyncState   // pure; SyncState solo | pa
     // e.by === me is my own action, else the partner's; unexpected events leave s unchanged; simultaneous invites: the smaller user id leads
 useSync(bookId, me, reader): { sync, notice, signal(type), relocated(locator) }   // follower chases the leader's locator with serialised goTo;
     // the follower's own relocates still save progress (max_pos rises: consented by Accept) but are never broadcast
-<SyncPill sync notice partnerName onSignal />   // /book header, data-testid="sync-pill" data-state={kind}: "{partner} is here" + Read together now,
+<SyncPill sync notice partnerName partnerColor onSignal className? />   // /book header, data-testid="sync-pill" data-state={kind}: "{partner} is here" + Read together now,
     // "Waiting for {partner}…" + Cancel, "Reading together with {partner} ❤️" + Leave, then the last notice (You left… / {partner} left…)
-<SyncInvite partnerName onSignal />   // role=dialog "Read together": "{partner} wants to read together. You'll follow {partner}'s pages." Accept / Not now
+<SyncInvite partnerName partnerColor onSignal />   // role=dialog "Read together": "{partner} wants to read together. You'll follow {partner}'s pages." Accept / Not now
 // /book/[id]: a Prev/Next/arrow turn or a bookmark jump while following leaves sync; the partner leaving the book (presence) ends it for both
+// /book/[id] layout (U1, docs/design.md "Book"): one top bar (Library, title, DuetRibbon, SyncPill, Bookmarks, Discuss, Aa) that drops to 35%
+//   opacity after the first turn (data-reading="true") and returns on hover or focus; the "Previous page" / "Next page" buttons are the
+//   full-height transparent tap zones at the left and right edges (max(2.75rem, 7%) wide); arrow keys turn too. No footer.
 
 // features/couple
 useProgressSaver(bookId, userId, initial: Progress | null): { save(pos, pageEndPos, locator); savedPos; savedMaxPos }   // client; 1 s debounce,

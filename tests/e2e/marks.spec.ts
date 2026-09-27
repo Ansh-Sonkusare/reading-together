@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { CHAPTER_1, locate, myPos, overlays, pairUp, paintAt, select, tap, thread, toChapter1, turn, uploadAndOpen, waitForSave } from './helpers';
 
 const SHOTS = '.verify/p14b';
@@ -105,7 +105,7 @@ test('bookmarks are shared with a label; a sent passage lands in the partner inb
   await expect(menu).toBeHidden();
   await expect.poll(() => selectedText(a)).toBe('');
 
-  const panel = (page: Page) => page.getByRole('region', { name: 'Bookmarks' });
+  const panel = (page: Page) => page.getByRole('dialog', { name: 'Bookmarks' });
   for (const page of [a, b]) {
     await page.getByRole('button', { name: 'Bookmarks' }).click();
     await expect(panel(page).getByRole('button', { name: /^Funny part/ })).toContainText(P1, { timeout: LIVE_MS });
@@ -145,4 +145,42 @@ test('bookmarks are shared with a label; a sent passage lands in the partner inb
   await expect(myPos(b)).toHaveText(CHAPTER_1);
   await locate(b, P2);
   await b.screenshot({ path: `${shots}/5-opened-at-passage-b-sam.png` });
+});
+
+test("each mark keeps the ink it was made in; A's picker never offers B's ink", async ({ browser }) => {
+  const JADE = '#0ca678';
+  const VIOLET = 'rgb(112, 72, 232)';
+  const { a, b } = await pairUp(browser);
+  const bookPath = await uploadAndOpen(a);
+  await b.goto(bookPath);
+  await toChapter1(a);
+  await toChapter1(b);
+
+  const inkNames = (menu: Locator) => menu.getByRole('radio').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')));
+  const noteMenu = await select(a, P2);
+  expect(await inkNames(noteMenu)).toEqual(['Rose', 'Jade', 'Amber', 'Violet', 'Teal']);
+  await expect(noteMenu.getByRole('radio', { name: 'Rose' })).toBeChecked();
+  await noteMenu.getByLabel('Jade').check({ force: true });
+  await noteMenu.getByRole('button', { name: 'Note' }).click();
+  await noteMenu.getByLabel('Write a note').fill('Green like the garden.');
+  await noteMenu.getByRole('button', { name: 'Save' }).click();
+  await expect.poll(() => paintAt(b, P2), { timeout: LIVE_MS }).toEqual([expect.objectContaining({ fill: JADE, count: 1 })]);
+
+  const bookmarkMenu = await select(a, P1);
+  expect(await inkNames(bookmarkMenu)).toEqual(['Rose', 'Jade', 'Amber', 'Violet', 'Teal']);
+  await expect(bookmarkMenu.getByRole('radio', { name: 'Jade' })).toBeChecked();
+  await bookmarkMenu.getByLabel('Violet').check({ force: true });
+  await bookmarkMenu.getByRole('button', { name: 'Bookmark' }).click();
+  await bookmarkMenu.getByRole('button', { name: 'Funny part' }).click();
+
+  const ribbon = b.getByRole('img', { name: 'Bookmark: Funny part' });
+  await expect(ribbon.locator('span')).toHaveCSS('background-color', VIOLET, { timeout: LIVE_MS });
+  expect(await paintAt(b, P1)).toEqual([]);
+
+  const panel = b.getByRole('dialog', { name: 'Bookmarks' });
+  await b.getByRole('button', { name: 'Bookmarks' }).click();
+  await expect(panel.getByRole('button', { name: /^Funny part/ }).locator('span').first()).toHaveCSS('background-color', VIOLET);
+  await panel.getByRole('button', { name: 'Close' }).click();
+  await turn(b, () => b.getByRole('button', { name: 'Next page' }).click());
+  await expect(ribbon).toHaveCount(0);
 });

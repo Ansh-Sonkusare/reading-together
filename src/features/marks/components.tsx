@@ -1,15 +1,21 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
-import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { InkSwatches } from '@/components/ui/ink';
+import { Sheet } from '@/components/ui/sheet';
+import { Toast } from '@/components/ui/toast';
+import { COLORS, type Color } from '@/features/couple/palette';
 import { createBrowserClient } from '@/lib/supabase';
+import { cn } from '@/lib/utils';
 import { addMemory, memoryPhotoUrl, useInbox } from './data';
-import { BOOKMARK_LABELS, REACTIONS, describe, type Anchor, type Mark, type Member, type Reaction } from './model';
+import { BOOKMARK_LABELS, REACTIONS, describe, inkOf, type Anchor, type Mark, type Member, type Reaction } from './model';
 
 const GAP = 8;
 const textarea =
-  'w-full resize-none rounded-lg border border-input bg-background p-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
+  'w-full resize-none rounded-lg border border-rule bg-paper p-2.5 text-base outline-none placeholder:text-pencil focus-visible:border-pencil';
 
 type BodyFormProps = { label: string; submit: string; onSubmit: (body: string) => void; autoFocus?: boolean; optional?: boolean };
 
@@ -54,8 +60,23 @@ function place(menu: HTMLElement, rect: DOMRect) {
   menu.style.left = `${Math.max(GAP, Math.min(rect.left, vw - GAP - w))}px`;
 }
 
+const INK_KEY = 'marks:ink';
+const isInk = (c: string | null | undefined): c is Color => COLORS.includes(c as Color);
+
+// The ink this device last marked in, unless it is the partner's now; else my own.
+function lastInk(mine: string, partner?: string): Color | undefined {
+  let saved: string | null = null;
+  try {
+    saved = localStorage.getItem(INK_KEY);
+  } catch {}
+  if (isInk(saved) && saved !== partner) return saved;
+  return isInk(mine) ? mine : undefined;
+}
+
 export function SelectionMenu({
   rect,
+  myColor,
+  partnerColor,
   onHighlight,
   onReact,
   onNote,
@@ -65,15 +86,25 @@ export function SelectionMenu({
   onDismiss,
 }: {
   rect: DOMRect;
-  onHighlight: () => void;
+  myColor: string;
+  partnerColor?: string;
+  onHighlight: (color?: Color) => void;
   onReact: (r: Reaction) => void;
-  onNote: (body: string) => void;
-  onBookmark: (label: string) => void;
+  onNote: (body: string, color?: Color) => void;
+  onBookmark: (label: string, color?: Color) => void;
   partnerName?: string;
   onSend: (message: string | null) => void;
   onDismiss: () => void;
 }) {
   const [open, setOpen] = useState<'note' | 'bookmark' | 'send' | null>(null);
+  const [ink, setInk] = useState(() => lastInk(myColor, partnerColor));
+  const pick = (c: string) => {
+    if (!isInk(c)) return;
+    setInk(c);
+    try {
+      localStorage.setItem(INK_KEY, c);
+    } catch {}
+  };
   const toggle = (form: typeof open) => ({ 'aria-expanded': open === form, onClick: () => setOpen(open === form ? null : form) });
   const ref = useRef<HTMLDivElement>(null);
   const dismiss = useRef(onDismiss);
@@ -117,42 +148,50 @@ export function SelectionMenu({
       role="group"
       aria-label="Mark this passage"
       tabIndex={-1}
-      className="fixed z-50 flex w-[min(22rem,calc(100vw-1rem))] flex-col gap-2 rounded-xl border bg-background p-2 text-foreground shadow-lg outline-none"
+      className="fixed z-50 flex w-[min(22rem,calc(100vw-1rem))] flex-col gap-2 rounded-sheet border border-rule bg-popover p-3 text-popover-foreground shadow-float outline-none"
     >
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap justify-between">
         {REACTIONS.map((r) => (
-          <Button key={r.key} variant="ghost" size="icon-lg" className="text-xl" aria-label={r.label} title={r.label} onClick={() => onReact(r.key)}>
+          <Button key={r.key} variant="quiet" size="icon-lg" className="text-xl" aria-label={r.label} title={r.label} onClick={() => onReact(r.key)}>
             {r.emoji}
           </Button>
         ))}
       </div>
+      <InkSwatches
+        label="Ink"
+        name="mark-ink"
+        value={ink ?? myColor}
+        onChange={pick}
+        exclude={partnerColor ? [partnerColor] : []}
+        className="gap-0 border-t border-rule pt-2 [&_label]:size-9 [&_label>span]:size-6 [&_legend]:mb-0"
+      />
       <div className="flex flex-wrap gap-2">
-        <Button variant="secondary" onClick={onHighlight}>
+        <Button variant="outline" size="sm" onClick={() => onHighlight(ink)}>
           Highlight
         </Button>
-        <Button variant="secondary" {...toggle('note')}>
+        <Button variant="outline" size="sm" {...toggle('note')}>
           Note
         </Button>
-        <Button variant="secondary" {...toggle('bookmark')}>
+        <Button variant="outline" size="sm" {...toggle('bookmark')}>
           Bookmark
         </Button>
         {partnerName && (
-          <Button variant="secondary" {...toggle('send')}>
+          <Button variant="outline" size="sm" {...toggle('send')}>
             Send to {partnerName}
           </Button>
         )}
       </div>
-      {open === 'note' && <BodyForm label="Write a note" submit="Save" onSubmit={onNote} autoFocus />}
+      {open === 'note' && <BodyForm label="Write a note" submit="Save" onSubmit={(body) => onNote(body, ink)} autoFocus />}
       {open === 'bookmark' && (
         <div role="group" aria-label="Bookmark label" className="flex flex-col gap-2">
           <div className="flex flex-wrap gap-1">
             {BOOKMARK_LABELS.map((l) => (
-              <Button key={l} variant="outline" size="sm" onClick={() => onBookmark(l)}>
+              <Button key={l} variant="quiet" size="sm" className="bg-wash" onClick={() => onBookmark(l, ink)}>
                 {l}
               </Button>
             ))}
           </div>
-          <BodyForm label="Custom label" submit="Save bookmark" onSubmit={onBookmark} />
+          <BodyForm label="Custom label" submit="Save bookmark" onSubmit={(l) => onBookmark(l, ink)} />
         </div>
       )}
       {open === 'send' && (
@@ -174,17 +213,19 @@ function MemoryPhoto({ path }: { path: string }) {
       alive = false;
     };
   }, [path]);
-  return src ? <img src={src} alt="Memory photo" className="max-h-64 w-full rounded-lg object-cover" /> : <div className="h-40 w-full animate-pulse rounded-lg bg-muted" />;
+  return src ? <img src={src} alt="Memory photo" className="max-h-64 w-full rounded-lg object-cover" /> : <div className="h-40 w-full animate-pulse rounded-lg bg-wash" />;
 }
 
 function Line({ mark, members, meId }: { mark: Mark; members: Member[]; meId: string }) {
   const author = members.find((m) => m.userId === mark.author_id);
+  const who = mark.author_id === meId ? 'You' : (author?.name ?? 'Reader');
+  const ink = inkOf(mark, members);
   if (mark.kind === 'memory') {
     return (
-      <li aria-label="Memory" className="flex flex-col gap-2 rounded-lg border-l-4 bg-muted/40 p-2 text-sm" style={{ borderColor: author?.color ?? '#9ca3af' }}>
+      <li aria-label="Memory" className="flex flex-col gap-2 rounded-lg border-l-4 bg-wash p-2 text-sm" style={{ borderColor: ink }}>
         {mark.media_url && <MemoryPhoto path={mark.media_url} />}
         <p>
-          <span className="font-medium">📸 {mark.author_id === meId ? 'You' : (author?.name ?? 'Reader')}:</span> {mark.body}
+          <span className="font-medium">📸 {who}:</span> {mark.body}
         </p>
       </li>
     );
@@ -192,12 +233,20 @@ function Line({ mark, members, meId }: { mark: Mark; members: Member[]; meId: st
   const reaction = mark.kind === 'reaction' ? REACTIONS.find((r) => r.key === mark.emoji) : undefined;
   const text = reaction ? `${reaction.emoji} ${reaction.label}` : mark.kind === 'highlight' ? 'highlighted this' : mark.body;
   return (
-    <li className="flex items-baseline gap-2 text-sm">
-      <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ background: author?.color ?? '#9ca3af' }} />
+    <li className="flex items-baseline gap-2.5">
+      <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ background: ink }} />
       <p>
-        <span className="font-medium">{mark.author_id === meId ? 'You' : (author?.name ?? 'Reader')}:</span> {text}
+        <span className="font-medium">{who}:</span> {text}
       </p>
     </li>
+  );
+}
+
+function CloseButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button variant="quiet" size="icon" aria-label="Close" className="absolute top-4 right-4 text-pencil" onClick={onClick}>
+      <X />
+    </Button>
   );
 }
 
@@ -214,34 +263,17 @@ export function ThreadPanel({
   onReply: (body: string) => void;
   onClose: () => void;
 }) {
-  const close = useRef(onClose);
-  useEffect(() => {
-    close.current = onClose;
-  });
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close.current();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
-
   return (
-    <section
-      aria-label="Thread"
-      className="fixed inset-x-0 bottom-0 z-50 flex max-h-[70dvh] flex-col gap-3 overflow-y-auto rounded-t-xl border bg-background p-4 text-foreground shadow-lg md:inset-x-auto md:right-4 md:bottom-4 md:w-96 md:rounded-xl"
-    >
-      <div className="flex items-start justify-between gap-2">
-        <blockquote className="border-l-2 pl-3 text-sm italic text-muted-foreground">{anchor.locator.quote?.exact}</blockquote>
-        <Button variant="ghost" size="icon-sm" aria-label="Close" onClick={onClose}>
-          ✕
-        </Button>
-      </div>
+    <Sheet open onOpenChange={(o) => !o && onClose()} title="In the margin">
+      <CloseButton onClick={onClose} />
+      <blockquote className="border-l-2 border-rule pl-3 text-lg leading-relaxed text-pencil">{anchor.locator.quote?.exact}</blockquote>
       <ol className="flex flex-col gap-2">
         {anchor.marks.map((m) => (
           <Line key={m.id} mark={m} members={members} meId={meId} />
         ))}
       </ol>
       {anchor.replies.length > 0 && (
-        <ol aria-label="Replies" className="flex flex-col gap-2 border-t pt-2">
+        <ol aria-label="Replies" className="flex flex-col gap-2 border-t border-rule pt-3">
           {anchor.replies.map((m) => (
             <Line key={m.id} mark={m} members={members} meId={meId} />
           ))}
@@ -249,7 +281,7 @@ export function ThreadPanel({
       )}
       <BodyForm label="Reply" submit="Reply" onSubmit={onReply} />
       <MemoryForm anchor={anchor} />
-    </section>
+    </Sheet>
   );
 }
 
@@ -275,28 +307,28 @@ function MemoryForm({ anchor }: { anchor: Anchor }) {
   };
   if (!open) {
     return (
-      <Button variant="secondary" size="sm" className="self-start" onClick={() => setOpen(true)}>
+      <Button variant="outline" size="sm" className="self-start" onClick={() => setOpen(true)}>
         Add a memory 📸
       </Button>
     );
   }
   return (
-    <form onSubmit={save} aria-label="Add a memory" className="flex flex-col gap-2 border-t pt-2">
+    <form onSubmit={save} aria-label="Add a memory" className="flex flex-col gap-2 border-t border-rule pt-3">
       <input
         type="file"
         accept="image/*"
         aria-label="Photo"
-        className="text-sm file:mr-2 file:rounded-md file:border-0 file:bg-secondary file:px-2 file:py-1"
+        className="text-sm file:mr-2 file:rounded-full file:border-0 file:bg-wash file:px-3 file:py-1 file:text-foreground"
         onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
       />
       <textarea aria-label="Caption" placeholder="Caption" rows={2} className={textarea} value={caption} onChange={(e) => setCaption(e.target.value)} />
       {status && 'error' in status && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-sm text-danger">
           {status.error}
         </p>
       )}
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+        <Button type="button" variant="quiet" size="sm" onClick={() => setOpen(false)}>
           Cancel
         </Button>
         <Button type="submit" size="sm" disabled={!photo || (status !== null && 'saving' in status)}>
@@ -307,7 +339,19 @@ function MemoryForm({ anchor }: { anchor: Anchor }) {
   );
 }
 
-export function RevealToast({ mark, partner, onShow, onClose }: { mark: Mark; partner: Member; onShow: () => void; onClose: () => void }) {
+export function RevealToast({
+  mark,
+  partner,
+  onShow,
+  onClose,
+  className,
+}: {
+  mark: Mark;
+  partner: Member;
+  onShow: () => void;
+  onClose: () => void;
+  className?: string;
+}) {
   const close = useRef(onClose);
   useEffect(() => {
     close.current = onClose;
@@ -317,53 +361,52 @@ export function RevealToast({ mark, partner, onShow, onClose }: { mark: Mark; pa
     return () => clearTimeout(t);
   }, [mark]);
   return (
-    <div
-      role="status"
-      className="fixed inset-x-0 top-14 z-40 mx-auto flex w-fit max-w-[calc(100vw-1rem)] items-center gap-3 rounded-full border bg-background py-1 pr-1 pl-4 text-sm text-foreground shadow-lg"
+    <Toast
+      color={partner.color}
+      className={cn('py-1.5 pr-1.5', className)}
+      action={
+        <>
+          <Button size="sm" onClick={onShow}>
+            Show
+          </Button>
+          <Button variant="quiet" size="icon" aria-label="Dismiss" className="text-pencil" onClick={onClose}>
+            <X />
+          </Button>
+        </>
+      }
     >
-      <span>
-        ✨ New from <span style={{ color: partner.color }}>{partner.name}</span>: {describe(mark)}
-      </span>
-      <Button size="sm" onClick={onShow}>
-        Show
-      </Button>
-      <Button variant="ghost" size="icon-sm" aria-label="Dismiss" onClick={onClose}>
-        ✕
-      </Button>
-    </div>
+      ✨ New from {partner.name}: {describe(mark)}
+    </Toast>
   );
+}
+
+// A bookmark ribbon: a strip of ink with a notch cut into its tail.
+export function Ribbon({ color, className }: { color: string; className?: string }) {
+  return <span aria-hidden className={cn('inline-block shrink-0 [clip-path:polygon(0_0,100%_0,100%_100%,50%_75%,0_100%)]', className)} style={{ background: color }} />;
 }
 
 export function BookmarksPanel({ bookmarks, members, onGo, onClose }: { bookmarks: Mark[]; members: Member[]; onGo: (m: Mark) => void; onClose: () => void }) {
   return (
-    <section
-      aria-label="Bookmarks"
-      className="fixed inset-x-0 bottom-0 z-50 flex max-h-[70dvh] flex-col gap-3 overflow-y-auto rounded-t-xl border bg-background p-4 text-foreground shadow-lg md:inset-x-auto md:top-14 md:right-4 md:bottom-auto md:w-96 md:rounded-xl"
-    >
-      <div className="flex items-center justify-between">
-        <h2 className="font-semibold">Bookmarks</h2>
-        <Button variant="ghost" size="icon-sm" aria-label="Close" onClick={onClose}>
-          ✕
-        </Button>
-      </div>
+    <Sheet open onOpenChange={(o) => !o && onClose()} title="Bookmarks">
+      <CloseButton onClick={onClose} />
       {bookmarks.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Select a passage and tap Bookmark to keep it here.</p>
+        <p className="text-muted-foreground">Select a passage and tap Bookmark to keep it here.</p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="-mx-2 flex flex-col gap-1">
           {bookmarks.map((m) => (
             <li key={m.id}>
-              <button className="flex w-full flex-col gap-1 rounded-lg p-2 text-left hover:bg-muted" onClick={() => onGo(m)}>
-                <span className="flex items-center gap-2 text-sm font-medium">
-                  <span aria-hidden className="size-2.5 rounded-full" style={{ background: members.find((p) => p.userId === m.author_id)?.color }} />
-                  {m.label}
+              <button className="flex w-full gap-3 rounded-lg p-2 text-left transition-colors hover:bg-wash" onClick={() => onGo(m)}>
+                <Ribbon color={inkOf(m, members)} className="mt-0.5 h-6 w-3.5" />
+                <span className="flex min-w-0 flex-col gap-1">
+                  <span className="font-medium">{m.label}</span>
+                  <span className="line-clamp-2 font-serif text-sm text-pencil italic">{m.locator?.quote?.exact}</span>
                 </span>
-                <span className="line-clamp-2 text-sm italic text-muted-foreground">{m.locator?.quote?.exact}</span>
               </button>
             </li>
           ))}
         </ul>
       )}
-    </section>
+    </Sheet>
   );
 }
 

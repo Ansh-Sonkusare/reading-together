@@ -1,14 +1,19 @@
 'use client';
 
+import { Bookmark as BookmarkIcon, ChevronLeft, ChevronRight, MessageCircle, X } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { DuetRibbon, type RibbonMark } from '@/components/ui/duet-ribbon';
+import { Toast } from '@/components/ui/toast';
 import type { Member } from '@/features/couple/couple';
 import { usePartnerProgress, useProgressSaver, type Progress } from '@/features/couple/progress';
-import { BookmarksPanel, RevealToast, SelectionMenu, ThreadPanel, createMark, toPaintMarks, useMarks, type Mark, type NewMark } from '@/features/marks';
-import { createReader, displayPage, ReaderPrefs, type Locator, type Pos, type ReaderHandle, type Toc } from '@/features/reader';
+import { BookmarksPanel, RevealToast, Ribbon, SelectionMenu, ThreadPanel, createMark, inkOf, toPaintMarks, useMarks, type Mark, type NewMark } from '@/features/marks';
+import { createReader, displayPage, pageCount, ReaderPrefs, type Locator, type Pos, type ReaderHandle, type Toc } from '@/features/reader';
 import { SyncInvite, SyncPill, useSync } from '@/features/sync';
 import { chapterTitle, discussHref } from '@/features/together/discussion';
 import { createBrowserClient } from '@/lib/supabase';
+import { cn } from '@/lib/utils';
 
 type Selected = { locator: Locator; pos: Pos; rect: DOMRect };
 
@@ -30,9 +35,12 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
   const container = useRef<HTMLDivElement>(null);
   const [reader, setReader] = useState<ReaderHandle | null>(null);
   const [pos, setPos] = useState<number | null>(null);
+  const [pageEnd, setPageEnd] = useState<number | null>(null);
   const [mismatch, setMismatch] = useState(false);
   const [failed, setFailed] = useState(false);
   const [turning, setTurning] = useState(false);
+  // Once the reader turns a page the top bar recedes; hover, focus or a tap on it brings it back.
+  const [reading, setReading] = useState(false);
   const [markFailed, setMarkFailed] = useState(false);
   const [selection, setSelection] = useState<Selected | null>(null);
   const [threadCfi, setThreadCfi] = useState<string | null>(null);
@@ -55,6 +63,9 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
   const lastChapter = pos === null || pos < 1 ? null : chapterTitle(toc, Math.floor(pos) - 1);
 
   const bookmarks = useMemo(() => marks.filter((m) => m.kind === 'bookmark'), [marks]);
+  const onThisPage = pos === null || pageEnd === null ? [] : bookmarks.filter((m) => m.pos >= pos && m.pos <= pageEnd);
+  // A partner's mark revealed by reaching it inks in once; mine never animate.
+  const fresh = useMemo(() => new Set(revealed.filter((m) => m.author_id === partner?.userId).map((m) => m.locator!.cfi)), [revealed, partner]);
 
   useEffect(() => {
     const theirs = revealed.filter((m) => m.author_id === partner?.userId);
@@ -62,8 +73,8 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
   }, [revealed, partner]);
 
   useEffect(() => {
-    reader?.paint(toPaintMarks(anchors, members));
-  }, [reader, anchors, members]);
+    reader?.paint(toPaintMarks(anchors, members).map((p) => (fresh.has(p.id) ? { ...p, fresh: true } : p)));
+  }, [reader, anchors, members, fresh]);
 
   const mark = (input: NewMark) => {
     setSelection(null);
@@ -94,6 +105,7 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
       });
       r.on('relocate', (e) => {
         setPos(e.pos);
+        setPageEnd(e.pageEndPos);
         if (e.spine > maxSpine.current) {
           maxSpine.current = e.spine;
           setFinished(e.spine - 1);
@@ -124,6 +136,7 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
   const turn = async (dir: 'prev' | 'next') => {
     if (!reader || turning) return;
     leaveIfFollowing();
+    setReading(true);
     setTurning(true);
     try {
       await reader[dir]();
@@ -142,72 +155,126 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
     return () => window.removeEventListener('keydown', onKey);
   });
 
+  const here = pos ?? mine?.pos ?? 0;
+  const onRibbon = (m: Member, at: number, isMe: boolean): RibbonMark => {
+    const page = displayPage(at, spineLengths);
+    return { name: m.name, color: m.color, page, pos: page, isMe };
+  };
+  const ribbon = [...(partner && theirs ? [onRibbon(partner, theirs.pos, false)] : []), onRibbon(me, here, true)];
+  const quiet = cn(buttonVariants({ variant: 'quiet', size: 'sm' }), 'text-pencil hover:text-foreground');
+
   return (
-    <div className="flex h-dvh flex-col">
-      <header className="flex items-center gap-3 border-b px-3 py-2 text-sm">
-        <Link href="/library" className="underline">
-          Library
+    <div className="flex h-dvh flex-col bg-paper">
+      <header
+        data-reading={reading}
+        className="z-20 flex flex-wrap items-center gap-x-0.5 px-2 pt-1.5 transition-opacity duration-500 [&[data-reading=true]:not(:hover,:focus-within)]:opacity-35 md:flex-nowrap md:gap-x-1 md:px-4 md:pb-1.5"
+      >
+        <Link href="/library" className={quiet}>
+          <ChevronLeft />
+          <span className="max-md:sr-only">Library</span>
         </Link>
-        <h1 className="truncate font-semibold">{title}</h1>
-        {partner && <SyncPill sync={sync} notice={notice} partnerName={partner.name} onSignal={signal} />}
-        <button className="ml-auto shrink-0 underline" aria-expanded={bookmarksOpen} onClick={() => setBookmarksOpen(!bookmarksOpen)}>
-          Bookmarks
+        <h1 className="min-w-0 flex-1 truncate px-1 font-serif text-base md:max-w-72 md:flex-none md:text-lg">{title}</h1>
+        <div aria-hidden className="order-last basis-full px-3 pt-1 md:order-none md:basis-auto md:flex-1 md:px-6 md:pt-2">
+          <DuetRibbon size="sm" total={pageCount(spineLengths)} marks={ribbon} className="md:mx-auto md:max-w-md" />
+        </div>
+        <p data-testid="progress-pair" className="sr-only">
+          {partner && `${theirs ? `${partner.name} p.${displayPage(theirs.pos, spineLengths)}` : `${partner.name} hasn't started`} · `}
+          you p.{displayPage(here, spineLengths)}
+        </p>
+        {partner && <SyncPill sync={sync} notice={notice} partnerName={partner.name} partnerColor={partner.color} onSignal={signal} className="max-md:order-last max-md:w-full max-md:justify-center" />}
+        <button className={quiet} aria-expanded={bookmarksOpen} onClick={() => setBookmarksOpen(!bookmarksOpen)}>
+          <BookmarkIcon />
+          <span className="max-md:sr-only">Bookmarks</span>
         </button>
         {lastChapter !== null && (
-          <Link href={discussHref(bookId, Math.floor(pos!) - 1)} className="shrink-0 underline">
-            Discuss {lastChapter}
+          <Link href={discussHref(bookId, Math.floor(pos!) - 1)} aria-label={`Discuss ${lastChapter}`} className={quiet}>
+            <MessageCircle />
+            <span className="max-md:sr-only">Discuss</span>
           </Link>
         )}
-        <p data-testid="progress-pair" className="shrink-0 font-medium">
-          {partner && (
-            <>
-              <span style={{ color: partner.color }}>
-                {theirs ? `${partner.name} p.${displayPage(theirs.pos, spineLengths)}` : `${partner.name} hasn't started`}
-              </span>
-              {' · '}
-            </>
-          )}
-          <span style={{ color: me.color }}>you p.{displayPage(pos ?? mine?.pos ?? 0, spineLengths)}</span>
-        </p>
+        <details className="relative">
+          <summary aria-label="Reading settings" className={cn(quiet, 'cursor-pointer list-none font-serif text-base [&::-webkit-details-marker]:hidden')}>
+            Aa
+          </summary>
+          <div className="absolute top-full right-0 z-30 mt-2 w-72 rounded-sheet border border-rule bg-popover p-4 text-popover-foreground shadow-float">
+            <ReaderPrefs handle={reader} />
+          </div>
+        </details>
       </header>
       {mismatch && (
-        <p role="status" className="bg-amber-50 px-3 py-1 text-xs text-amber-800">
+        <p role="status" className="px-4 py-1 text-center text-xs text-pencil">
           This book renders slightly differently here, so page numbers may be a little off.
         </p>
       )}
       {failed && (
-        <p role="alert" className="px-3 py-1 text-sm text-red-600">
+        <p role="alert" className="px-4 py-2 text-center text-danger">
           Could not open this book. Reload to try again.
         </p>
       )}
+      <div className="relative min-h-0 flex-1">
+        <div ref={container} className="size-full" />
+        <ul aria-label="Bookmarks on this page" className="pointer-events-none absolute top-0 right-[12%] flex gap-1">
+          {onThisPage.map((m) => (
+            <li key={m.id} role="img" aria-label={`Bookmark: ${m.label}`}>
+              <Ribbon color={inkOf(m, members)} className="h-10 w-5 drop-shadow-sm" />
+            </li>
+          ))}
+        </ul>
+        {(['prev', 'next'] as const).map((dir) => (
+          <button
+            key={dir}
+            aria-label={dir === 'prev' ? 'Previous page' : 'Next page'}
+            disabled={!reader || turning}
+            onClick={() => turn(dir)}
+            className={cn(
+              'group absolute inset-y-0 z-10 flex w-[max(2.75rem,7%)] items-center text-pencil outline-none disabled:cursor-default',
+              dir === 'prev' ? 'left-0 justify-start pl-1' : 'right-0 justify-end pr-1',
+            )}
+          >
+            {dir === 'prev' ? <ChevronLeft className={chevron} /> : <ChevronRight className={chevron} />}
+          </button>
+        ))}
+        <output data-testid="my-pos" className="sr-only">
+          {pos?.toFixed(6)}
+        </output>
+        <output data-testid="saved-pos" className="sr-only">
+          {savedPos?.toFixed(6)}
+        </output>
+      </div>
       {markFailed && (
-        <p role="alert" className="px-3 py-1 text-sm text-red-600">
+        <p role="alert" className="fixed inset-x-4 top-16 z-50 mx-auto w-fit rounded-full bg-popover px-5 py-2.5 text-sm text-danger shadow-float">
           Could not save that. Try again.
         </p>
       )}
       {finished !== null && finishedTitle !== null && (
         // Floats over the page: taking layout space would reflow the book and move page boundaries.
-        <aside
-          aria-label="Chapter finished"
-          className="fixed inset-x-0 bottom-14 z-30 mx-auto flex w-fit max-w-[calc(100vw-1rem)] items-center gap-2 rounded-full border bg-rose-50 py-1 pr-1 pl-4 text-sm shadow-lg"
-        >
-          <span>You finished {finishedTitle}.</span>
-          <Link href={discussHref(bookId, finished)} className="font-medium underline">
-            Discuss it together →
-          </Link>
-          <button aria-label="Dismiss" className="ml-auto px-1" onClick={() => setFinished(null)}>
-            ×
-          </button>
+        <aside aria-label="Chapter finished">
+          <Toast
+            className="z-30 rounded-sheet py-1.5 pr-1.5"
+            action={
+              <>
+                <Link href={discussHref(bookId, finished)} className={buttonVariants({ size: 'sm' })}>
+                  Discuss it together
+                </Link>
+                <Button variant="quiet" size="icon" aria-label="Dismiss" className="text-pencil" onClick={() => setFinished(null)}>
+                  <X />
+                </Button>
+              </>
+            }
+          >
+            You finished <span className="font-serif italic">{finishedTitle}</span>.
+          </Toast>
         </aside>
       )}
-      <div ref={container} className="min-h-0 flex-1" />
       {selection && at && (
         <SelectionMenu
           rect={selection.rect}
-          onHighlight={() => mark({ kind: 'highlight', ...at })}
+          myColor={me.color}
+          partnerColor={partner?.color}
+          onHighlight={(color) => mark({ kind: 'highlight', ...at, color })}
           onReact={(emoji) => mark({ kind: 'reaction', ...at, emoji })}
-          onNote={(body) => mark({ kind: 'note', ...at, body })}
-          onBookmark={(label) => mark({ kind: 'bookmark', ...at, label })}
+          onNote={(body, color) => mark({ kind: 'note', ...at, body, color })}
+          onBookmark={(label, color) => mark({ kind: 'bookmark', ...at, label, color })}
           partnerName={partner?.name}
           onSend={(body) => mark({ kind: 'send', ...at, body })}
           onDismiss={() => setSelection(null)}
@@ -234,11 +301,12 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
           onClose={() => setBookmarksOpen(false)}
         />
       )}
-      {sync.kind === 'invited' && partner && <SyncInvite partnerName={partner.name} onSignal={signal} />}
+      {sync.kind === 'invited' && partner && <SyncInvite partnerName={partner.name} partnerColor={partner.color} onSignal={signal} />}
       {toast && partner && (
         <RevealToast
           mark={toast}
           partner={partner}
+          className={cn('z-30', finished !== null && finishedTitle !== null && 'bottom-24')}
           onShow={() => {
             setToast(null);
             setSelection(null);
@@ -247,29 +315,8 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
           onClose={() => setToast(null)}
         />
       )}
-      <footer className="flex items-center justify-between gap-3 border-t px-3 py-2 text-sm">
-        <button aria-label="Previous page" disabled={!reader || turning} onClick={() => turn('prev')} className="px-2 disabled:opacity-40">
-          ‹
-        </button>
-        <span className="flex items-center gap-3">
-          <span>{pos === null ? '' : `p.${displayPage(pos, spineLengths)}`}</span>
-          <output data-testid="my-pos" className="sr-only">
-            {pos?.toFixed(6)}
-          </output>
-          <output data-testid="saved-pos" className="sr-only">
-            {savedPos?.toFixed(6)}
-          </output>
-          <details className="relative">
-            <summary aria-label="Reading settings" className="cursor-pointer select-none px-1">Aa</summary>
-            <div className="absolute bottom-8 right-0 z-20 rounded-md border bg-background p-2 shadow">
-              <ReaderPrefs handle={reader} />
-            </div>
-          </details>
-        </span>
-        <button aria-label="Next page" disabled={!reader || turning} onClick={() => turn('next')} className="px-2 disabled:opacity-40">
-          ›
-        </button>
-      </footer>
     </div>
   );
 }
+
+const chevron = 'size-7 opacity-0 transition-opacity group-hover:opacity-50 group-focus-visible:opacity-100';

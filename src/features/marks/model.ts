@@ -1,4 +1,5 @@
 import type { Member } from '@/features/couple/couple';
+import type { Color } from '@/features/couple/palette';
 import type { Locator, PaintMark, Pos } from '@/features/reader';
 import type { Enums, Tables } from '@/lib/types';
 
@@ -14,11 +15,12 @@ export const REACTIONS: ReadonlyArray<{ key: Reaction; emoji: string; label: str
   { key: 'think', emoji: '💭', label: 'Made me think' },
 ];
 
+// Highlights, notes and bookmarks may take their own ink; without one they're in the author's member ink.
 export type NewMark =
-  | { kind: 'highlight'; bookId: string; locator: Locator; pos: Pos }
+  | { kind: 'highlight'; bookId: string; locator: Locator; pos: Pos; color?: Color }
   | { kind: 'reaction'; bookId: string; locator: Locator; pos: Pos; emoji: Reaction }
-  | { kind: 'note'; bookId: string; locator: Locator; pos: Pos; body: string }
-  | { kind: 'bookmark'; bookId: string; locator: Locator; pos: Pos; label: string }
+  | { kind: 'note'; bookId: string; locator: Locator; pos: Pos; body: string; color?: Color }
+  | { kind: 'bookmark'; bookId: string; locator: Locator; pos: Pos; label: string; color?: Color }
   | { kind: 'send'; bookId: string; locator: Locator; pos: Pos; body: string | null }
   | { kind: 'reply'; bookId: string; parentId: string; body: string };
 
@@ -82,20 +84,29 @@ export function describe(m: Mark): string {
 
 const UNKNOWN_COLOR = '#9ca3af';
 
+// A mark's own ink, else its author's. An ink the partner has since switched to falls back too, so it can't read as theirs.
+export function inkOf(mark: Pick<Mark, 'author_id' | 'color'>, members: Member[]): string {
+  const own = mark.color && !members.some((p) => p.userId !== mark.author_id && p.color === mark.color);
+  return own ? mark.color! : (members.find((p) => p.userId === mark.author_id)?.color ?? UNKNOWN_COLOR);
+}
+
 function blend(a: string, b: string): string {
   const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
   const [x, y] = [rgb(a), rgb(b)];
   return '#' + x.map((v, i) => Math.round((v + y[i]) / 2).toString(16).padStart(2, '0')).join('');
 }
 
-// A range both partners marked is drawn as an underline in the blend of their colours:
+// Each author's ink on an anchor is their latest coloured mark there; reactions and memories stay in the author's ink.
+// A range both partners marked is drawn as an underline in the blend of their inks:
 // a blended fill alone can equal a palette colour (red + blue ≈ purple) and read as one person.
 export function toPaintMarks(anchors: Anchor[], members: Member[]): PaintMark[] {
-  const colorOf = (id: string) => members.find((m) => m.userId === id)?.color ?? UNKNOWN_COLOR;
   return anchors.map((a) => {
     const authors = [...new Set(a.marks.map((m) => m.author_id))].sort();
-    return authors.length > 1
-      ? { id: a.cfi, locator: a.locator, color: blend(colorOf(authors[0]), colorOf(authors[1])), kind: 'underline' }
-      : { id: a.cfi, locator: a.locator, color: colorOf(authors[0]), kind: 'highlight' };
+    const inkBy = (id: string) => {
+      const own = a.marks.filter((m) => m.author_id === id);
+      return inkOf([...own].reverse().find((m) => m.color) ?? own[0], members);
+    };
+    if (authors.length > 1) return { id: a.cfi, locator: a.locator, color: blend(inkBy(authors[0]), inkBy(authors[1])), kind: 'underline' };
+    return { id: a.cfi, locator: a.locator, color: inkBy(authors[0]), kind: a.marks.some((m) => m.kind === 'note') ? 'note' : 'highlight' };
   });
 }

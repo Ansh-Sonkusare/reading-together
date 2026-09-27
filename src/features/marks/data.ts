@@ -25,6 +25,7 @@ export async function createMark(db: Client, input: NewMark): Promise<Mark> {
       emoji: input.kind === 'reaction' ? input.emoji : null,
       body: input.kind === 'note' || input.kind === 'send' ? input.body : null,
       label: input.kind === 'bookmark' ? input.label : null,
+      color: input.kind === 'highlight' || input.kind === 'note' || input.kind === 'bookmark' ? (input.color ?? null) : null,
     };
   }
   const { data, error } = await db.from('mark').insert(row).select().single();

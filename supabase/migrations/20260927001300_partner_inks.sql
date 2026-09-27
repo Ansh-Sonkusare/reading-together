@@ -28,9 +28,9 @@ begin
   end loop;
 end $$;
 
+-- A check rather than NOT NULL keeps member's generated Insert type unchanged for existing callers.
 alter table member
-  alter column color set not null,
-  add constraint member_color_is_ink check (color = any(inks())),
+  add constraint member_color_is_ink check (color is not null and color = any(inks())),
   add constraint member_couple_color_key unique (couple_id, color);
 
 create or replace function create_couple(name text, color text) returns text

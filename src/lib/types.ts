@@ -163,13 +163,13 @@ isOneToOne: false
                   ]
                 },"member": {
                   Row: {
-                    "avatar_url": string | null,"color": string,"couple_id": string,"name": string | null,"timezone": string,"user_id": string
+                    "avatar_url": string | null,"color": string | null,"couple_id": string,"name": string | null,"timezone": string,"user_id": string
                   }
                   Insert: {
-                    "avatar_url"?: string | null,"color": string,"couple_id": string,"name"?: string | null,"timezone"?: string,"user_id": string
+                    "avatar_url"?: string | null,"color"?: string | null,"couple_id": string,"name"?: string | null,"timezone"?: string,"user_id": string
                   }
                   Update: {
-                    "avatar_url"?: string | null,"color"?: string,"couple_id"?: string,"name"?: string | null,"timezone"?: string,"user_id"?: string
+                    "avatar_url"?: string | null,"color"?: string | null,"couple_id"?: string,"name"?: string | null,"timezone"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {

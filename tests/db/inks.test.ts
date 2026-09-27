@@ -63,13 +63,17 @@ it('old palette colours snap to the nearest ink', async () => {
   expect(await colorOf(B.id)).toBe('#e8890c');
 });
 
-it("a member can't switch to the partner's ink but can switch to a free one", async () => {
+it("a member can't switch to the partner's ink, no ink or a non-ink, but can switch to a free ink", async () => {
   const invite = await coupleWith('#0ca678');
   const B = await user('b4');
   await B.db.rpc('join_couple', { invite_code: invite, name: 'Sam', color: '#7048e8' });
 
   const clash = await B.db.from('member').update({ color: '#0ca678' }).eq('user_id', B.id);
   expect(clash.error?.code).toBe('23505');
+  const none = await B.db.from('member').update({ color: null }).eq('user_id', B.id);
+  expect(none.error?.code).toBe('23514');
+  const offPalette = await B.db.from('member').update({ color: '#000000' }).eq('user_id', B.id);
+  expect(offPalette.error?.code).toBe('23514');
   const free = await B.db.from('member').update({ color: '#1098ad' }).eq('user_id', B.id);
   expect(free.error).toBeNull();
   expect(await colorOf(B.id)).toBe('#1098ad');

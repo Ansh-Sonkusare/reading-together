@@ -2,8 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { CHAPTER_1, locate, myPos, overlays, pairUp, paintAt, select, tap, thread, toChapter1, turn, uploadAndOpen, waitForSave } from './helpers';
 
 const SHOTS = '.verify/p14b';
-const ALEX = '#e11d48';
-const BOTH = '#83409a';
+const ALEX = '#d6336c';
+const BOTH = '#8947a4';
 const LIVE_MS = 2000;
 const REACTION_LABELS = ['Love this', 'Funny', 'Emotional', 'Surprised', 'Interesting', 'Favorite', 'Made me think'];
 

@@ -12,7 +12,7 @@ export async function signUp(page: Page, email: string) {
   await page.waitForURL('**/onboarding');
 }
 
-// Alex starts the library (first colour, #e11d48) and Sam joins it in #2563eb.
+// Alex starts the library (first ink, Rose #d6336c) and Sam joins it in Cobalt #3b5bdb.
 export async function pairUp(browser: Browser, b: BrowserContextOptions = {}) {
   const run = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const emailA = `alex-${run}@example.com`;
@@ -28,7 +28,7 @@ export async function pairUp(browser: Browser, b: BrowserContextOptions = {}) {
   await signUp(pageB, `sam-${run}@example.com`);
   await pageB.goto(invite);
   await pageB.getByLabel('Your name').fill('Sam');
-  await pageB.getByLabel('#2563eb').check({ force: true });
+  await pageB.getByLabel('Cobalt').check({ force: true });
   await pageB.getByRole('button', { name: 'Join' }).click();
   await pageB.waitForURL('**/library');
   return { a: pageA, b: pageB, emailA };

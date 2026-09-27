@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { InkSwatches } from '@/components/ui/ink';
 import { createCoupleAction, joinCoupleAction, signIn, signUp, uploadBookAction } from './actions';
 import { MAX_EPUB_BYTES } from './epub-meta';
 import { COLORS } from './palette';
@@ -57,24 +58,15 @@ export function AuthForm({ next }: { next: string }) {
   );
 }
 
-function ProfileFields() {
+function ProfileFields({ exclude = [] }: { exclude?: string[] }) {
+  const [color, setColor] = useState<string>(() => COLORS.find((c) => !exclude.includes(c)) ?? COLORS[0]);
   return (
     <>
       <label className="flex flex-col gap-1">
         Your name
         <input className={input} name="name" maxLength={40} required />
       </label>
-      <fieldset className="flex flex-col gap-1">
-        <legend>Your colour</legend>
-        <div className="flex gap-2">
-          {COLORS.map((c, i) => (
-            <label key={c} className="cursor-pointer">
-              <input type="radio" name="color" value={c} defaultChecked={i === 0} className="peer sr-only" aria-label={c} />
-              <span className="block size-8 rounded-full ring-offset-2 peer-checked:ring-2 peer-checked:ring-black peer-focus-visible:ring-2" style={{ background: c }} />
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <InkSwatches value={color} onChange={setColor} exclude={exclude} />
     </>
   );
 }
@@ -92,12 +84,12 @@ export function CreateCoupleForm() {
   );
 }
 
-export function JoinForm({ code }: { code: string }) {
+export function JoinForm({ code, partnerColors = [] }: { code: string; partnerColors?: string[] }) {
   const [state, action, pending] = useActionState(joinCoupleAction, undefined);
   return (
     <form action={action} className="flex flex-col gap-3">
       <input type="hidden" name="code" value={code} />
-      <ProfileFields />
+      <ProfileFields exclude={partnerColors} />
       <ErrorLine error={state?.error} />
       <Button type="submit" disabled={pending}>
         Join

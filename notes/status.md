@@ -12,7 +12,7 @@ _Update before ending every session._
 P21 reveal-on-reach, P22 re-anchor by quote, P23 bookmarks + send, P31 streaks + goals, P33 web push, P43 memories, P44 themes, P51 sync mode.
 
 ## Open items
-- Storage DB test can time out once after a cold start (trail, P02).
+- Local Supabase storage (1.77.0) doesn't drain the body of an upload it refuses on RLS, which can hang the next upload through the same Kong connection. Tests avoid it; the app checks membership before uploading. Reproducer: `docs/research/storage-refused-upload-repro.mjs`. Filing upstream is left to the owner.
 - foliate logs harmless console errors (getComputedStyle / destructure 'style'); nothing observed broken.
 - Chapter titles use spine index + 1; TOC labels are a follow-up.
 

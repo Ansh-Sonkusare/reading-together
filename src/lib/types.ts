@@ -301,6 +301,9 @@ isOneToOne: false
 "join_couple":
 { Args: { "color"?: string,"invite_code": string,"name"?: string }; Returns: string
                            },
+"memory_media_ok":
+{ Args: { "book_id": string,"id": string,"kind": Database["public"]['Enums']["mark_kind"],"media_url": string }; Returns: boolean
+                           },
 "my_couple_id":
 { Args: Record<PropertyKey, never>; Returns: string
                            },

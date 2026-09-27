@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { describe as describeMark, groupByAnchor, revealedBy, toPaintMarks, type Mark } from './model';
+import { MEMORY_MAX_BYTES, describe as describeMark, groupByAnchor, memoryExt, revealedBy, toPaintMarks, type Mark } from './model';
 
 const A = 'user-a';
 const B = 'user-b';
@@ -65,4 +65,17 @@ it('reveals only unseen top-level text marks past the previous max_pos', () => {
   const aheadNote = mark('y', B, '9', { kind: 'note', body: 'Ha', locator: loc2, pos: 2.005 });
   expect(revealedBy(seen, [hlA, ahead, aheadNote, bookmarkA])).toEqual([ahead, aheadNote]);
   expect([ahead, aheadNote, hlA].map(describeMark)).toEqual(['😭', 'a note', 'a highlight']);
+});
+
+it('threads a memory with the passage it was added to, in time order', () => {
+  const memoryB = mark('m', B, '5', { kind: 'memory', body: 'Dinner at our favorite restaurant', media_url: 'c/m.jpg', locator: loc2, pos: 2.005 });
+  expect(groupByAnchor([memoryB, hlA])).toEqual([{ cfi: loc2.cfi, locator: loc2, pos: 2.005, marks: [hlA, memoryB], replies: [] }]);
+  expect(describeMark(memoryB)).toBe('a memory');
+});
+
+it('accepts memory photos the bucket accepts and names their extension', () => {
+  expect(memoryExt({ type: 'image/jpeg', size: 1000 })).toBe('jpg');
+  expect(memoryExt({ type: 'image/heic', size: MEMORY_MAX_BYTES })).toBe('heic');
+  expect(() => memoryExt({ type: 'image/gif', size: 1000 })).toThrow('Choose a JPEG, PNG, WebP or HEIC photo.');
+  expect(() => memoryExt({ type: 'image/png', size: MEMORY_MAX_BYTES + 1 })).toThrow('Photos can be up to 10 MB.');
 });

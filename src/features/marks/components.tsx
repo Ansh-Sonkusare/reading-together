@@ -3,7 +3,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { useInbox } from './data';
+import { createBrowserClient } from '@/lib/supabase';
+import { addMemory, memoryPhotoUrl, useInbox } from './data';
 import { BOOKMARK_LABELS, REACTIONS, describe, type Anchor, type Mark, type Member, type Reaction } from './model';
 
 const GAP = 8;
@@ -164,8 +165,30 @@ export function SelectionMenu({
   );
 }
 
+function MemoryPhoto({ path }: { path: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    memoryPhotoUrl(createBrowserClient(), path).then((url) => alive && setSrc(url), console.error);
+    return () => {
+      alive = false;
+    };
+  }, [path]);
+  return src ? <img src={src} alt="Memory photo" className="max-h-64 w-full rounded-lg object-cover" /> : <div className="h-40 w-full animate-pulse rounded-lg bg-muted" />;
+}
+
 function Line({ mark, members, meId }: { mark: Mark; members: Member[]; meId: string }) {
   const author = members.find((m) => m.userId === mark.author_id);
+  if (mark.kind === 'memory') {
+    return (
+      <li aria-label="Memory" className="flex flex-col gap-2 rounded-lg border-l-4 bg-muted/40 p-2 text-sm" style={{ borderColor: author?.color ?? '#9ca3af' }}>
+        {mark.media_url && <MemoryPhoto path={mark.media_url} />}
+        <p>
+          <span className="font-medium">📸 {mark.author_id === meId ? 'You' : (author?.name ?? 'Reader')}:</span> {mark.body}
+        </p>
+      </li>
+    );
+  }
   const reaction = mark.kind === 'reaction' ? REACTIONS.find((r) => r.key === mark.emoji) : undefined;
   const text = reaction ? `${reaction.emoji} ${reaction.label}` : mark.kind === 'highlight' ? 'highlighted this' : mark.body;
   return (
@@ -225,7 +248,62 @@ export function ThreadPanel({
         </ol>
       )}
       <BodyForm label="Reply" submit="Reply" onSubmit={onReply} />
+      <MemoryForm anchor={anchor} />
     </section>
+  );
+}
+
+function MemoryForm({ anchor }: { anchor: Anchor }) {
+  const [open, setOpen] = useState(false);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [caption, setCaption] = useState('');
+  const [status, setStatus] = useState<{ saving: true } | { error: string } | null>(null);
+  const save = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!photo) return;
+    setStatus({ saving: true });
+    try {
+      await addMemory(createBrowserClient(), { bookId: anchor.marks[0].book_id, locator: anchor.locator, pos: anchor.pos, photo, caption: caption.trim() || null });
+      setOpen(false);
+      setPhoto(null);
+      setCaption('');
+      setStatus(null);
+    } catch (err) {
+      console.error(err);
+      setStatus({ error: err instanceof Error ? err.message : "Couldn't save the memory." });
+    }
+  };
+  if (!open) {
+    return (
+      <Button variant="secondary" size="sm" className="self-start" onClick={() => setOpen(true)}>
+        Add a memory 📸
+      </Button>
+    );
+  }
+  return (
+    <form onSubmit={save} aria-label="Add a memory" className="flex flex-col gap-2 border-t pt-2">
+      <input
+        type="file"
+        accept="image/*"
+        aria-label="Photo"
+        className="text-sm file:mr-2 file:rounded-md file:border-0 file:bg-secondary file:px-2 file:py-1"
+        onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
+      />
+      <textarea aria-label="Caption" placeholder="Caption" rows={2} className={textarea} value={caption} onChange={(e) => setCaption(e.target.value)} />
+      {status && 'error' in status && (
+        <p role="alert" className="text-sm text-destructive">
+          {status.error}
+        </p>
+      )}
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+        <Button type="submit" size="sm" disabled={!photo || (status !== null && 'saving' in status)}>
+          Save memory
+        </Button>
+      </div>
+    </form>
   );
 }
 

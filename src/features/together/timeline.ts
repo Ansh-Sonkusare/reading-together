@@ -19,7 +19,7 @@ const MARK_LINES: Partial<Record<Enums<'mark_kind'>, [emoji: string, verb: strin
   reply: ['💬', 'wrote', 'reply', 'replies'],
   bookmark: ['🔖', 'bookmarked', 'passage', 'passages'],
   send: ['💌', 'shared', 'passage', 'passages'],
-  memory: ['📸', 'saved', 'memory', 'memories'],
+  memory: ['📸', 'added', 'memory', 'memories'],
 };
 
 const MONTHS = ['Jan.', 'Feb.', 'March', 'April', 'May', 'June', 'July', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.'];

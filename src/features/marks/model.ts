@@ -24,6 +24,17 @@ export type NewMark =
 
 export const BOOKMARK_LABELS = ['First quote we both loved', 'Favorite chapter', 'Funny part', 'Important conversation'];
 
+const MEMORY_EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'image/heif': 'heif' };
+export const MEMORY_MAX_BYTES = 10 * 1024 * 1024;
+
+// Mirrors the memories bucket's allowed_mime_types and file_size_limit, so a bad photo fails before it's sent.
+export function memoryExt(file: { type: string; size: number }): string {
+  const ext = MEMORY_EXT[file.type];
+  if (!ext) throw new Error('Choose a JPEG, PNG, WebP or HEIC photo.');
+  if (file.size > MEMORY_MAX_BYTES) throw new Error('Photos can be up to 10 MB.');
+  return ext;
+}
+
 export type Mark = Omit<Tables<'mark'>, 'locator'> & { locator: Locator | null };
 
 export type Anchor = { cfi: string; locator: Locator; pos: Pos; marks: Mark[]; replies: Mark[] };
@@ -66,7 +77,7 @@ export function revealedBy(before: { ids: Set<string>; maxPos: number }, after: 
 // The toast's summary of what appeared: the reaction's emoji, else a word for the kind.
 export function describe(m: Mark): string {
   if (m.kind === 'reaction') return REACTIONS.find((r) => r.key === m.emoji)?.emoji ?? 'a reaction';
-  return m.kind === 'note' ? 'a note' : 'a highlight';
+  return m.kind === 'note' ? 'a note' : m.kind === 'memory' ? 'a memory' : 'a highlight';
 }
 
 const UNKNOWN_COLOR = '#9ca3af';

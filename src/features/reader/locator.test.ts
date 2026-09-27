@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { canonicalTextFromXhtml, findByQuote, quoteAt, spineLengthsFromEpub, toPos } from './locator';
+import { canonicalTextFromXhtml, findByQuote, fromPos, quoteAt, spineLengthsFromEpub, toPos } from './locator';
 
 const alice = new Uint8Array(readFileSync(new URL('../../../fixtures/alice.epub', import.meta.url)));
 
@@ -67,5 +67,19 @@ describe('quoteAt / findByQuote', () => {
     expect(findByQuote(text, { exact: 'bird', prefix: '', suffix: '' })).toBeNull();
     expect(findByQuote(text, { exact: 'sat', prefix: '', suffix: '' })).toBeNull();
     expect(findByQuote(text, { exact: 'sat', prefix: '', suffix: '' }, 20)).toBe(21);
+  });
+});
+
+describe('fromPos', () => {
+  const lengths = [24, 1424, 11549, 10968, 9597];
+
+  it('inverts toPos for the spike passage in chapter 3', () => {
+    expect(fromPos(toPos(4, 4839, lengths), lengths)).toEqual({ spine: 4, offset: 4839 });
+    expect(fromPos(4.5, lengths)).toEqual({ spine: 4, offset: 4799 });
+  });
+
+  it('maps the end of the book to the end of the last spine item and rejects positions outside it', () => {
+    expect(fromPos(5, lengths)).toEqual({ spine: 4, offset: 9597 });
+    expect(() => fromPos(5.1, lengths)).toThrow('pos 5.1 outside book of 5 spine items');
   });
 });

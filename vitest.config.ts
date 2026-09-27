@@ -3,6 +3,6 @@ import { configDefaults, defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    exclude: [...configDefaults.exclude, '.claude/**', 'tests/db/**'],
+    exclude: [...configDefaults.exclude, '.claude/**', 'tests/db/**', 'tests/e2e/**'],
   },
 });

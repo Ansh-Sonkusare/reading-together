@@ -25,6 +25,7 @@ export default async function LibraryPage() {
           </Button>
         </form>
       </header>
+      <a href="/together" className="underline">Our reading</a>
       <ul className="flex gap-3" aria-label="Readers">
         {couple.members.map((m) => (
           <li key={m.userId} className="flex items-center gap-2">

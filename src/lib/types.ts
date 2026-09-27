@@ -59,6 +59,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "couple"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "book_couple_id_fkey"
+      columns: ["couple_id"]
+isOneToOne: false
+      referencedRelation: "couple_stats"
+      referencedColumns: ["couple_id"]
     }
                   ]
                 },"couple": {
@@ -97,6 +103,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "couple"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "event_couple_id_fkey"
+      columns: ["couple_id"]
+isOneToOne: false
+      referencedRelation: "couple_stats"
+      referencedColumns: ["couple_id"]
     }
                   ]
                 },"mark": {
@@ -141,6 +153,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "couple"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "member_couple_id_fkey"
+      columns: ["couple_id"]
+isOneToOne: false
+      referencedRelation: "couple_stats"
+      referencedColumns: ["couple_id"]
     }
                   ]
                 },"progress": {
@@ -178,7 +196,20 @@ isOneToOne: false
                 }
           }
           Views: {
-            [_ in never]: never
+            "couple_stats": {
+                  Row: {
+                    "books_together": number | null,"couple_id": string | null,"discussions": number | null,"highlights": number | null,"pages": number | null,"reactions": Json | null
+                  }
+                  Insert: {
+                           "books_together"?: never,"couple_id"?: string | null,"discussions"?: never,"highlights"?: never,"pages"?: never,"reactions"?: never
+                         }
+                        Update: {
+                           "books_together"?: never,"couple_id"?: string | null,"discussions"?: never,"highlights"?: never,"pages"?: never,"reactions"?: never
+                         }
+                        Relationships: [
+                    
+                  ]
+                }
           }
           Functions: {
             "book_couple_id":
@@ -186,6 +217,9 @@ isOneToOne: false
                            },
 "create_couple":
 { Args: { "color": string,"name": string }; Returns: string
+                           },
+"display_page":
+{ Args: { "pos": number,"spine_lengths": (number)[] }; Returns: number
                            },
 "i_answered":
 { Args: { "bid": string,"k": Database["public"]['Enums']["answer_kind"],"key": string,"s": number }; Returns: boolean

@@ -4,7 +4,7 @@ declare module 'foliate-js/view.js' {
   export class View extends HTMLElement {
     renderer: HTMLElement & {
       goTo(target: { index: number; anchor?: Anchor }): Promise<void>;
-      setStyles(css: string): void;
+      setStyles(css: string | [before: string, after: string]): void;
     };
     open(book: Blob): Promise<void>;
     close(): void;

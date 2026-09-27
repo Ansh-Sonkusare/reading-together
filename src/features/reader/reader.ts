@@ -10,6 +10,8 @@ export type ReaderEvents = {
   anchorLost: (e: { id: string; spine: number }) => void;
 };
 
+export type ReaderTheme = { background: string; color: string };
+
 export type ReaderHandle = {
   on<K extends keyof ReaderEvents>(k: K, cb: ReaderEvents[K]): () => void;
   paint(marks: PaintMark[]): void;
@@ -17,6 +19,7 @@ export type ReaderHandle = {
   next(): Promise<void>;
   prev(): Promise<void>;
   setFontScale(scale: number): void;
+  setTheme(theme: ReaderTheme): void;
   destroy(): void;
 };
 
@@ -46,6 +49,7 @@ export async function createReader(container: HTMLElement, file: Blob, opts: { s
   // ponytail: foliate keys annotations by CFI, so two marks on the identical range draw once (last wins); merge them upstream if that matters.
   let marks = new Map<string, PaintMark>();
   const painted = new Map<string, string>();
+  const styles: [string, string] = ['', ''];
 
   const view = document.createElement('foliate-view') as InstanceType<typeof View>;
   view.style.cssText = 'display:block;width:100%;height:100%';
@@ -166,7 +170,13 @@ export async function createReader(container: HTMLElement, file: Blob, opts: { s
     next: () => view.next(),
     prev: () => view.prev(),
     setFontScale(scale) {
-      view.renderer.setStyles(`html { font-size: ${scale * 100}% !important; }`);
+      styles[1] = `html { font-size: ${scale * 100}% !important; }`;
+      view.renderer.setStyles(styles);
+    },
+    // foliate keeps one styles value and re-applies it to every section it loads, so theme and font share it.
+    setTheme({ background, color }) {
+      styles[0] = `html, body { background: ${background} !important; color: ${color} !important; } body * { color: inherit !important; }`;
+      view.renderer.setStyles(styles);
     },
     destroy() {
       for (const set of Object.values(listeners)) set.clear();

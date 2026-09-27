@@ -97,8 +97,13 @@ displayPage(pos, spineLengths): number     // floor(chars before pos / 1500) + 1
 
 // features/marks
 createMark(db, input: NewMark): Promise<Mark>   // a reply copies its parent's locator and pos
-useMarks(bookId, { myMaxPos }): { marks: Mark[]; anchors: Anchor[] }   // live over marks:{id} via joinChannel;
-    // re-fetches when myMaxPos (useProgressSaver's savedMaxPos) changes, so a partner's earlier marks appear once reached
+useMarks(bookId, { myMaxPos }): { marks: Mark[]; anchors: Anchor[]; revealed: Mark[] }   // live over marks:{id} via joinChannel;
+    // re-fetches when myMaxPos (useProgressSaver's savedMaxPos) changes, so a partner's earlier marks appear once reached;
+    // revealed = the latest batch a re-fetch newly returned past the previous fetch's max_pos (revealedBy), for the toast
+revealedBy({ ids, maxPos }, marks): Mark[]    // unseen, top-level, in-text marks with pos > maxPos
+<RevealToast mark partner onShow onClose />   // role=status "✨ New from {partner}: {emoji | 'a note' | 'a highlight'}" + Show (opens
+    // the thread); 8 s. Never a count or hint of marks still ahead (D9): it only describes marks RLS already returned
+// bookmark and send marks carry a locator but aren't anchors: groupByAnchor skips them, so they're never painted or threaded
 toPaintMarks(anchors, members): PaintMark[]   // one per CFI; both partners → 'underline' in the blend of their colours
 <SelectionMenu rect onHighlight onReact(r) onNote(body) onDismiss />   // 7 reactions by aria-label + Highlight + Note;
     // kept inside the viewport; dismisses on Escape, a click outside it, or a click into the book (window blur)

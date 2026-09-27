@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
-import { REACTIONS, type Anchor, type Mark, type Member, type Reaction } from './model';
+import { REACTIONS, describe, type Anchor, type Mark, type Member, type Reaction } from './model';
 
 const GAP = 8;
 const textarea =
@@ -188,5 +188,32 @@ export function ThreadPanel({
       )}
       <BodyForm label="Reply" submit="Reply" onSubmit={onReply} />
     </section>
+  );
+}
+
+export function RevealToast({ mark, partner, onShow, onClose }: { mark: Mark; partner: Member; onShow: () => void; onClose: () => void }) {
+  const close = useRef(onClose);
+  useEffect(() => {
+    close.current = onClose;
+  });
+  useEffect(() => {
+    const t = setTimeout(() => close.current(), 8000);
+    return () => clearTimeout(t);
+  }, [mark]);
+  return (
+    <div
+      role="status"
+      className="fixed inset-x-0 top-14 z-40 mx-auto flex w-fit max-w-[calc(100vw-1rem)] items-center gap-3 rounded-full border bg-background py-1 pr-1 pl-4 text-sm text-foreground shadow-lg"
+    >
+      <span>
+        ✨ New from <span style={{ color: partner.color }}>{partner.name}</span>: {describe(mark)}
+      </span>
+      <Button size="sm" onClick={onShow}>
+        Show
+      </Button>
+      <Button variant="ghost" size="icon-sm" aria-label="Dismiss" onClick={onClose}>
+        ✕
+      </Button>
+    </div>
   );
 }

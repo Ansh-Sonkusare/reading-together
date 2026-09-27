@@ -1,9 +1,11 @@
+'use client';
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { joinChannel } from '../../lib/realtime';
 import { createBrowserClient } from '../../lib/supabase';
 import type { Database, TablesInsert } from '@/lib/types';
-import { groupByAnchor, type Anchor, type Mark, type NewMark } from './model';
+import { groupByAnchor, revealedBy, type Anchor, type Mark, type NewMark } from './model';
 
 type Client = SupabaseClient<Database>;
 
@@ -31,15 +33,22 @@ export async function createMark(db: Client, input: NewMark): Promise<Mark> {
 type Change = (marks: Mark[]) => Mark[];
 
 // RLS hides a partner's marks beyond my max_pos, so they only appear on a re-select once I reach them.
-export function useMarks(bookId: string, { myMaxPos }: { myMaxPos: number }): { marks: Mark[]; anchors: Anchor[] } {
+// `revealed` is the latest batch that appeared because myMaxPos passed it; the first fetch sets the baseline.
+export function useMarks(bookId: string, { myMaxPos }: { myMaxPos: number }): { marks: Mark[]; anchors: Anchor[]; revealed: Mark[] } {
   const [marks, setMarks] = useState<Mark[]>([]);
+  const [revealed, setRevealed] = useState<Mark[]>([]);
   const refetch = useRef<() => void>(() => {});
+  const maxPos = useRef(myMaxPos);
+  useEffect(() => {
+    maxPos.current = myMaxPos;
+  });
 
   useEffect(() => {
     const db = createBrowserClient();
     let alive = true;
     // Realtime changes that land while a select is in flight, replayed onto its result.
     let inFlight: Change[] | null = null;
+    let fetched: { ids: Set<string>; maxPos: number } | null = null;
     const apply = (change: Change) => {
       inFlight?.push(change);
       setMarks(change);
@@ -47,11 +56,18 @@ export function useMarks(bookId: string, { myMaxPos }: { myMaxPos: number }): { 
 
     refetch.current = async () => {
       const mine: Change[] = (inFlight = []);
+      const at = maxPos.current;
       const { data, error } = await db.from('mark').select().eq('book_id', bookId).order('created_at');
       if (!alive || inFlight !== mine) return;
       inFlight = null;
       if (error) return console.error(error);
-      setMarks(mine.reduce((ms, change) => change(ms), data as Mark[]));
+      const rows = data as Mark[];
+      if (fetched) {
+        const fresh = revealedBy(fetched, rows);
+        if (fresh.length) setRevealed(fresh);
+      }
+      fetched = { ids: new Set(rows.map((m) => m.id)), maxPos: at };
+      setMarks(mine.reduce((ms, change) => change(ms), rows));
     };
 
     const leave = joinChannel(
@@ -81,5 +97,6 @@ export function useMarks(bookId: string, { myMaxPos }: { myMaxPos: number }): { 
     refetch.current();
   }, [myMaxPos]);
 
-  return { marks, anchors: useMemo(() => groupByAnchor(marks), [marks]) };
+  return { marks, anchors: useMemo(() => groupByAnchor(marks), [marks]), revealed };
 }
+

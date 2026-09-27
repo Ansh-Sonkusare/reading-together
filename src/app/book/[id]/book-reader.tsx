@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Member } from '@/features/couple/couple';
 import { usePartnerProgress, useProgressSaver, type Progress } from '@/features/couple/progress';
-import { SelectionMenu, ThreadPanel, createMark, toPaintMarks, useMarks, type NewMark } from '@/features/marks';
+import { RevealToast, SelectionMenu, ThreadPanel, createMark, toPaintMarks, useMarks, type Mark, type NewMark } from '@/features/marks';
 import { createReader, displayPage, type Locator, type Pos, type ReaderHandle } from '@/features/reader';
 import { createBrowserClient } from '@/lib/supabase';
 
@@ -45,12 +45,18 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
   const [markFailed, setMarkFailed] = useState(false);
   const [selection, setSelection] = useState<Selected | null>(null);
   const [threadCfi, setThreadCfi] = useState<string | null>(null);
+  const [toast, setToast] = useState<Mark | null>(null);
   const [db] = useState(createBrowserClient);
   const { save, savedPos, savedMaxPos } = useProgressSaver(bookId, userId, mine);
   const theirs = usePartnerProgress(bookId, partner?.userId ?? null, partnerProgress);
-  const { anchors } = useMarks(bookId, { myMaxPos: savedMaxPos });
+  const { anchors, revealed } = useMarks(bookId, { myMaxPos: savedMaxPos });
   const members = useMemo(() => (partner ? [me, partner] : [me]), [me, partner]);
   const thread = anchors.find((a) => a.cfi === threadCfi);
+
+  useEffect(() => {
+    const theirs = revealed.filter((m) => m.author_id === partner?.userId);
+    if (theirs.length) setToast(theirs[0]);
+  }, [revealed, partner]);
 
   useEffect(() => {
     reader?.paint(toPaintMarks(anchors, members));
@@ -187,6 +193,18 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
           meId={userId}
           onReply={(body) => mark({ kind: 'reply', bookId, parentId: thread.marks[0].id, body })}
           onClose={() => setThreadCfi(null)}
+        />
+      )}
+      {toast && partner && (
+        <RevealToast
+          mark={toast}
+          partner={partner}
+          onShow={() => {
+            setToast(null);
+            setSelection(null);
+            setThreadCfi(toast.locator!.cfi);
+          }}
+          onClose={() => setToast(null)}
         />
       )}
       <footer className="flex items-center justify-between gap-3 border-t px-3 py-2 text-sm">

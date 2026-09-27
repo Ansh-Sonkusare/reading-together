@@ -310,8 +310,14 @@ isOneToOne: false
 "pos_chars":
 { Args: { "pos": number,"spine_lengths": (number)[] }; Returns: number
                            },
+"push_dispatch_secret":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
 "set_goal":
 { Args: { "kind": Database["public"]['Enums']["goal_kind"],"target": number }; Returns: undefined
+                           },
+"set_push_dispatch_url":
+{ Args: { "url": string }; Returns: string
                            }
           }
           Enums: {

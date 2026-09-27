@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { listBooks } from '@/features/couple/books';
 import { getMyCouple, getUserId, type Couple } from '@/features/couple/couple';
+import { EnableNotifications } from '@/features/notify/enable';
 import { GoalForm, TimezoneSync } from '@/features/together/goal-form';
 import { getCoupleStats } from '@/features/together/stats';
 import { getStreakRow } from '@/features/together/streak-data';
@@ -50,6 +51,7 @@ export default async function TogetherPage() {
         ))}
       </ul>
       <StreakRow couple={couple} me={me} />
+      <EnableNotifications />
       <section className="flex flex-col gap-2">
         <h2 className="font-semibold">Favorite reactions</h2>
         {stats.favoriteReactions.length === 0 ? (

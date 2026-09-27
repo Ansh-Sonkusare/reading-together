@@ -7,6 +7,7 @@ import { listBooks } from '@/features/couple/books';
 import { getMyCouple, getUserId } from '@/features/couple/couple';
 import { CopyInvite, UploadForm } from '@/features/couple/forms';
 import { Inbox } from '@/features/marks';
+import { EnableNotifications } from '@/features/notify/enable';
 
 const dateFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -28,6 +29,7 @@ export default async function LibraryPage() {
         </form>
       </header>
       <a href="/together" className="underline">Our reading</a>
+      <EnableNotifications />
       <ul className="flex gap-3" aria-label="Readers">
         {couple.members.map((m) => (
           <li key={m.userId} className="flex items-center gap-2">

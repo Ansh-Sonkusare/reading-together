@@ -86,3 +86,6 @@ Test book: a public-domain EPUB in `fixtures/` (test data only; D1 still holds f
 | F1 | Private Realtime channels: `sync:{bookId}` and the other broadcast/presence channels require couple membership (RLS on `realtime.messages`) | A | DB test: another couple's user can't join or send on the channel (positive control: partner can) | done |
 | F2 | Entry points to chapter discussion: "Discuss Chapter N" on the book page after a chapter is finished, and from the timeline's "discussed" lines; e2e specs for discussion and streaks | E | e2e: finishing a chapter shows the link, it opens /discuss and the reveal works; /together shows the streak after both read | done |
 | F3 | Chapter labels from the book's TOC (front matter isn't "Chapter 1"); foliate errors on leaving the reader and on chapter load | B | e2e: finishing Chapter I says "Chapter I"; no uncaught browser errors during book.spec | done |
+| U0 | Design foundation: fonts, tokens, primitives (Button, InkSwatches, DuetRibbon, Sheet, Toast), six inks, partners can't share an ink | UI | unit + screenshot review | wip |
+| U1 | Per-mark colour (highlight, note, bookmark) + book page redesign | C | e2e: chosen colour painted for both; bookmark ribbon on its page | todo |
+| U2 | Library, together, auth, onboarding, discuss redesign + EPUB covers | D | e2e green; screenshots light/dark, desktop/phone | todo |

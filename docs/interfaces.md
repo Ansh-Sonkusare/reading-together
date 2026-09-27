@@ -72,6 +72,7 @@ Private bucket `books`, object path `{couple_id}/{book_id}.epub`, readable and w
 
 ## Realtime channels
 
+- `inbox:{userId}` (mark INSERT, kind send): the /library inbox.
 - `marks:{bookId}` (mark) and `progress:{bookId}` (progress): postgres_changes, one channel per feature so names never collide in one client. RLS still applies, and the client re-fetches marks when its own progress moves past new ones.
   Two client gotchas (P15): call `realtime.setAuth(session.access_token)` before joining, or the join can go out as anon and RLS delivers nothing; and don't join an identical channel before the previous leave resolves (StrictMode remount), because Realtime keys the subscription by its params and the late leave kills the new one.
 - `discussion:{bookId}:{spine}` (event, answer_revealed): the discussion page's reveal.
@@ -89,7 +90,7 @@ ReaderHandle.on('lengthMismatch', e => { spine, expected, actual })
 ReaderHandle.on('anchorLost', e => { id, spine })   // mark couldn't be placed by CFI, offset or quote (P22)
 ReaderHandle.paint(marks: PaintMark[])     // full set, idempotent; PaintMark = { id, locator, color, kind: 'highlight'|'underline' }
 ReaderHandle.goTo(target: Locator | Pos)   // nothing renders until the first goTo
-ReaderHandle.next() / prev() / setFontScale(n) / destroy()
+ReaderHandle.next() / prev() / setFontScale(n) / clearSelection() / destroy()   // clearSelection: after a mark is made
 // paint places each mark by: CFI if its text equals quote.exact → stored offset → findByQuote near offset (resolveAnchor)
 // locator.ts: resolveAnchor, toPos, fromPos, quoteAt, findByQuote, spineLengthsFromEpub, zipReader, canonicalText, offsetOf, rangeAt
 displayPage(pos, spineLengths): number     // floor(chars before pos / 1500) + 1; display only, never stored
@@ -104,8 +105,14 @@ revealedBy({ ids, maxPos }, marks): Mark[]    // unseen, top-level, in-text mark
 <RevealToast mark partner onShow onClose />   // role=status "✨ New from {partner}: {emoji | 'a note' | 'a highlight'}" + Show (opens
     // the thread); 8 s. Never a count or hint of marks still ahead (D9): it only describes marks RLS already returned
 // bookmark and send marks carry a locator but aren't anchors: groupByAnchor skips them, so they're never painted or threaded
+<BookmarksPanel bookmarks members onGo(mark) onClose />   // header "Bookmarks" button on /book; label + quote, click → goTo
+BOOKMARK_LABELS   // First quote we both loved · Favorite chapter · Funny part · Important conversation (+ custom text)
+useInbox(meId): Mark[]   // the partner's sends, newest first, live over inbox:{meId} (client-side kind check)
+<Inbox meId partner books />   // /library "From {partner}": quote, optional message, link /book/{id}?mark={markId}
+// /book/[id]?mark={id}: the server reads that mark's locator (RLS) and the reader opens there instead of progress.locator
 toPaintMarks(anchors, members): PaintMark[]   // one per CFI; both partners → 'underline' in the blend of their colours
-<SelectionMenu rect onHighlight onReact(r) onNote(body) onDismiss />   // 7 reactions by aria-label + Highlight + Note;
+<SelectionMenu rect onHighlight onReact(r) onNote(body) onBookmark(label) partnerName? onSend(message|null) onDismiss />
+    // 7 reactions by aria-label + Highlight + Note + Bookmark (label picker) + "Send to {partner}" (optional message; solo: hidden);
     // kept inside the viewport; dismisses on Escape, a click outside it, or a click into the book (window blur)
 <ThreadPanel anchor members meId onReply(body) onClose />   // bottom sheet below md, side panel at md+; Escape closes
 // /book/[id]: select → SelectionMenu; markClick(id) → ThreadPanel for anchors.find(a => a.cfi === id);

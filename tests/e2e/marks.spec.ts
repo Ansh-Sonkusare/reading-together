@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { pairUp, paintAt, select, tap, thread, toChapter1, uploadAndOpen } from './helpers';
+import { CHAPTER_1, locate, myPos, overlays, pairUp, paintAt, select, tap, thread, toChapter1, turn, uploadAndOpen, waitForSave } from './helpers';
 
 const SHOTS = '.verify/p14b';
 const ALEX = '#e11d48';
@@ -25,9 +25,8 @@ test('marks: react, reply, note and a shared highlight reach the partner live', 
 
   const menuA = await select(a, P1);
   for (const label of REACTION_LABELS) await expect(menuA.getByRole('button', { name: label, exact: true })).toBeVisible();
-  await expect(menuA.getByRole('button')).toHaveCount(9);
-  await expect(menuA.getByRole('button', { name: 'Highlight' })).toBeVisible();
-  await expect(menuA.getByRole('button', { name: 'Note' })).toBeVisible();
+  await expect(menuA.getByRole('button')).toHaveCount(11);
+  for (const label of ['Highlight', 'Note', 'Bookmark', 'Send to Sam']) await expect(menuA.getByRole('button', { name: label, exact: true })).toBeVisible();
   await shoot(a, b, '1-menu');
   await a.keyboard.press('Escape');
   await expect(menuA).toBeHidden();
@@ -83,4 +82,67 @@ test('marks: react, reply, note and a shared highlight reach the partner live', 
       .toEqual([expect.objectContaining({ fill: BOTH, opacity: '', count: 1 })]);
   }
   await shoot(a, b, '6-both');
+});
+
+const selectedText = (page: Page) =>
+  Promise.all(page.frames().filter((f) => f.url().startsWith('blob:')).map((f) => f.evaluate(() => document.getSelection()?.toString() ?? ''))).then((t) => t.join(''));
+
+test('bookmarks are shared with a label; a sent passage lands in the partner inbox and opens there', async ({ browser }) => {
+  const shots = '.verify/p21-p23';
+  const { a, b } = await pairUp(browser);
+  const bookPath = await uploadAndOpen(a);
+  await b.goto(bookPath);
+  await toChapter1(a);
+  await toChapter1(b);
+
+  const menu = await select(a, P1);
+  await menu.getByRole('button', { name: 'Bookmark' }).click();
+  const labels = menu.getByRole('group', { name: 'Bookmark label' });
+  for (const l of ['First quote we both loved', 'Favorite chapter', 'Funny part', 'Important conversation']) await expect(labels.getByRole('button', { name: l })).toBeVisible();
+  await expect(labels.getByLabel('Custom label')).toBeVisible();
+  await a.screenshot({ path: `${shots}/1-bookmark-labels-a-alex.png` });
+  await labels.getByRole('button', { name: 'Funny part' }).click();
+  await expect(menu).toBeHidden();
+  await expect.poll(() => selectedText(a)).toBe('');
+
+  const panel = (page: Page) => page.getByRole('region', { name: 'Bookmarks' });
+  for (const page of [a, b]) {
+    await page.getByRole('button', { name: 'Bookmarks' }).click();
+    await expect(panel(page).getByRole('button', { name: /^Funny part/ })).toContainText(P1, { timeout: LIVE_MS });
+  }
+  expect(await paintAt(b, P1)).toEqual([]);
+  await b.screenshot({ path: `${shots}/2-bookmarks-panel-b-sam.png` });
+  await panel(b).getByRole('button', { name: 'Close' }).click();
+  await turn(b, () => b.getByRole('button', { name: 'Next page' }).click());
+  await b.getByRole('button', { name: 'Bookmarks' }).click();
+  await panel(b).getByRole('button', { name: /^Funny part/ }).click();
+  await expect(panel(b)).toBeHidden();
+  await expect(myPos(b)).toHaveText(CHAPTER_1);
+
+  await turn(b, () => b.getByRole('button', { name: 'Next page' }).click());
+  const away = await waitForSave(b);
+  expect(away).not.toBe(CHAPTER_1);
+  await b.goto('/library');
+  const inbox = b.getByRole('region', { name: 'From Alex' });
+  await expect(inbox).toContainText('When Alex sends you a passage, it lands here.');
+
+  const sendMenu = await select(a, P2);
+  await sendMenu.getByRole('button', { name: 'Send to Sam' }).click();
+  await expect(sendMenu).toContainText('This reminded me of you');
+  await sendMenu.getByLabel('Add a message (optional)').fill('This reminds me of you');
+  await a.screenshot({ path: `${shots}/3-send-a-alex.png` });
+  await sendMenu.getByRole('button', { name: 'Send to Sam' }).last().click();
+  await expect(sendMenu).toBeHidden();
+  await expect.poll(() => selectedText(a)).toBe('');
+
+  const item = inbox.getByRole('listitem');
+  await expect(item).toHaveCount(1, { timeout: 3000 });
+  await expect(item.locator('blockquote')).toHaveText(P2);
+  await expect(item).toContainText('This reminds me of you');
+  await b.screenshot({ path: `${shots}/4-inbox-b-sam.png` });
+  await item.getByRole('link', { name: "Open in Alice's Adventures in Wonderland" }).click();
+  await b.waitForURL(`**${bookPath}?mark=*`);
+  await expect(myPos(b)).toHaveText(CHAPTER_1);
+  await locate(b, P2);
+  await b.screenshot({ path: `${shots}/5-opened-at-passage-b-sam.png` });
 });

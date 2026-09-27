@@ -17,6 +17,7 @@ export type ReaderHandle = {
   next(): Promise<void>;
   prev(): Promise<void>;
   setFontScale(scale: number): void;
+  clearSelection(): void;
   destroy(): void;
 };
 
@@ -167,6 +168,9 @@ export async function createReader(container: HTMLElement, file: Blob, opts: { s
     prev: () => view.prev(),
     setFontScale(scale) {
       view.renderer.setStyles(`html { font-size: ${scale * 100}% !important; }`);
+    },
+    clearSelection() {
+      shown?.doc.getSelection()?.removeAllRanges();
     },
     destroy() {
       for (const set of Object.values(listeners)) set.clear();

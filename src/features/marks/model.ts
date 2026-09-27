@@ -18,7 +18,11 @@ export type NewMark =
   | { kind: 'highlight'; bookId: string; locator: Locator; pos: Pos }
   | { kind: 'reaction'; bookId: string; locator: Locator; pos: Pos; emoji: Reaction }
   | { kind: 'note'; bookId: string; locator: Locator; pos: Pos; body: string }
+  | { kind: 'bookmark'; bookId: string; locator: Locator; pos: Pos; label: string }
+  | { kind: 'send'; bookId: string; locator: Locator; pos: Pos; body: string | null }
   | { kind: 'reply'; bookId: string; parentId: string; body: string };
+
+export const BOOKMARK_LABELS = ['First quote we both loved', 'Favorite chapter', 'Funny part', 'Important conversation'];
 
 export type Mark = Omit<Tables<'mark'>, 'locator'> & { locator: Locator | null };
 

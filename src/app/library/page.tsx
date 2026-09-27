@@ -4,14 +4,16 @@ import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { signOut } from '@/features/couple/actions';
 import { listBooks } from '@/features/couple/books';
-import { getMyCouple } from '@/features/couple/couple';
+import { getMyCouple, getUserId } from '@/features/couple/couple';
 import { CopyInvite, UploadForm } from '@/features/couple/forms';
+import { Inbox } from '@/features/marks';
 
 const dateFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 export default async function LibraryPage() {
-  const couple = await getMyCouple();
-  if (!couple) redirect('/onboarding');
+  const [couple, userId] = await Promise.all([getMyCouple(), getUserId()]);
+  if (!couple || !userId) redirect('/onboarding');
+  const partner = couple.members.find((m) => m.userId !== userId);
   const books = await listBooks(couple.id, couple.members);
   const h = await headers();
   const inviteUrl = `${h.get('x-forwarded-proto') ?? 'http'}://${h.get('host')}/join/${couple.inviteCode}`;
@@ -40,6 +42,7 @@ export default async function LibraryPage() {
           <CopyInvite url={inviteUrl} />
         </section>
       )}
+      {partner && <Inbox meId={userId} partner={partner} books={books} />}
       <section className="flex flex-col gap-3">
         <h2 className="font-semibold">Add a book</h2>
         <UploadForm />

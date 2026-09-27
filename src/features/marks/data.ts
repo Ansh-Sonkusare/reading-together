@@ -22,7 +22,8 @@ export async function createMark(db: Client, input: NewMark): Promise<Mark> {
       locator: input.locator,
       pos: input.pos,
       emoji: input.kind === 'reaction' ? input.emoji : null,
-      body: input.kind === 'note' ? input.body : null,
+      body: input.kind === 'note' || input.kind === 'send' ? input.body : null,
+      label: input.kind === 'bookmark' ? input.label : null,
     };
   }
   const { data, error } = await db.from('mark').insert(row).select().single();
@@ -100,3 +101,30 @@ export function useMarks(bookId: string, { myMaxPos }: { myMaxPos: number }): { 
   return { marks, anchors: useMemo(() => groupByAnchor(marks), [marks]), revealed };
 }
 
+// Passages the partner sent me, newest first; live while mounted. RLS hides sends past my max_pos like any mark.
+export function useInbox(meId: string): Mark[] {
+  const [sends, setSends] = useState<Mark[]>([]);
+  useEffect(() => {
+    const db = createBrowserClient();
+    let alive = true;
+    const fetchAll = async () => {
+      const { data, error } = await db.from('mark').select().eq('kind', 'send').neq('author_id', meId).order('created_at', { ascending: false });
+      if (error) return console.error(error);
+      if (alive) setSends(data as Mark[]);
+    };
+    const leave = joinChannel(
+      db,
+      `inbox:${meId}`,
+      (channel) =>
+        channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mark' }, ({ new: m }) => {
+          if (m.kind === 'send' && m.author_id !== meId) setSends((ss) => (ss.some((x) => x.id === m.id) ? ss : [m as Mark, ...ss]));
+        }),
+      fetchAll,
+    );
+    return () => {
+      alive = false;
+      leave();
+    };
+  }, [meId]);
+  return sends;
+}

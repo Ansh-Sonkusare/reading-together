@@ -184,3 +184,51 @@ test("each mark keeps the ink it was made in; A's picker never offers B's ink", 
   await turn(b, () => b.getByRole('button', { name: 'Next page' }).click());
   await expect(ribbon).toHaveCount(0);
 });
+
+test('I can remove my own reaction, note and bookmark; never the partner’s, nor one they replied under', async ({ browser }) => {
+  const { a, b } = await pairUp(browser);
+  const bookPath = await uploadAndOpen(a);
+  await b.goto(bookPath);
+  await toChapter1(a);
+  await toChapter1(b);
+  const removeButtons = (page: Page) => thread(page).getByRole('button', { name: /^Remove/ });
+
+  await (await select(a, P1)).getByRole('button', { name: 'Emotional' }).click();
+  const noteMenu = await select(a, P2);
+  await noteMenu.getByRole('button', { name: 'Note' }).click();
+  await noteMenu.getByLabel('Write a note').fill('Keep this one.');
+  await noteMenu.getByRole('button', { name: 'Save' }).click();
+  const bookmarkMenu = await select(a, P3);
+  await bookmarkMenu.getByRole('button', { name: 'Bookmark' }).click();
+  await bookmarkMenu.getByRole('button', { name: 'Funny part' }).click();
+  await expect.poll(() => paintAt(b, P1), { timeout: LIVE_MS }).toEqual([expect.objectContaining({ fill: ALEX, count: 1 })]);
+  const ribbon = b.getByRole('img', { name: 'Bookmark: Funny part' });
+  await expect(ribbon).toBeVisible({ timeout: LIVE_MS });
+
+  await tap(b, P2);
+  await expect(thread(b)).toContainText('Alex: Keep this one.');
+  await expect(removeButtons(b)).toHaveCount(0);
+  await thread(b).getByLabel('Reply').fill('Me too');
+  await thread(b).getByRole('button', { name: 'Reply' }).click();
+  await thread(b).getByRole('button', { name: 'Close' }).click();
+
+  await tap(a, P2);
+  await expect(thread(a)).toContainText('Sam: Me too', { timeout: LIVE_MS });
+  await expect(removeButtons(a)).toHaveCount(0);
+  await thread(a).getByRole('button', { name: 'Close' }).click();
+
+  await tap(a, P1);
+  await thread(a).getByRole('button', { name: 'Remove your reaction' }).click();
+  await expect(thread(a)).toBeHidden();
+  await expect.poll(() => paintAt(b, P1), { timeout: LIVE_MS }).toEqual([]);
+  expect(await paintAt(a, P1)).toEqual([]);
+
+  const panel = a.getByRole('dialog', { name: 'Bookmarks' });
+  await a.getByRole('button', { name: 'Bookmarks' }).click();
+  await panel.getByRole('button', { name: 'Remove bookmark Funny part' }).click();
+  await expect(panel).toContainText('Select a passage and tap Bookmark to keep it here.');
+  await expect(ribbon).toHaveCount(0, { timeout: LIVE_MS });
+  await b.getByRole('button', { name: 'Bookmarks' }).click();
+  await expect(b.getByRole('dialog', { name: 'Bookmarks' })).toContainText('Select a passage and tap Bookmark to keep it here.');
+  await expect(paintAt(b, P2)).resolves.toEqual([expect.objectContaining({ count: 1 })]);
+});

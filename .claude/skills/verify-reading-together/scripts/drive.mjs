@@ -6,7 +6,7 @@
 // Resolves '@playwright/test' from the repo's own node_modules (Node walks
 // up from this file's directory), so no extra dependency is needed here.
 
-import { chromium } from '@playwright/test';
+import { chromium, expect } from '@playwright/test';
 
 let browser;
 
@@ -29,46 +29,135 @@ export async function closeAll() {
   browser = undefined;
 }
 
-// --- auth / couple / library ---------------------------------------------
-// These depend on the P11 (/login, /onboarding, /join/[code]) and P12
-// (/library) pages, which are being built in another worktree and are not
-// in this one yet. Rather than silently no-op, they fail loudly so a run
-// against this worktree reports "not built yet" instead of a false pass.
-// Update the selectors below once those pages land — see
-// features/auth-and-couple.md and features/library-upload.md.
+// --- auth / couple / library -----------------------------------------------
+// Selectors and flow copied from tests/e2e/couple.spec.ts and
+// tests/e2e/book.spec.ts, which already drive this real markup
+// (src/features/couple/forms.tsx, src/app/library/page.tsx). P11/P12 are
+// built in this worktree today.
 
-async function requirePage(page, path, label) {
-  const res = await page.goto(path);
-  if (!res || res.status() === 404) {
-    throw new Error(
-      `${path} is 404 — ${label} depends on P11/P12 pages not yet in this worktree. ` +
-        'See features/auth-and-couple.md and features/library-upload.md.',
-    );
-  }
-  return res;
+const PASSWORD = 'correct-horse-42';
+// src/features/couple/palette.ts COLORS[0] and COLORS[4] — the two colours
+// the passing e2e specs pick for Alex and Sam/Bea.
+const COLOR_ALEX = '#e11d48';
+const COLOR_SAM = '#2563eb';
+
+/** Assumes the page is already on /login (a fresh visit, or a redirect chain that landed there). */
+export async function signUp(page, email, password = PASSWORD) {
+  await page.getByRole('tab', { name: 'Sign up' }).click();
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Password').fill(password);
+  await page.getByRole('button', { name: 'Create account' }).click();
 }
 
-export async function signUp(page, email, password, { baseURL = '' } = {}) {
-  await requirePage(page, `${baseURL}/login`, 'signUp');
-  await page.getByRole('link', { name: /sign up/i }).click();
-  await page.getByLabel(/email/i).fill(email);
-  await page.getByLabel(/password/i).fill(password);
-  await page.getByRole('button', { name: /sign up/i }).click();
+/** Fills the name/colour fields shared by /onboarding and /join/[code] (ProfileFields in forms.tsx). */
+export async function fillProfile(page, name, color) {
+  if (name) await page.getByLabel('Your name').fill(name);
+  if (color) await page.getByLabel(color, { exact: true }).check({ force: true });
 }
 
-/** Calls the create_couple RPC via the UI. Returns the invite code. */
-export async function createCouple(page, { name, color } = {}) {
-  await page.getByRole('button', { name: /create couple/i }).click();
-  if (name) await page.getByLabel(/^name$/i).fill(name);
-  if (color) await page.getByLabel(/color/i).fill(color);
-  await page.getByRole('button', { name: /^create$/i }).click();
-  return (await page.getByTestId('invite-code').textContent())?.trim();
+/** Assumes the page is already on /onboarding (post-signup, no couple yet). Returns the invite URL. */
+export async function createCouple(page, { name, color = COLOR_ALEX } = {}) {
+  await fillProfile(page, name, color);
+  await page.getByRole('button', { name: 'Start our library' }).click();
+  await page.waitForURL('**/library');
+  return page.getByLabel('Invite link').inputValue();
 }
 
-/** Calls the join_couple RPC via the UI. join_couple raises "couple is full" for a third member (docs/interfaces.md). */
-export async function join(page, inviteCode, { baseURL = '' } = {}) {
-  await requirePage(page, `${baseURL}/join/${inviteCode}`, 'join');
-  await page.getByRole('button', { name: /^join$/i }).click();
+/**
+ * Goes to the invite URL and joins. If the couple is already full or the
+ * code is invalid, src/app/join/[code]/page.tsx renders `main [role=alert]`
+ * instead of the form — returned as `{ refused: true, message }` instead of
+ * throwing, so a "third partner refused" recipe can assert on it.
+ */
+export async function join(page, inviteUrl, { name, color = COLOR_SAM } = {}) {
+  await page.goto(inviteUrl);
+  const alert = page.locator('main [role=alert]');
+  if (await alert.count()) return { refused: true, message: (await alert.innerText()).trim() };
+  await fillProfile(page, name, color);
+  await page.getByRole('button', { name: 'Join' }).click();
+  await page.waitForURL('**/library');
+  return { refused: false };
+}
+
+/** Assumes the page is already on /library. Returns the resulting status/alert text (e.g. `Added "Alice's Adventures in Wonderland".`). */
+export async function uploadBook(page, filePath) {
+  await page.getByLabel('EPUB file').setInputFiles(filePath);
+  await page.getByRole('button', { name: 'Upload' }).click();
+  const result = page.locator('main [role=status], main [role=alert]').first();
+  await result.waitFor({ timeout: 15_000 });
+  return (await result.innerText()).trim();
+}
+
+/** Navigates to /library (always fresh, so a just-uploaded/shared book is visible) and opens a book by its title link. Returns its book id. */
+export async function openBook(page, title) {
+  await page.goto('/library');
+  await page.getByRole('link', { name: title }).click();
+  await page.waitForURL('**/book/*');
+  return new URL(page.url()).pathname.split('/').pop();
+}
+
+/**
+ * Two signed-up partners (Alex, Sam), already joined in one couple, with
+ * fixtures/alice.epub uploaded and shared. Ready for openBook(page, title).
+ */
+export async function twoPartners({ baseURL } = {}) {
+  const run = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const alex = await partner('alex', { baseURL });
+  const sam = await partner('sam', { baseURL });
+
+  await alex.page.goto('/login');
+  await signUp(alex.page, `alex-${run}@example.test`);
+  await alex.page.waitForURL('**/onboarding');
+  const invite = await createCouple(alex.page, { name: 'Alex', color: COLOR_ALEX });
+
+  await sam.page.goto(invite);
+  await signUp(sam.page, `sam-${run}@example.test`);
+  await sam.page.waitForURL(invite);
+  await fillProfile(sam.page, 'Sam', COLOR_SAM);
+  await sam.page.getByRole('button', { name: 'Join' }).click();
+  await sam.page.waitForURL('**/library');
+
+  await alex.page.reload();
+  await uploadBook(alex.page, 'fixtures/alice.epub');
+
+  return { alex, sam, run, invite };
+}
+
+// --- book progress (P13b/P15) -----------------------------------------------
+// Selectors and the turn-page retry logic copied from tests/e2e/book.spec.ts,
+// which already drives this real markup (src/app/book/[id]/book-reader.tsx).
+// Distinct from the /dev/reader helpers below: these drive the real
+// signed-in reading page, through its Next/Previous page buttons, not
+// window.__reader directly.
+
+export const myPos = (page) => page.getByTestId('my-pos');
+export const progressPair = (page) => page.getByTestId('progress-pair');
+
+/** Reads the partner-progress line's "you p.N" page number. */
+export async function myPage(page) {
+  const text = await progressPair(page).textContent();
+  return Number(/you p\.(\d+)$/.exec(text ?? '')?.[1]);
+}
+
+// A turn across a section boundary relocates through the section start
+// first; the Next/Previous buttons re-enable once it settles.
+async function settle(page, how) {
+  const nextBtn = page.getByRole('button', { name: 'Next page' }); // shares the `turning` disabled state with Previous page
+  await expect(nextBtn).toBeEnabled();
+  const before = await myPos(page).textContent();
+  await how();
+  await expect(myPos(page)).not.toHaveText(before ?? '');
+  await expect(nextBtn).toBeEnabled();
+}
+
+export const nextPage = (page) => settle(page, () => page.getByRole('button', { name: 'Next page' }).click());
+export const prevPage = (page) => settle(page, () => page.getByRole('button', { name: 'Previous page' }).click());
+
+/** Waits for the debounced progress save to catch up with the visible pos. Returns the saved pos string. */
+export async function waitForSaved(page) {
+  const pos = await myPos(page).textContent();
+  await expect(page.getByTestId('saved-pos')).toHaveText(pos ?? '', { timeout: 5000 });
+  return pos;
 }
 
 // --- reader ----------------------------------------------------------------

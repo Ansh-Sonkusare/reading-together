@@ -6,10 +6,13 @@ description: "Launch the real Reading Together app (Next.js dev server + the exi
 # Verify Reading Together
 
 Reading Together is a Next.js app backed by a local Supabase stack. Its one
-user-facing surface today is the web UI; `/dev/reader` is a dev-only route
-that renders `fixtures/alice.epub` through the reader engine
-(`src/features/reader`, P13a) without needing auth or a couple. Auth,
-couple, library and marks land on top of it as P11/P12/P14 merge.
+user-facing surface is the web UI: sign up, form a couple, upload and share
+a book, read it with progress synced live between partners. `/dev/reader`
+is a separate dev-only route that renders `fixtures/alice.epub` through the
+reader engine (`src/features/reader`, P13a) without needing auth or a
+couple — useful for reader-engine-only checks. Marks (P14) land on top of
+the real book page as P14b merges; see `features/README.md` for what's
+built today.
 
 This skill never starts, stops or resets the Supabase stack — it only reads
 `pnpm supabase status`. Another worker may be using the same local instance.
@@ -29,8 +32,9 @@ This skill never starts, stops or resets the Supabase stack — it only reads
   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SERVICE_ROLE_KEY` →
   `SUPABASE_SERVICE_ROLE_KEY` (matches `src/lib/supabase.ts`). An existing
   `.env.local` is left untouched.
-- **Readiness:** polls `GET /dev/reader` until `200` (up to 60s). `/dev/reader`
-  404s in production, so a 404 means the dev server isn't the one running.
+- **Readiness:** polls `GET /login` until `200` (up to 60s). `/login` is a
+  public route with no auth/couple/book preconditions, so it stays up across
+  changes elsewhere in the app; `doctor.sh` checks `/dev/reader` separately.
 - **State:** writes `.verify/<run-id>/server.env` (`RUN_ID`, `PORT`, `PID`,
   `LOG`) and the dev server's own output to `.verify/<run-id>/dev-server.log`.
   Every other script reads this file — nothing is re-derived or guessed.
@@ -47,9 +51,13 @@ Read-only. One `PASS`/`FAIL` line per check, non-zero exit on any failure:
 2. the port it claims to own is listening, and the listener's process
    ancestry traces back to that PID (pnpm forks `next dev`, which forks the
    real `next-server` listener, so a direct PID match would always fail).
-3. `GET /dev/reader` answers `200`.
-4. `pnpm supabase status` reports the API up (never starts/stops/resets it).
-5. `docker info` succeeds (Supabase runs in Docker).
+3. `GET /login` answers `200` — the same public route `launch.sh` polls for
+   readiness, so it can't be broken by an auth/couple/book change elsewhere.
+4. `GET /dev/reader` answers `200` — a separate, dev-only check (404s in
+   production); worth knowing about before driving the reader, but not the
+   readiness signal.
+5. `pnpm supabase status` reports the API up (never starts/stops/resets it).
+6. `docker info` succeeds (Supabase runs in Docker).
 
 Run this first whenever a drive step looks wrong, before assuming the app
 itself is broken.
@@ -67,13 +75,18 @@ A Node ESM module (import, don't execute) built on Playwright
 - `partner(name, { baseURL })` → `{ context, page }` — an isolated
   `BrowserContext`. **Two partners = two `partner()` calls sharing one
   Chromium instance**, not two processes.
-- `signUp`, `createCouple`, `join` — depend on P11's `/login`,
-  `/onboarding`, `/join/[code]`. `requirePage` throws a clear error (naming
-  the missing route and blocking problem ID) if the page 404s, instead of
-  silently doing nothing.
+- `signUp`, `fillProfile`, `createCouple`, `join`, `uploadBook`, `openBook` —
+  drive P11's `/login`/`/onboarding`/`/join/[code]` and P12's `/library`,
+  selectors copied from `tests/e2e/couple.spec.ts` and `tests/e2e/book.spec.ts`.
+- `twoPartners({ baseURL })` → `{ alex, sam, run, invite }` — Alex and Sam,
+  signed up, joined in one couple, with `fixtures/alice.epub` uploaded and
+  shared; the standard starting state for anything past P11/P12.
+- `myPos`, `progressPair`, `myPage`, `nextPage`, `prevPage`, `waitForSaved` —
+  drive the real `/book/[id]` reading page (P13b/P15), also copied from
+  `book.spec.ts`.
 - `openReader`, `goTo`, `next`, `prev`, `setFontScale`, `selectText`,
   `paint`, `readPos`, `readPageEndPos` — built on `window.__reader`
-  (`docs/interfaces.md`'s `ReaderHandle`), live today.
+  (`docs/interfaces.md`'s `ReaderHandle`), live today via `/dev/reader` only.
 - `closeAll()` — closes the shared browser.
 
 Per-feature recipes with exact calls and expected values live in

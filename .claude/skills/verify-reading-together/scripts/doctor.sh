@@ -51,6 +51,19 @@ else
 fi
 
 if [ -n "${PORT:-}" ]; then
+  # /login is public (no auth/couple/book preconditions), so it stays up
+  # across app changes elsewhere — the readiness check launch.sh also polls.
+  CODE=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/login" 2>/dev/null)
+  if [ "$CODE" = "200" ]; then
+    echo "PASS GET /login -> 200"
+  else
+    echo "FAIL GET /login -> $CODE"
+    FAIL=1
+  fi
+
+  # /dev/reader is a separate, dev-only check: it 404s in production and
+  # depends on the reader feature specifically, so it's not the readiness
+  # signal, but still worth knowing about before driving the reader.
   CODE=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/dev/reader" 2>/dev/null)
   if [ "$CODE" = "200" ]; then
     echo "PASS GET /dev/reader -> 200"

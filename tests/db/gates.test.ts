@@ -203,7 +203,12 @@ describe('storage', () => {
     const theirs = await C.db.storage.from('books').download(path);
     expect(theirs.data).toBeNull();
     expect(theirs.error).not.toBeNull();
-    const wrongFolder = await C.db.storage.from('books').upload(`${coupleAB}/x.epub`, epub);
+    // Storage answers an RLS-refused upload without draining its body, which wedges Kong's pooled
+    // connection to storage for the next upload (the next run's first one). A 1-byte body leaves nothing unread.
+    const tiny = Buffer.from('x');
+    const cCouple = (await ok(C.db.from('member').select('couple_id').single())).couple_id;
+    await write(C.db.storage.from('books').upload(`${cCouple}/x.epub`, tiny));
+    const wrongFolder = await C.db.storage.from('books').upload(`${coupleAB}/x.epub`, tiny);
     expect(wrongFolder.error).not.toBeNull();
   });
 });

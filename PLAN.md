@@ -63,18 +63,18 @@ Public-domain catalogue (D1), native apps, groups of more than two, PDFs, DRM bo
 | P13a | Reader engine behind `ReaderHandle` (foliate): render, paginate, relocate → Locator/pos, select, paint, goTo, font size, per-chapter length check; `/dev/reader` page; Playwright e2e | B | `pnpm test:e2e` reader spec: pos stable across font sizes in the real app | done |
 | P13b | Reader page wired to data: open a book from Storage, save progress (debounced, max_pos = page end), restore position | B | verify: reopening restores the position | done |
 | P14a | Marks data + components: createMark/useMarks with Realtime, same-range merge for painting, SelectionMenu (highlight, 7 reactions, note), ThreadPanel (replies), per-person colours | C | unit + DB tests; component test renders the 7 reactions | done |
-| P14b | Wire marks into /book/[id]: select → menu → mark painted; markClick → thread; live for the partner | C | verify: A reacts and B sees it within 2 seconds; B replies and A sees it | wip |
+| P14b | Wire marks into /book/[id]: select → menu → mark painted; markClick → thread; live for the partner | C | verify: A reacts and B sees it within 2 seconds; B replies and A sees it | done |
 | P15 | Progress pair bar "Alex p.42 · you p.38" | D | verify: both positions shown and updated live | done |
-| P21 | Reveal-on-reach: marks ahead are invisible, then appear with "✨ new from Alex" | C | verify: gate scenario done by hand in the UI | todo |
+| P21 | Reveal-on-reach: marks ahead are invisible, then appear with "✨ new from Alex" | C | verify: gate scenario done by hand in the UI | wip |
 | P22 | Re-anchor a mark by text quote when its CFI misses | B | verify: a highlight lands on the same text at font sizes S and L | done |
-| P23 | Bookmarks with labels, "Reminded me of you" send | C | verify: the send appears in the partner's inbox | todo |
+| P23 | Bookmarks with labels, "Reminded me of you" send | C | verify: the send appears in the partner's inbox | wip |
 | P31 | Chapter-finished events, streaks, goals | E | unit tests on the streak calculation + verify: the streak shows | done |
 | P32 | Chapter discussion and guess-the-reaction with blind reveal | E | `pnpm test:db` reveal gate + verify: reveal after both answer | done |
 | P33 | Web push: service worker, subscriptions, edge function wording | D | the edge function test renders the personal wording; subscription stored | wip |
 | P41 | "Our Book" timeline | E | verify: timeline lists the day's events | done |
 | P42 | Couple stats dashboard | E | SQL view test with literal counts | done |
 | P43 | Couple memories (photo on a mark) | C | verify: a photo attached to a highlight shows for both | todo |
-| P44 | Themes, dark mode, font size, background | D | verify: prefs persist across reload | todo |
+| P44 | Themes, dark mode, font size, background | D | verify: prefs persist across reload | wip |
 | P51 | Sync reading mode (presence, follow the leader) | B | verify: B's page follows A's page turn | todo |
 
 Test book: a public-domain EPUB in `fixtures/` (test data only; D1 still holds for the product).

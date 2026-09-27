@@ -47,7 +47,8 @@ export async function createReader(container: HTMLElement, file: Blob, opts: { s
   const view = document.createElement('foliate-view') as InstanceType<typeof View>;
   view.style.cssText = 'display:block;width:100%;height:100%';
   container.append(view);
-  await view.open(file);
+  // foliate sniffs the format from File.name, so a bare Blob needs one.
+  await view.open(file instanceof File ? file : new File([file], 'book.epub'));
   view.renderer.setAttribute('flow', 'paginated');
 
   const posOf = (spine: number, offset: number) => toPos(spine, Math.min(offset, lengths[spine] ?? 0), lengths);
@@ -63,6 +64,8 @@ export async function createReader(container: HTMLElement, file: Blob, opts: { s
     texts.set(index, text);
     displayed = true;
     if (text.length !== lengths[index]) emit('lengthMismatch', { spine: index, expected: lengths[index], actual: text.length });
+    // Keys pressed after clicking into the book land in the section iframe; let the host page see them.
+    doc.addEventListener('keydown', (k) => window.dispatchEvent(new KeyboardEvent('keydown', { key: k.key })));
     let timer: ReturnType<typeof setTimeout> | undefined;
     doc.addEventListener('selectionchange', () => {
       clearTimeout(timer);
@@ -121,7 +124,12 @@ export async function createReader(container: HTMLElement, file: Blob, opts: { s
     },
     async goTo(target) {
       const { spine, offset } = typeof target === 'number' ? fromPos(target, lengths) : target;
-      await view.renderer.goTo({ index: spine, anchor: (doc) => rangeAt(doc, offset) });
+      // A page often starts on inter-block whitespace, which has no layout box to scroll to; anchor on the next visible char.
+      const anchor = (doc: Document) => {
+        const skip = canonicalText(doc).slice(offset).search(/\S/);
+        return rangeAt(doc, skip === -1 ? offset : offset + skip);
+      };
+      await view.renderer.goTo({ index: spine, anchor });
     },
     next: () => view.next(),
     prev: () => view.prev(),

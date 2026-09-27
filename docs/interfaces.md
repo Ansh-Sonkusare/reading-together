@@ -51,6 +51,10 @@ Private bucket `books`, object path `{couple_id}/{book_id}.epub`, readable and w
 5. `mark.pos` must be ≤ the author's own `progress.max_pos` + ε. You can't annotate text you haven't reached.
 6. `chapter` = spine item. `chapter_finished` fires when `floor(max_pos)` increases; `book_finished` fires when `max_pos` reaches the spine count.
 
+## Routes
+
+- `/book/[id]`: server checks membership, signs a 60 s Storage URL; the client restores `progress.locator` (else pos 0), saves on relocate. Font scale is per device in `localStorage['reader:fontScale']`. Test hooks: `data-testid="my-pos"` and `"saved-pos"` (pos, 6 decimals).
+
 ## Realtime channels
 
 - `book:{id}`: postgres_changes on `mark` and `progress`. RLS still applies, and the client re-fetches marks when its own progress moves past new ones.
@@ -69,12 +73,16 @@ ReaderHandle.paint(marks: PaintMark[])     // full set, idempotent; PaintMark = 
 ReaderHandle.goTo(target: Locator | Pos)   // nothing renders until the first goTo
 ReaderHandle.next() / prev() / setFontScale(n) / destroy()
 // locator.ts: toPos, fromPos, quoteAt, findByQuote, spineLengthsFromEpub, zipReader, canonicalText, offsetOf, rangeAt
+displayPage(pos, spineLengths): number     // floor(chars before pos / 1500) + 1; display only, never stored
+// goTo anchors on the first non-whitespace char at or after the target offset (inter-block whitespace has no box to scroll to)
 
 // features/marks
 createMark(input: NewMark): Promise<Mark>
 useMarks(bookId): Mark[]   // re-fetches when my progress passes new marks
 
 // features/couple
+useProgressSaver(bookId, userId, initial: Progress | null): { save(pos, pageEndPos, locator); savedPos }   // client; 1 s debounce,
+    // max_pos = max(initial.max_pos, every pageEndPos seen); flushes on pagehide / visibilitychange hidden via keepalive fetch
 useProgressPair(bookId): { me: Progress; partner: Progress | null }
 getMyCouple(): Promise<{ id; inviteCode; members: { userId; name; color }[] } | null>   // server only
 listBooks(coupleId, members): Promise<{ id; title; author; addedBy; createdAt }[]>       // server only

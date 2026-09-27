@@ -39,6 +39,15 @@ export function fromPos(pos: Pos | number, spineLengths: readonly number[]): { s
   return { spine, offset: Math.min(spineLengths[spine], Math.round((pos - spine) * spineLengths[spine])) };
 }
 
+export const CHARS_PER_PAGE = 1500;
+
+// Display only; page numbers are never stored (AGENTS.md).
+export function displayPage(pos: Pos | number, spineLengths: readonly number[]): number {
+  const { spine, offset } = fromPos(pos, spineLengths);
+  const before = spineLengths.slice(0, spine).reduce((a, b) => a + b, 0) + offset;
+  return Math.floor(before / CHARS_PER_PAGE) + 1;
+}
+
 // Inverse of offsetOf: a collapsed Range at canonical offset `offset` of `doc`.
 export function rangeAt(doc: Document, offset: number): Range {
   const range = doc.createRange();

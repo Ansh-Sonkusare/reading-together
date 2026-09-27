@@ -49,16 +49,22 @@ export function EnableNotifications() {
 
   if (state === 'loading' || state === 'unsupported') return null;
   return (
-    <section className="flex items-center gap-3 rounded-lg border p-4" aria-label="Notifications">
+    <section className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t pt-6 text-sm text-muted-foreground" aria-label="Notifications">
       {state === 'on' ? (
         <p data-testid="notifications">🔔 Notifications are on</p>
       ) : state === 'denied' ? (
         <p data-testid="notifications">Notifications are blocked in this browser&apos;s site settings.</p>
       ) : (
         <>
-          <p className="flex-1">Get a nudge when your partner reacts, replies or finishes a chapter.</p>
-          <Button onClick={enable}>Enable notifications</Button>
-          {state === 'error' && <p role="alert">Couldn&apos;t turn on notifications. Try again.</p>}
+          <p>Want a nudge when your partner reacts, replies or finishes a chapter?</p>
+          <Button variant="outline" size="sm" onClick={enable}>
+            Enable notifications
+          </Button>
+          {state === 'error' && (
+            <p role="alert" className="w-full text-danger">
+              Couldn&apos;t turn on notifications. Try again.
+            </p>
+          )}
         </>
       )}
     </section>

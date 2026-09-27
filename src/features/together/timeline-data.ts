@@ -28,7 +28,9 @@ export async function getTimeline(bookId: string): Promise<{ title: string; toc:
         actorId: e.actor_id,
         createdAt: e.created_at,
         data: e.data as TimelineEvent['data'],
-        mark: m ? { kind: m.kind, emoji: m.emoji, cfi: (m.locator as Locator | null)?.cfi ?? null } : null,
+        mark: m
+          ? { kind: m.kind, emoji: m.emoji, cfi: (m.locator as Locator | null)?.cfi ?? null, quote: (m.locator as Locator | null)?.quote?.exact ?? null }
+          : null,
       };
     }),
   };

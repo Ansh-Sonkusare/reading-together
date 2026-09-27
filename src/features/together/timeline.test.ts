@@ -20,7 +20,7 @@ const ev = (type: TimelineEvent['type'], actorId: string, rest: Partial<Timeline
 });
 const highlight = (actorId: string) => ev('mark_created', actorId, { mark: { kind: 'highlight', emoji: null, cfi: `c-${Math.random()}` } });
 const react = (actorId: string, cfi: string, emoji: 'love' | 'funny') => ev('mark_created', actorId, { mark: { kind: 'reaction', emoji, cfi } });
-const day = (events: TimelineEvent[], meId = ME, toc: Toc | null = null) => describeDay(events, members, meId, TITLE, toc);
+const day = (events: TimelineEvent[], meId = ME, toc: Toc | null = null) => describeDay(events, members, meId, TITLE, toc).map((l) => l.text);
 
 describe('describeDay', () => {
   it('writes the idea example day in order', () => {
@@ -92,6 +92,18 @@ describe('describeDay', () => {
 
   it('skips mark events whose mark the viewer cannot read, and ignores chapter_finished', () => {
     expect(day([ev('mark_created', SAM, { mark: null }), ev('chapter_finished', ME, { data: { spine: 0 } })])).toEqual([]);
+  });
+});
+
+describe('describeDay entries', () => {
+  it('carry who they are about and the first passage quoted', () => {
+    const quoted = (actorId: string, quote: string) => ev('mark_created', actorId, { mark: { kind: 'highlight', emoji: null, cfi: 'c', quote } });
+    expect(describeDay([quoted(SAM, 'Curiouser and curiouser!'), quoted(ME, 'Off with her head!')], members, ME, TITLE, null)).toEqual([
+      { text: '❤️ You both highlighted 2 passages', actors: [SAM, ME], quote: 'Curiouser and curiouser!' },
+    ]);
+    expect(describeDay([ev('answer_revealed', SAM, { data: { spine: 1, kind: 'question' } })], members, ME, TITLE, null)).toEqual([
+      { text: '💬 You discussed Chapter 2', actors: [ME, SAM] },
+    ]);
   });
 });
 

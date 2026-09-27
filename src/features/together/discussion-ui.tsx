@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
+import { InkDot } from '@/components/ui/ink';
 import type { Member } from '@/features/couple/couple';
 import { createBrowserClient } from '@/lib/supabase';
 import type { Enums, Tables } from '@/lib/types';
@@ -88,7 +89,7 @@ export function Discussion({ bookId, spine, me, partner }: { bookId: string; spi
 
 function Waiting({ partnerName }: { partnerName: string }) {
   return (
-    <p className="text-gray-600" role="status">
+    <p className="text-muted-foreground" role="status">
       Waiting for {partnerName}…
     </p>
   );
@@ -96,8 +97,10 @@ function Waiting({ partnerName }: { partnerName: string }) {
 
 function Said({ who, color, children }: { who: string; color: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-1 flex-col gap-1 rounded-md border-l-4 bg-gray-50 p-3" style={{ borderColor: color }}>
-      <span className="text-sm font-semibold" style={{ color }}>
+    <div className="relative flex flex-1 flex-col gap-1.5 overflow-hidden rounded-xl bg-wash p-4 pl-5">
+      <span aria-hidden className="absolute inset-y-0 left-0 w-1" style={{ background: color }} />
+      <span className="flex items-center gap-2 text-sm font-medium">
+        <InkDot color={color} />
         {who}
       </span>
       <p className="whitespace-pre-wrap">{children}</p>
@@ -134,20 +137,20 @@ function QuestionCard({
   }
 
   return (
-    <section className="flex flex-col gap-3 rounded-lg border p-4" aria-label={text}>
-      <h2 className="font-semibold">{text}</h2>
+    <section className="flex flex-col gap-4 rounded-sheet border bg-leaf p-5 sm:p-6" aria-label={text}>
+      <h2 className="text-xl">{text}</h2>
       {!pair.mine ? (
         <form onSubmit={send} className="flex flex-col gap-2">
           <textarea
             aria-label="Your answer"
-            className="min-h-24 rounded-md border p-2"
+            className="min-h-28 rounded-xl border bg-background p-3 outline-none focus-visible:border-ink focus-visible:outline-none"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             maxLength={2000}
           />
-          <p className="text-sm text-gray-600">{partnerName} sees it only after answering too.</p>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <Button type="submit" disabled={busy || !draft.trim()} className="self-start">
+          <p className="text-sm text-muted-foreground">{partnerName} sees it only after answering too.</p>
+          {error && <p className="text-sm text-danger">{error}</p>}
+          <Button type="submit" size="md" disabled={busy || !draft.trim()} className="self-start">
             Answer
           </Button>
         </form>
@@ -157,7 +160,7 @@ function QuestionCard({
             {pair.mine.value}
           </Said>
           {pair.theirs ? (
-            <Said who={partnerName} color={partner?.color ?? '#9ca3af'}>
+            <Said who={partnerName} color={partner?.color ?? 'var(--pencil)'}>
               {pair.theirs.value}
             </Said>
           ) : (
@@ -172,10 +175,10 @@ function QuestionCard({
 function ReactionPicker({ label, value, onChange }: { label: string; value: GuessReaction | null; onChange: (r: GuessReaction) => void }) {
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="mb-1 text-sm font-medium">{label}</legend>
+      <legend className="mb-2 text-sm text-muted-foreground">{label}</legend>
       <div className="flex flex-wrap gap-2">
         {GUESS_OPTIONS.map((o) => (
-          <Button key={o.key} type="button" variant={value === o.key ? 'default' : 'outline'} aria-pressed={value === o.key} onClick={() => onChange(o.key)}>
+          <Button key={o.key} type="button" size="sm" variant={value === o.key ? 'primary' : 'outline'} aria-pressed={value === o.key} onClick={() => onChange(o.key)}>
             {o.emoji} {o.label}
           </Button>
         ))}
@@ -201,14 +204,14 @@ function GuessCard({ pair, partnerName, onSubmit }: { pair: Pair; partnerName: s
   }
 
   return (
-    <section className="flex flex-col gap-3 rounded-lg border p-4" aria-label="Guess their reaction">
-      <h2 className="font-semibold">Guess their reaction</h2>
+    <section className="flex flex-col gap-4 rounded-sheet border bg-leaf p-5 sm:p-6" aria-label="Guess their reaction">
+      <h2 className="text-xl">Guess their reaction</h2>
       {!me ? (
         <form onSubmit={send} className="flex flex-col gap-4">
           <ReactionPicker label="How did this chapter make you feel?" value={mine} onChange={setMine} />
           <ReactionPicker label={`How do you think ${partnerName} felt?`} value={guessPartner} onChange={setGuessPartner} />
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <Button type="submit" disabled={busy || !mine || !guessPartner} className="self-start">
+          {error && <p className="text-sm text-danger">{error}</p>}
+          <Button type="submit" size="md" disabled={busy || !mine || !guessPartner} className="self-start">
             Lock it in
           </Button>
         </form>
@@ -233,7 +236,7 @@ function GuessResult({ me, them, partnerName }: { me: Guess; them: Guess; partne
       <p className="text-2xl">
         You: {emojiOf(me.mine)} {partnerName}: {emojiOf(them.mine)}
       </p>
-      <p className="font-semibold">{r.same ? '🎉 Same reaction!' : 'Different reactions this time.'}</p>
+      <p className="font-serif text-lg font-semibold">{r.same ? '🎉 Same reaction!' : 'Different reactions this time.'}</p>
       <p>{r.iGuessedRight ? `You guessed ${partnerName} right.` : `You guessed ${emojiOf(me.guessPartner)} for ${partnerName}.`}</p>
       <p>{r.theyGuessedRight ? `${partnerName} guessed you right.` : `${partnerName} guessed ${emojiOf(them.guessPartner)} for you.`}</p>
     </div>

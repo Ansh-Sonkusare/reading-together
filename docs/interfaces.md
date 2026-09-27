@@ -32,7 +32,7 @@ push_sub (user_id, endpoint, keys jsonb)
 
 ## Realtime channels
 
-- `book:{id}`: postgres_changes on `mark` and `progress`. RLS still applies, and the client re-fetches locked marks on progress change.
+- `book:{id}`: postgres_changes on `mark` and `progress`. RLS still applies, and the client re-fetches marks when its own progress moves past new ones.
 - `presence:book:{id}`: current locator, used by sync mode.
 
 ## Client module surfaces (signatures only)

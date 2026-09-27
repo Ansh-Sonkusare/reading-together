@@ -40,9 +40,9 @@ On top of these sits one rule, the **spoiler gate**: a mark exists for me only i
 ## System
 
 ```
- ┌──────────── Next.js PWA (apps/web) ─────────────┐
+ ┌────────────── Next.js PWA (src/) ────────────────┐
  │ reader/   epub renderer + locator + highlight   │
- │ marks/    selection menu, thread, lock chip     │
+ │ marks/    selection menu, thread, reveal-on-reach│
  │ couple/   invite, library, progress bar         │
  │ together/ timeline, stats, streak, discussion   │
  └───────┬───────────────────────▲─────────────────┘

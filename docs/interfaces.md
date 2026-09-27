@@ -9,12 +9,14 @@ couple   (id uuid pk, invite_code text unique, created_at)
 member   (user_id uuid pk → auth.users, couple_id → couple, name, color text, avatar_url)
          -- at most 2 members per couple (trigger)
 book     (id, couple_id, title, author, sha256 text, storage_path, spine_lengths int[], added_by, created_at)
-progress (user_id, book_id, pos numeric, locator jsonb, updated_at, pk(user_id, book_id))
+progress (user_id, book_id, pos numeric, max_pos numeric, locator jsonb, updated_at, pk(user_id, book_id))
+         -- pos = start of the visible page (where to reopen); max_pos = greatest(max_pos, end of visible page), never decreases
 mark     (id, book_id, author_id, kind mark_kind, pos numeric, locator jsonb,
           emoji reaction?, body text?, label text?, media_url text?, parent_id → mark?, created_at)
 answer   (id, book_id, spine int, kind ('question'|'guess'), prompt_key text, user_id, value text, created_at,
           unique(book_id, spine, prompt_key, user_id))
-event    (id, couple_id, book_id?, actor_id, type event_type, ref_id uuid?, data jsonb, created_at)
+event    (id, couple_id, book_id?, actor_id, type event_type, ref_id uuid?, pos numeric?, data jsonb, created_at)
+         -- pos is set for events about a place in the text (mark_created) so the spoiler gate can hide them
 push_sub (user_id, endpoint, keys jsonb)
 ```
 
@@ -25,10 +27,11 @@ push_sub (user_id, endpoint, keys jsonb)
 ## Rules enforced in the database (RLS and triggers)
 
 1. **Couple scope**: every row is visible only to members of its couple.
-2. **Spoiler gate** on `mark` select: `author_id = auth.uid() OR pos <= my_pos(book_id)`. Marks ahead of you are hidden entirely, including the fact that they exist (D9). There is no locked view. Realtime inserts that fail RLS are never delivered, so nothing leaks.
+2. **Spoiler gate** on `mark` select: `author_id = auth.uid() OR pos <= my_max_pos(book_id)`. The gate uses the high-water mark, so rereading earlier chapters never hides marks you've already reached. The same gate applies to `event` rows whose `pos` is set, so the timeline and notifications can't leak a hidden mark. Marks ahead of you are hidden entirely, including the fact that they exist (D9). There is no locked view. Realtime inserts that fail RLS are never delivered, so nothing leaks.
 3. **Reveal gate** on `answer` select: you see your own answer, and your partner's only once you've answered the same prompt.
 4. **Events are written by triggers only**, never by the client. Clients can't insert into `event`.
-5. `mark.pos` must be ≤ the author's own `progress.pos` + ε. You can't annotate text you haven't reached.
+5. `mark.pos` must be ≤ the author's own `progress.max_pos` + ε. You can't annotate text you haven't reached.
+6. `chapter` = spine item. `chapter_finished` fires when `floor(max_pos)` increases; `book_finished` fires when `max_pos` reaches the spine count.
 
 ## Realtime channels
 

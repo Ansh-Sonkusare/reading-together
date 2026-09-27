@@ -33,6 +33,31 @@ export function toPos(spine: number, offset: number, spineLengths: readonly numb
   return (length === 0 ? spine : spine + offset / length) as Pos;
 }
 
+export function fromPos(pos: Pos | number, spineLengths: readonly number[]): { spine: number; offset: number } {
+  if (!(pos >= 0 && pos <= spineLengths.length)) throw new RangeError(`pos ${pos} outside book of ${spineLengths.length} spine items`);
+  const spine = Math.min(Math.floor(pos), spineLengths.length - 1);
+  return { spine, offset: Math.min(spineLengths[spine], Math.round((pos - spine) * spineLengths[spine])) };
+}
+
+// Inverse of offsetOf: a collapsed Range at canonical offset `offset` of `doc`.
+export function rangeAt(doc: Document, offset: number): Range {
+  const range = doc.createRange();
+  if (!doc.body) return range;
+  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+  let left = offset;
+  let last: Text | null = null;
+  for (let n = walker.nextNode() as Text | null; n; n = walker.nextNode() as Text | null) {
+    if (left <= n.data.length) {
+      range.setStart(n, left);
+      return range;
+    }
+    left -= n.data.length;
+    last = n;
+  }
+  if (last) range.setStart(last, last.data.length);
+  return range;
+}
+
 export function quoteAt(text: string, offset: number, length: number): Quote {
   return {
     exact: text.slice(offset, offset + length),

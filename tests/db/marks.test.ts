@@ -85,3 +85,17 @@ it('refuses a reply to a mark in another book', async () => {
   const other = await createMark(A.db, { kind: 'highlight', bookId: otherBookId, locator, pos });
   await expect(createMark(B.db, { kind: 'reply', bookId, parentId: other.id, body: 'wrong book' })).rejects.toMatchObject({ code: '42501' });
 });
+
+it('removing a mark removes its timeline event for both partners, and its replies’ events too', async () => {
+  const events = (u: User, ids: string[]) => ok(u.db.from('event').select('ref_id').eq('type', 'mark_created').in('ref_id', ids));
+  const kept = await createMark(A.db, { kind: 'highlight', bookId, locator, pos });
+  const gone = await createMark(A.db, { kind: 'note', bookId, locator, pos, body: 'remove me' });
+  const reply = await createMark(A.db, { kind: 'reply', bookId, parentId: gone.id, body: 'and me' });
+  const ids = [kept.id, gone.id, reply.id];
+  expect((await events(B, ids)).length).toBe(3);
+
+  const { error } = await A.db.from('mark').delete().eq('id', gone.id);
+  expect(error).toBeNull();
+  expect(await events(A, ids)).toEqual([{ ref_id: kept.id }]);
+  expect(await events(B, ids)).toEqual([{ ref_id: kept.id }]);
+});

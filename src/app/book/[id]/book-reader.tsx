@@ -1,10 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Member } from '@/features/couple/couple';
 import { usePartnerProgress, useProgressSaver, type Progress } from '@/features/couple/progress';
+import { SelectionMenu, ThreadPanel, createMark, toPaintMarks, useMarks, type NewMark } from '@/features/marks';
 import { createReader, displayPage, type Locator, type Pos, type ReaderHandle } from '@/features/reader';
+import { createBrowserClient } from '@/lib/supabase';
+
+type Selected = { locator: Locator; pos: Pos; rect: DOMRect };
 
 const FONT_KEY = 'reader:fontScale';
 const FONT_SCALES = [0.8, 1, 1.2, 1.6, 2];
@@ -38,8 +42,29 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
   const [mismatch, setMismatch] = useState(false);
   const [failed, setFailed] = useState(false);
   const [turning, setTurning] = useState(false);
-  const { save, savedPos } = useProgressSaver(bookId, userId, mine);
+  const [markFailed, setMarkFailed] = useState(false);
+  const [selection, setSelection] = useState<Selected | null>(null);
+  const [threadCfi, setThreadCfi] = useState<string | null>(null);
+  const [db] = useState(createBrowserClient);
+  const { save, savedPos, savedMaxPos } = useProgressSaver(bookId, userId, mine);
   const theirs = usePartnerProgress(bookId, partner?.userId ?? null, partnerProgress);
+  const { anchors } = useMarks(bookId, { myMaxPos: savedMaxPos });
+  const members = useMemo(() => (partner ? [me, partner] : [me]), [me, partner]);
+  const thread = anchors.find((a) => a.cfi === threadCfi);
+
+  useEffect(() => {
+    reader?.paint(toPaintMarks(anchors, members));
+  }, [reader, anchors, members]);
+
+  const mark = (input: NewMark) => {
+    setSelection(null);
+    setMarkFailed(false);
+    createMark(db, input).catch((e) => {
+      console.error(e);
+      setMarkFailed(true);
+    });
+  };
+  const at = selection && { bookId, locator: selection.locator, pos: selection.pos };
 
   useEffect(() => {
     let handle: ReaderHandle | undefined;
@@ -60,6 +85,11 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
       r.on('relocate', (e) => {
         setPos(e.pos);
         save(e.pos, e.pageEndPos, e.locator);
+      });
+      r.on('select', ({ locator, pos, rect }) => setSelection({ locator, pos, rect }));
+      r.on('markClick', ({ id }) => {
+        setSelection(null);
+        setThreadCfi(id);
       });
       const s = storedScale();
       setScale(s);
@@ -90,7 +120,7 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLSelectElement || e.target instanceof HTMLInputElement) return;
+      if (e.target instanceof HTMLSelectElement || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === 'ArrowLeft') turn('prev');
       else if (e.key === 'ArrowRight') turn('next');
     };
@@ -135,7 +165,30 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
           Could not open this book. Reload to try again.
         </p>
       )}
+      {markFailed && (
+        <p role="alert" className="px-3 py-1 text-sm text-red-600">
+          Could not save that. Try again.
+        </p>
+      )}
       <div ref={container} className="min-h-0 flex-1" />
+      {selection && at && (
+        <SelectionMenu
+          rect={selection.rect}
+          onHighlight={() => mark({ kind: 'highlight', ...at })}
+          onReact={(emoji) => mark({ kind: 'reaction', ...at, emoji })}
+          onNote={(body) => mark({ kind: 'note', ...at, body })}
+          onDismiss={() => setSelection(null)}
+        />
+      )}
+      {thread && (
+        <ThreadPanel
+          anchor={thread}
+          members={members}
+          meId={userId}
+          onReply={(body) => mark({ kind: 'reply', bookId, parentId: thread.marks[0].id, body })}
+          onClose={() => setThreadCfi(null)}
+        />
+      )}
       <footer className="flex items-center justify-between gap-3 border-t px-3 py-2 text-sm">
         <button aria-label="Previous page" disabled={!reader || turning} onClick={() => turn('prev')} className="px-2 disabled:opacity-40">
           ‹

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { REACTIONS, type Anchor, type Mark, type Member, type Reaction } from './model';
 
-const MENU_HEIGHT = 180;
+const GAP = 8;
 const textarea =
   'w-full resize-none rounded-lg border border-input bg-background p-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
 
@@ -37,28 +37,74 @@ function BodyForm({ label, submit, onSubmit, autoFocus }: { label: string; submi
   );
 }
 
+// Below the selection, else above it, else pinned to the viewport bottom; re-placed as it grows (the note form).
+function place(menu: HTMLElement, rect: DOMRect) {
+  const { innerWidth: vw, innerHeight: vh } = window;
+  const { offsetWidth: w, offsetHeight: h } = menu;
+  const below = rect.bottom + GAP;
+  const above = rect.top - GAP - h;
+  const top = below + h <= vh - GAP ? below : above >= GAP ? above : vh - GAP - h;
+  menu.style.top = `${Math.max(GAP, top)}px`;
+  menu.style.left = `${Math.max(GAP, Math.min(rect.left, vw - GAP - w))}px`;
+}
+
 export function SelectionMenu({
   rect,
   onHighlight,
   onReact,
   onNote,
+  onDismiss,
 }: {
   rect: DOMRect;
   onHighlight: () => void;
   onReact: (r: Reaction) => void;
   onNote: (body: string) => void;
+  onDismiss: () => void;
 }) {
   const [noting, setNoting] = useState(false);
-  const above = rect.bottom + MENU_HEIGHT > window.innerHeight;
+  const ref = useRef<HTMLDivElement>(null);
+  const dismiss = useRef(onDismiss);
+  useEffect(() => {
+    dismiss.current = onDismiss;
+  });
+
+  useLayoutEffect(() => {
+    const menu = ref.current!;
+    const reposition = () => place(menu, rect);
+    reposition();
+    const resize = new ResizeObserver(reposition);
+    resize.observe(menu);
+    window.addEventListener('resize', reposition);
+    return () => {
+      resize.disconnect();
+      window.removeEventListener('resize', reposition);
+    };
+  }, [rect]);
+
+  useEffect(() => {
+    const menu = ref.current!;
+    // Holding focus makes a click into the book's iframe blur this window, the only signal such a click gives us.
+    menu.focus({ preventScroll: true });
+    const close = () => dismiss.current();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
+    const onPointer = (e: PointerEvent) => !menu.contains(e.target as Node) && close();
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('blur', close);
+    document.addEventListener('pointerdown', onPointer);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('blur', close);
+      document.removeEventListener('pointerdown', onPointer);
+    };
+  }, []);
+
   return (
     <div
+      ref={ref}
       role="group"
       aria-label="Mark this passage"
-      className="fixed z-50 flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2 rounded-xl border bg-popover p-2 text-popover-foreground shadow-lg"
-      style={{
-        left: `clamp(1rem, ${rect.left}px, calc(100vw - 23rem))`,
-        ...(above ? { bottom: window.innerHeight - rect.top + 8 } : { top: rect.bottom + 8 }),
-      }}
+      tabIndex={-1}
+      className="fixed z-50 flex w-[min(22rem,calc(100vw-1rem))] flex-col gap-2 rounded-xl border bg-background p-2 text-foreground shadow-lg outline-none"
     >
       <div className="flex flex-wrap gap-1">
         {REACTIONS.map((r) => (
@@ -107,11 +153,20 @@ export function ThreadPanel({
   onReply: (body: string) => void;
   onClose: () => void;
 }) {
+  const close = useRef(onClose);
+  useEffect(() => {
+    close.current = onClose;
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close.current();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   return (
     <section
       aria-label="Thread"
-      onKeyDown={(e) => e.key === 'Escape' && onClose()}
-      className="fixed inset-x-0 bottom-0 z-50 flex max-h-[70dvh] flex-col gap-3 overflow-y-auto rounded-t-xl border bg-popover p-4 text-popover-foreground shadow-lg md:inset-x-auto md:right-4 md:bottom-4 md:w-96 md:rounded-xl"
+      className="fixed inset-x-0 bottom-0 z-50 flex max-h-[70dvh] flex-col gap-3 overflow-y-auto rounded-t-xl border bg-background p-4 text-foreground shadow-lg md:inset-x-auto md:right-4 md:bottom-4 md:w-96 md:rounded-xl"
     >
       <div className="flex items-start justify-between gap-2">
         <blockquote className="border-l-2 pl-3 text-sm italic text-muted-foreground">{anchor.locator.quote?.exact}</blockquote>

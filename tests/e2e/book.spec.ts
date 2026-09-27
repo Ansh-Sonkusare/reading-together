@@ -1,69 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { PASSWORD, myPage, myPos, pair, pairUp, turn, uploadAndOpen, waitForSave } from './helpers';
 
 process.loadEnvFile('.env.local');
 
-const PASSWORD = 'correct-horse-42';
 const SHOTS = '.verify/p13b-p15';
-const TITLE = "Alice's Adventures in Wonderland";
-
-async function signUp(page: Page, email: string) {
-  await page.goto('/login');
-  await page.getByRole('tab', { name: 'Sign up' }).click();
-  await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Create account' }).click();
-  await page.waitForURL('**/onboarding');
-}
-
-const myPos = (page: Page) => page.getByTestId('my-pos');
-const pair = (page: Page) => page.getByTestId('progress-pair');
-
-// A turn across a section boundary relocates through the section start first; the buttons re-enable once it settles.
-async function turn(page: Page, how: () => Promise<void>) {
-  const next = page.getByRole('button', { name: 'Next page' });
-  await expect(next).toBeEnabled();
-  const before = await myPos(page).textContent();
-  await how();
-  await expect(myPos(page)).not.toHaveText(before!);
-  await expect(next).toBeEnabled();
-}
-
-async function waitForSave(page: Page): Promise<string> {
-  const pos = (await myPos(page).textContent())!;
-  await expect(page.getByTestId('saved-pos')).toHaveText(pos, { timeout: 5000 });
-  return pos;
-}
-
-async function myPage(page: Page): Promise<number> {
-  return Number(/you p\.(\d+)$/.exec((await pair(page).textContent())!)![1]);
-}
 
 test('partners open a shared book; progress is saved, restored and shown live to the other', async ({ browser }) => {
-  const run = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const emailA = `alex-${run}@example.com`;
-  const a = await (await browser.newContext()).newPage();
-  const b = await (await browser.newContext()).newPage();
-
-  await signUp(a, emailA);
-  await a.getByLabel('Your name').fill('Alex');
-  await a.getByRole('button', { name: 'Start our library' }).click();
-  await a.waitForURL('**/library');
-  const invite = await a.getByLabel('Invite link').inputValue();
-
-  await signUp(b, `sam-${run}@example.com`);
-  await b.goto(invite);
-  await b.getByLabel('Your name').fill('Sam');
-  await b.getByLabel('#2563eb').check({ force: true });
-  await b.getByRole('button', { name: 'Join' }).click();
-  await b.waitForURL('**/library');
-
-  await a.reload();
-  await a.getByLabel('EPUB file').setInputFiles('fixtures/alice.epub');
-  await a.getByRole('button', { name: 'Upload' }).click();
-  await expect(a.getByRole('status')).toHaveText(`Added "${TITLE}".`, { timeout: 15_000 });
-  await a.getByRole('link', { name: TITLE }).click();
-  await a.waitForURL('**/book/*');
+  const { a, b, emailA } = await pairUp(browser);
+  const bookPath = await uploadAndOpen(a);
   await expect(myPos(a)).toHaveText('0.125000');
   await expect(pair(a)).toHaveText("Sam hasn't started · you p.1");
 
@@ -76,7 +21,6 @@ test('partners open a shared book; progress is saved, restored and shown live to
   await a.reload();
   await expect(myPos(a)).toHaveText(reached);
 
-  const bookPath = new URL(a.url()).pathname;
   await b.goto(bookPath);
   await expect(myPos(b)).toHaveText('0.125000');
   const x = await myPage(a);

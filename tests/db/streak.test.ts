@@ -43,6 +43,9 @@ const localDay = (timeZone: string) => new Intl.DateTimeFormat('en-CA', { timeZo
 const setPos = (u: User, bookId: string, pos: number) =>
   write(u.db.from('progress').upsert({ user_id: u.id, book_id: bookId, pos, max_pos: pos }));
 
+const open = (u: User, bookId: string) =>
+  write(u.db.from('progress').insert({ user_id: u.id, book_id: bookId, pos: 0, max_pos: 0 }));
+
 const days = (u: User, bookId: string) =>
   ok(u.db.from('reading_day').select('user_id, day, from_max_pos, to_max_pos').eq('book_id', bookId).order('day'));
 
@@ -50,6 +53,7 @@ async function couple(a: User, b: User, spine_lengths: number[]) {
   const invite = await ok(a.db.rpc('create_couple', { name: 'Alex', color: '#e11d48' }));
   const coupleId = await ok(b.db.rpc('join_couple', { invite_code: invite, name: 'Sam' }));
   const book = await ok(admin.from('book').insert({ couple_id: coupleId, title: 'T', added_by: a.id, spine_lengths }).select('id').single());
+  await Promise.all([open(a, book.id), open(b, book.id)]);
   return { coupleId, bookId: book.id };
 }
 
@@ -64,6 +68,17 @@ beforeAll(async () => {
   DE = await couple(D, E, [3000, 3000]);
   const cCouple = await ok(C.db.rpc('create_couple', { name: 'Cam', color: '#2563eb' }).then(() => C.db.from('member').select('couple_id').single()));
   cBook = (await ok(admin.from('book').insert({ couple_id: cCouple.couple_id, title: 'C', added_by: C.id, spine_lengths: [3000] }).select('id').single())).id;
+  await open(C, cBook);
+});
+
+describe('opening a book', () => {
+  it('is not a reading day; the first page turned is', async () => {
+    const book = (await ok(admin.from('book').insert({ couple_id: AB.coupleId, title: 'O', added_by: A.id, spine_lengths: [3000] }).select('id').single())).id;
+    await write(A.db.from('progress').insert({ user_id: A.id, book_id: book, pos: 0.3, max_pos: 0.3 }));
+    expect(await days(A, book)).toEqual([]);
+    await setPos(A, book, 0.4);
+    expect(await days(A, book)).toEqual([{ user_id: A.id, day: localDay('UTC'), from_max_pos: 0.3, to_max_pos: 0.4 }]);
+  });
 });
 
 describe('member.timezone', () => {

@@ -85,4 +85,4 @@ Test book: a public-domain EPUB in `fixtures/` (test data only; D1 still holds f
 |---|---|---|---|---|
 | F1 | Private Realtime channels: `sync:{bookId}` and the other broadcast/presence channels require couple membership (RLS on `realtime.messages`) | A | DB test: another couple's user can't join or send on the channel (positive control: partner can) | done |
 | F2 | Entry points to chapter discussion: "Discuss Chapter N" on the book page after a chapter is finished, and from the timeline's "discussed" lines; e2e specs for discussion and streaks | E | e2e: finishing a chapter shows the link, it opens /discuss and the reveal works; /together shows the streak after both read | done |
-| F3 | Chapter labels from the book's TOC (front matter isn't "Chapter 1"); foliate errors on leaving the reader and on chapter load | B | e2e: finishing Chapter I says "Chapter I"; no uncaught browser errors during book.spec | wip |
+| F3 | Chapter labels from the book's TOC (front matter isn't "Chapter 1"); foliate errors on leaving the reader and on chapter load | B | e2e: finishing Chapter I says "Chapter I"; no uncaught browser errors during book.spec | done |

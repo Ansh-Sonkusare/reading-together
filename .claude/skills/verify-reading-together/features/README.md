@@ -56,6 +56,13 @@ each action with an exact call and its observable result); `Gotchas`
 | Auth and couple | P11 | built | [auth-and-couple.md](./auth-and-couple.md) |
 | Library upload | P12 | built | [library-upload.md](./library-upload.md) |
 | Book progress | P13b/P15 | built, verified below | [book-progress.md](./book-progress.md) |
+| Marks and realtime | P14 | built, spec-backed | [marks-realtime.md](./marks-realtime.md) |
+| Spoiler reveal | P21 | built, spec-backed, verified below | [spoiler-reveal.md](./spoiler-reveal.md) |
+| Bookmarks and send | P23 | built, spec-backed | [bookmarks-and-send.md](./bookmarks-and-send.md) |
+| Streaks and goals | P31 | built — no e2e spec yet, recipe written from source | [streaks-goals.md](./streaks-goals.md) |
+| Chapter discussion | P32 | built — no e2e spec yet, no in-app link yet either | [discussion.md](./discussion.md) |
+| Web push | P33 | built — can't run through `drive.mjs`'s shared browser; device delivery isn't verifiable locally | [push.md](./push.md) |
 | Together stats and timeline | P41/P42 | built | [together-stats-timeline.md](./together-stats-timeline.md) |
-| Marks and realtime | P14 | in progress — components exist, not wired into `/book/[id]` yet | [marks-realtime.md](./marks-realtime.md) |
-| Spoiler reveal | P21 | in progress — RLS gate is done (P02), UI reveal isn't built | [spoiler-reveal.md](./spoiler-reveal.md) |
+| Memories | P43 | built, spec-backed | [memories.md](./memories.md) |
+| Reader prefs (theme, size, dark mode) | P44 | built, spec-backed | [reader-prefs.md](./reader-prefs.md) |
+| Sync reading mode | P51 | built, spec-backed | [sync.md](./sync.md) |

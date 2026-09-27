@@ -178,6 +178,109 @@ export const paint = (page, marks) => page.evaluate((m) => window.__reader.paint
 export const readPos = async (page) => Number(await page.getByTestId('pos').textContent());
 export const readPageEndPos = async (page) => Number(await page.getByTestId('page-end-pos').textContent());
 
+// --- marks / bookmarks / discussion / reveal / sync (P14b, P21, P23, P31, P43, P51) ---------
+// Selectors copied from tests/e2e/helpers.ts and marks.spec.ts/reveal.spec.ts/sync.spec.ts,
+// which already drive this real markup (src/features/marks/components.tsx,
+// src/app/book/[id]/book-reader.tsx). Distinct from the /dev/reader `selectText` above: these
+// find text inside the real signed-in book page's iframe (a blob: URL, not /dev/reader's).
+
+// A first open lands mid front-matter; every one-partner-book fixture (fixtures/alice.epub)
+// reaches this exact pos at chapter 1's first line ("Alice was beginning to get very tired...").
+export const CHAPTER_1 = '2.000087';
+
+/** Pages forward (up to 8 turns) until `myPos` reads CHAPTER_1; asserts it got there. */
+export async function toChapter1(page) {
+  for (let i = 0; i < 8 && (await myPos(page).textContent()) !== CHAPTER_1; i++) await nextPage(page);
+  await expect(myPos(page)).toHaveText(CHAPTER_1);
+  await waitForSaved(page);
+}
+
+/** Pages forward (up to 40 turns) until `done(pos)` is true; asserts it got there. `beforeEachTurn` runs before every turn (e.g. to assert an invariant along the way). */
+export async function pageUntil(page, done, beforeEachTurn = async () => {}) {
+  for (let i = 0; i < 40 && !done(await myPos(page).textContent()); i++) {
+    await beforeEachTurn();
+    await nextPage(page);
+  }
+  expect(done(await myPos(page).textContent())).toBe(true);
+}
+
+export const thread = (page) => page.getByRole('region', { name: 'Thread' });
+export const revealToast = (page) => page.getByRole('status').filter({ hasText: 'New from' });
+export const syncPill = (page) => page.getByTestId('sync-pill');
+
+/** Finds `needle` in the book's rendered section iframe (a blob: URL), optionally selects it, and returns its first line's centre in page coordinates (for a click) plus its top/bottom (for paintAt's overlap test). */
+export async function locate(page, needle, selectIt = false) {
+  let found = null;
+  await expect
+    .poll(async () => {
+      for (const f of page.frames()) {
+        if (!f.url().startsWith('blob:')) continue;
+        found = await f
+          .evaluate(
+            ([n, sel]) => {
+              const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+              for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+                const at = t.data.indexOf(n);
+                if (at === -1) continue;
+                const range = document.createRange();
+                range.setStart(t, at);
+                range.setEnd(t, at + n.length);
+                if (sel) {
+                  document.getSelection().removeAllRanges();
+                  document.getSelection().addRange(range);
+                }
+                const r = range.getClientRects()[0];
+                const frame = window.frameElement.getBoundingClientRect();
+                return { x: frame.x + r.x + r.width / 2, y: frame.y + r.y + r.height / 2, top: frame.y + r.top, bottom: frame.y + r.bottom };
+              }
+              return null;
+            },
+            [needle, selectIt],
+          )
+          .catch(() => null);
+        if (found) return true;
+      }
+      return false;
+    })
+    .toBe(true);
+  return found;
+}
+
+/** Selects `needle` on the real book page and waits for the "Mark this passage" menu; returns its locator. */
+export async function select(page, needle) {
+  await locate(page, needle, true);
+  const menu = page.getByRole('group', { name: 'Mark this passage' });
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
+/** Clicks `needle` (no selection) — opens an existing mark's thread. */
+export async function tap(page, needle) {
+  const { x, y } = await locate(page, needle);
+  await page.mouse.click(x, y);
+}
+
+/** Reads every painted mark overlay from the foliate-view (id, fill colour, opacity, bounding box). */
+export async function overlays(page) {
+  return page.evaluate(() => {
+    const view = document.querySelector('foliate-view');
+    return view.renderer.getContents().flatMap((c) =>
+      [...(c.overlayer?.element.querySelectorAll('[data-mark-id]') ?? [])].map((g) => {
+        const r = g.getBoundingClientRect();
+        return { id: g.dataset.markId, fill: g.getAttribute('fill'), opacity: g.style.opacity, box: { x: r.x, y: r.y, width: r.width, height: r.height } };
+      }),
+    );
+  });
+}
+
+/** overlays() filtered to the ones painted at `needle`'s line (an underline sits under the line box, so match on overlap, not centre). */
+export async function paintAt(page, needle) {
+  const { x, top, bottom } = await locate(page, needle);
+  const all = await overlays(page);
+  const here = all.filter(({ box: b }) => x >= b.x && x <= b.x + b.width && b.y <= bottom + 4 && b.y + b.height >= top - 4);
+  return here.map(({ id, fill, opacity }) => ({ id, fill, opacity, count: all.filter((o) => o.id === id).length }));
+}
+
 async function trySelectOnce(page, needle, len) {
   for (const f of page.frames()) {
     const ok = await f

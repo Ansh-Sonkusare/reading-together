@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import type { Locator, ReaderHandle } from '@/features/reader';
 import { joinChannel } from '@/lib/realtime';
 import { createBrowserClient } from '@/lib/supabase';
+import { cn } from '@/lib/utils';
 import { parseSignal, SOLO, step, type Notice, type Signal, type SyncState, type Synced } from './machine';
 
 // A turn across a section boundary relocates through the section start first; only the settled page is sent.
@@ -115,11 +116,15 @@ const NOTICES: Record<Exclude<Notice, null>, (name: string) => string> = {
   declined: (name) => `${name} said not now.`,
 };
 
-export function SyncPill({ sync, notice, partnerName, onSignal }: { sync: SyncState; notice: Notice; partnerName: string; onSignal: (s: Signal) => void }) {
+type PillProps = { sync: SyncState; notice: Notice; partnerName: string; partnerColor: string; onSignal: (s: Signal) => void; className?: string };
+
+export function SyncPill({ sync, notice, partnerName, partnerColor, onSignal, className }: PillProps) {
+  const dot = <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: partnerColor }} />;
   return (
-    <p data-testid="sync-pill" data-state={sync.kind} aria-live="polite" className="flex shrink-0 items-center gap-2 text-xs">
+    <p data-testid="sync-pill" data-state={sync.kind} aria-live="polite" className={cn('flex shrink-0 items-center gap-2 text-sm empty:hidden', className)}>
       {sync.kind === 'partnerHere' || sync.kind === 'invited' ? (
         <>
+          {dot}
           <span>{partnerName} is here</span>
           {sync.kind === 'partnerHere' && (
             <Button size="sm" variant="outline" onClick={() => onSignal('invite')}>
@@ -129,40 +134,47 @@ export function SyncPill({ sync, notice, partnerName, onSignal }: { sync: SyncSt
         </>
       ) : sync.kind === 'inviting' ? (
         <>
-          <span>Waiting for {partnerName}…</span>
-          <Button size="sm" variant="ghost" onClick={() => onSignal('leave')}>
+          {dot}
+          <span className="text-pencil">Waiting for {partnerName}…</span>
+          <Button size="sm" variant="quiet" onClick={() => onSignal('leave')}>
             Cancel
           </Button>
         </>
       ) : sync.kind === 'leading' || sync.kind === 'following' ? (
         <>
+          {dot}
           <span>Reading together with {partnerName} ❤️</span>
-          <Button size="sm" variant="ghost" onClick={() => onSignal('leave')}>
+          <Button size="sm" variant="quiet" onClick={() => onSignal('leave')}>
             Leave
           </Button>
         </>
       ) : null}
-      {notice && <span className="text-muted-foreground">{NOTICES[notice](partnerName)}</span>}
+      {notice && <span className="text-pencil">{NOTICES[notice](partnerName)}</span>}
     </p>
   );
 }
 
-export function SyncInvite({ partnerName, onSignal }: { partnerName: string; onSignal: (s: Signal) => void }) {
+export function SyncInvite({ partnerName, partnerColor, onSignal }: { partnerName: string; partnerColor: string; onSignal: (s: Signal) => void }) {
   return (
     <div
       role="dialog"
       aria-label="Read together"
-      className="fixed inset-x-0 top-14 z-40 mx-auto flex w-fit max-w-[calc(100vw-1rem)] flex-wrap items-center gap-3 rounded-2xl border bg-background py-2 pr-2 pl-4 text-sm text-foreground shadow-lg"
+      className="fixed inset-x-4 top-20 z-40 mx-auto flex max-w-md flex-col gap-3 rounded-sheet bg-popover p-4 text-popover-foreground shadow-float"
     >
-      <span>
-        {partnerName} wants to read together. You&apos;ll follow {partnerName}&apos;s pages.
-      </span>
-      <Button size="sm" onClick={() => onSignal('accept')}>
-        Accept
-      </Button>
-      <Button size="sm" variant="ghost" onClick={() => onSignal('decline')}>
-        Not now
-      </Button>
+      <p className="flex items-baseline gap-2.5">
+        <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ background: partnerColor }} />
+        <span>
+          {partnerName} wants to read together. You&apos;ll follow {partnerName}&apos;s pages.
+        </span>
+      </p>
+      <div className="flex justify-end gap-2">
+        <Button size="sm" variant="quiet" onClick={() => onSignal('decline')}>
+          Not now
+        </Button>
+        <Button size="sm" onClick={() => onSignal('accept')}>
+          Accept
+        </Button>
+      </div>
     </div>
   );
 }

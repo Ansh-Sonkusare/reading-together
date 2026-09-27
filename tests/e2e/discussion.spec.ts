@@ -13,7 +13,7 @@ async function finishChapter1AndFollowPrompt(page: Page, bookId: string, shot: s
   await expect(prompt).toContainText('You finished CHAPTER I. Down the Rabbit-Hole.');
   await expect(page.getByRole('link', { name: 'Discuss CHAPTER I. Down the Rabbit-Hole' })).toHaveAttribute('href', `/discuss/${bookId}/2`);
   await page.screenshot({ path: `${SHOTS}/${shot}` });
-  await prompt.getByRole('link', { name: 'Discuss it together →' }).click();
+  await prompt.getByRole('link', { name: 'Discuss it together' }).click();
   await page.waitForURL(`**/discuss/${bookId}/2`);
   await expect(page.getByRole('heading', { name: 'Discuss CHAPTER I. Down the Rabbit-Hole' })).toBeVisible();
 }

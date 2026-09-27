@@ -77,7 +77,7 @@ Private bucket `memories` (P43), object path `{couple_id}/{mark_id}.{jpg|png|web
 ## Routes
 
 - `/together`: stats tiles, then the streak row (`data-testid="streak"`: `🔥 {n}-day reading streak` or `Start a streak: read today together`; `"goal-progress"`: `Today: You 7/10 pages · Sam 10/10 ✓`) and the goal form. Loading it syncs `member.timezone` from the browser.
-- `/book/[id]`: server checks membership, signs a 60 s Storage URL; the client restores `progress.locator` (else pos 0), saves on relocate. Font scale is per device in `localStorage['reader:fontScale']`. Test hooks: `data-testid="my-pos"` and `"saved-pos"` (pos, 6 decimals), `"progress-pair"` (the bar: `{partner} p.{n} · you p.{m}`, `{partner} hasn't started`, partner part hidden when solo; colours from `member.color`). Discussion entry points (F2): a header link `Discuss {chapterTitle(toc, spine - 1)}` once `pos >= 1` and that title is non-null, and a floating `complementary "Chapter finished"`: `You finished {chapterTitle(toc, n)}.` + `Discuss it together →` + Dismiss, shown only for a non-null title when a relocate enters a spine beyond the furthest reached (n = that spine − 1). Both go to `discussHref(bookId, n)`.
+- `/book/[id]`: server checks membership, signs a 60 s Storage URL; the client restores `progress.locator` (else pos 0), saves on relocate. Font scale is per device in `localStorage['reader:fontScale']`. Test hooks: `data-testid="my-pos"` and `"saved-pos"` (pos, 6 decimals), `"progress-pair"` (screen-reader text for the DuetRibbon: `{partner} p.{n} · you p.{m}`, `{partner} hasn't started`, partner part hidden when solo). Discussion entry points (F2): a header link `Discuss {chapterTitle(toc, spine - 1)}` once `pos >= 1` and that title is non-null, and a floating `complementary "Chapter finished"`: Toast `You finished {chapterTitle(toc, n)}.` + `Discuss it together` + Dismiss, shown only for a non-null title when a relocate enters a spine beyond the furthest reached (n = that spine − 1). Both go to `discussHref(bookId, n)`.
 - `/discuss/[bookId]/[spine]`: the chapter's questions and guess card (P32); 404 for front matter (`chapterTitle` null).
 - `/together/book/[bookId]`: the timeline; the `💬 You discussed {labels, joined by Intl.ListFormat}` line (front matter left out) links each chapter to its `/discuss` page.
 - `POST /api/push/dispatch`: called only by `event_push`; 401 without the secret. Loads the event with the service role, words it with `notificationFor`, sends Web Push (VAPID) to each of the partner's `push_sub` rows. `src/proxy.ts` must let it, `/sw.js` and `/manifest.webmanifest` through without a session (open follow-up from P33).
@@ -114,6 +114,7 @@ usePrefs(): [Prefs, (patch: Partial<Prefs>) => void]
 // locator.ts: resolveAnchor, toPos, fromPos, quoteAt, findByQuote, spineLengthsFromEpub, tocFromEpub, zipReader, canonicalText, offsetOf, rangeAt
 // together/discussion.ts: chapterTitle(toc: Toc | null, spine) → the TOC label at or before spine; null = front matter; toc null → `Chapter {spine+1}`
 displayPage(pos, spineLengths): number     // floor(chars before pos / 1500) + 1; display only, never stored
+pageCount(spineLengths): number   // ceil(all chars / 1500), at least 1; the DuetRibbon's total
 // goTo anchors on the first non-whitespace char at or after the target offset (inter-block whitespace has no box to scroll to)
 
 // features/marks
@@ -156,10 +157,13 @@ reduce(s: SyncState, e: SyncEvent, me): SyncState   // pure; SyncState solo | pa
     // e.by === me is my own action, else the partner's; unexpected events leave s unchanged; simultaneous invites: the smaller user id leads
 useSync(bookId, me, reader): { sync, notice, signal(type), relocated(locator) }   // follower chases the leader's locator with serialised goTo;
     // the follower's own relocates still save progress (max_pos rises: consented by Accept) but are never broadcast
-<SyncPill sync notice partnerName onSignal />   // /book header, data-testid="sync-pill" data-state={kind}: "{partner} is here" + Read together now,
+<SyncPill sync notice partnerName partnerColor onSignal className? />   // /book header, data-testid="sync-pill" data-state={kind}: "{partner} is here" + Read together now,
     // "Waiting for {partner}…" + Cancel, "Reading together with {partner} ❤️" + Leave, then the last notice (You left… / {partner} left…)
-<SyncInvite partnerName onSignal />   // role=dialog "Read together": "{partner} wants to read together. You'll follow {partner}'s pages." Accept / Not now
+<SyncInvite partnerName partnerColor onSignal />   // role=dialog "Read together": "{partner} wants to read together. You'll follow {partner}'s pages." Accept / Not now
 // /book/[id]: a Prev/Next/arrow turn or a bookmark jump while following leaves sync; the partner leaving the book (presence) ends it for both
+// /book/[id] layout (U1, docs/design.md "Book"): one top bar (Library, title, DuetRibbon, SyncPill, Bookmarks, Discuss, Aa) that drops to 35%
+//   opacity after the first turn (data-reading="true") and returns on hover or focus; the "Previous page" / "Next page" buttons are the
+//   full-height transparent tap zones at the left and right edges (max(2.75rem, 7%) wide); arrow keys turn too. No footer.
 
 // features/couple
 useProgressSaver(bookId, userId, initial: Progress | null): { save(pos, pageEndPos, locator); savedPos; savedMaxPos }   // client; 1 s debounce,

@@ -48,6 +48,8 @@ export function displayPage(pos: Pos | number, spineLengths: readonly number[]):
   return Math.floor(before / CHARS_PER_PAGE) + 1;
 }
 
+export const pageCount = (spineLengths: readonly number[]) => Math.max(1, Math.ceil(spineLengths.reduce((a, b) => a + b, 0) / CHARS_PER_PAGE));
+
 // Inverse of offsetOf: a collapsed Range at canonical offset `offset` of `doc`.
 export function rangeAt(doc: Document, offset: number): Range {
   const range = doc.createRange();

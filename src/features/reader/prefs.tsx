@@ -4,9 +4,9 @@ import { useEffect, useSyncExternalStore } from 'react';
 import type { ReaderHandle, ReaderTheme } from './reader';
 
 export const THEMES = {
-  light: { background: '#ffffff', color: '#1c1917' },
+  light: { background: '#fbfafd', color: '#26243a' },
   sepia: { background: '#f4ecd8', color: '#5b4636' },
-  dark: { background: '#1c1c1e', color: '#d6d3d1' },
+  dark: { background: '#17161f', color: '#eceaf4' },
   night: { background: '#000000', color: '#a8a29e' },
 } as const satisfies Record<string, ReaderTheme>;
 export type ThemeName = keyof typeof THEMES;
@@ -103,29 +103,48 @@ export function ReaderPrefs({ handle }: { handle: ReaderHandle | null }) {
     handle?.setFontScale(prefs.fontScale);
   }, [handle, prefs]);
 
-  const select = 'rounded-md border border-input bg-background px-1 py-0.5 text-foreground';
+  const select = 'h-8 min-w-28 rounded-full border border-rule bg-paper px-3 text-sm text-foreground outline-none focus-visible:border-pencil';
+  const row = 'flex items-center justify-between gap-4 text-sm';
   return (
-    <span className="flex flex-wrap items-center gap-2 text-sm">
-      <select aria-label="Reading theme" className={select} value={prefs.theme} onChange={(e) => update({ theme: e.target.value as ThemeName, background: undefined })}>
-        {Object.keys(THEMES).map((t) => (
-          <option key={t} value={t}>
-            {t[0].toUpperCase() + t.slice(1)}
-          </option>
-        ))}
-      </select>
-      <select aria-label="Text size" className={select} value={prefs.fontScale} onChange={(e) => update({ fontScale: Number(e.target.value) })}>
-        {FONT_SCALES.map((s) => (
-          <option key={s} value={s}>
-            {Math.round(s * 100)}%
-          </option>
-        ))}
-      </select>
-      <input aria-label="Reading background" type="color" className="h-6 w-8 cursor-pointer" value={background} onChange={(e) => update({ background: e.target.value })} />
-      <select aria-label="App theme" className={select} value={app} onChange={(e) => setApp(e.target.value as AppTheme)}>
-        <option value="system">System</option>
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
-      </select>
+    <span className="flex flex-col gap-2.5">
+      <label className={row}>
+        <span className="text-pencil">Page</span>
+        <select aria-label="Reading theme" className={select} value={prefs.theme} onChange={(e) => update({ theme: e.target.value as ThemeName, background: undefined })}>
+          {Object.keys(THEMES).map((t) => (
+            <option key={t} value={t}>
+              {t[0].toUpperCase() + t.slice(1)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className={row}>
+        <span className="text-pencil">Text size</span>
+        <select aria-label="Text size" className={select} value={prefs.fontScale} onChange={(e) => update({ fontScale: Number(e.target.value) })}>
+          {FONT_SCALES.map((s) => (
+            <option key={s} value={s}>
+              {Math.round(s * 100)}%
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className={row}>
+        <span className="text-pencil">Page colour</span>
+        <input
+          aria-label="Reading background"
+          type="color"
+          className="h-8 w-12 cursor-pointer rounded-full border border-rule bg-paper p-1 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
+          value={background}
+          onChange={(e) => update({ background: e.target.value })}
+        />
+      </label>
+      <label className={row}>
+        <span className="text-pencil">App</span>
+        <select aria-label="App theme" className={select} value={app} onChange={(e) => setApp(e.target.value as AppTheme)}>
+          <option value="system">System</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </label>
     </span>
   );
 }

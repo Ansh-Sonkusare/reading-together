@@ -115,3 +115,14 @@ describe('guess their reaction', () => {
     expect(await revealEvents(B, key)).toEqual([{ data: { spine, prompt_key: key, kind: 'guess' } }]);
   });
 });
+
+describe('simultaneous answers', () => {
+  it('still writes exactly one answer_revealed when both partners answer at the same moment', async () => {
+    const keys = Array.from({ length: 10 }, (_, i) => `race-${i}`);
+    for (const key of keys) {
+      await Promise.all([answer(A, 'question', key, 'A'), answer(B, 'question', key, 'B')]);
+    }
+    const counts = await Promise.all(keys.map(async (key) => (await revealEvents(A, key)).length));
+    expect(counts).toEqual(keys.map(() => 1));
+  });
+});

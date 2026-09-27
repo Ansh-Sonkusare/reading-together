@@ -9,8 +9,9 @@ couple   (id uuid pk, invite_code text unique, created_at)
 member   (user_id uuid pk → auth.users, couple_id → couple, name, color text, avatar_url,
           timezone text not null default 'UTC' check is a pg_timezone_names name)
          -- at most 2 members per couple (trigger)
-book     (id, couple_id, title, author, sha256 text, storage_path, spine_lengths int[], added_by, created_at,
+book     (id, couple_id, title, author, sha256 text, storage_path, spine_lengths int[], toc jsonb null, added_by, created_at,
           unique(couple_id, sha256))
+         -- toc: [{ spine, label }] from the EPUB nav (else NCX), first entry per spine; null before F3 or when no entry hits the spine (D18)
          -- no client insert policy: only the uploadBook server action inserts, with the service role (D13)
 progress (user_id, book_id, pos numeric, max_pos numeric, locator jsonb, updated_at, pk(user_id, book_id))
          -- pos = start of the visible page (where to reopen); max_pos = greatest(max_pos, end of visible page), never decreases
@@ -72,9 +73,9 @@ Private bucket `memories` (P43), object path `{couple_id}/{mark_id}.{jpg|png|web
 ## Routes
 
 - `/together`: stats tiles, then the streak row (`data-testid="streak"`: `🔥 {n}-day reading streak` or `Start a streak: read today together`; `"goal-progress"`: `Today: You 7/10 pages · Sam 10/10 ✓`) and the goal form. Loading it syncs `member.timezone` from the browser.
-- `/book/[id]`: server checks membership, signs a 60 s Storage URL; the client restores `progress.locator` (else pos 0), saves on relocate. Font scale is per device in `localStorage['reader:fontScale']`. Test hooks: `data-testid="my-pos"` and `"saved-pos"` (pos, 6 decimals), `"progress-pair"` (the bar: `{partner} p.{n} · you p.{m}`, `{partner} hasn't started`, partner part hidden when solo; colours from `member.color`). Discussion entry points (F2): a header link `Discuss {chapterTitle(spine - 1)}` once `pos >= 1`, and a floating `complementary "Chapter finished"`: `You finished {chapterTitle(n)}.` + `Discuss it together →` + Dismiss, shown when a relocate enters a spine beyond the furthest reached (n = that spine − 1). Both go to `discussHref(bookId, n)`.
-- `/discuss/[bookId]/[spine]`: the chapter's questions and guess card (P32).
-- `/together/book/[bookId]`: the timeline; the `💬 You discussed Chapter N` line links each chapter to its `/discuss` page.
+- `/book/[id]`: server checks membership, signs a 60 s Storage URL; the client restores `progress.locator` (else pos 0), saves on relocate. Font scale is per device in `localStorage['reader:fontScale']`. Test hooks: `data-testid="my-pos"` and `"saved-pos"` (pos, 6 decimals), `"progress-pair"` (the bar: `{partner} p.{n} · you p.{m}`, `{partner} hasn't started`, partner part hidden when solo; colours from `member.color`). Discussion entry points (F2): a header link `Discuss {chapterTitle(toc, spine - 1)}` once `pos >= 1` and that title is non-null, and a floating `complementary "Chapter finished"`: `You finished {chapterTitle(toc, n)}.` + `Discuss it together →` + Dismiss, shown only for a non-null title when a relocate enters a spine beyond the furthest reached (n = that spine − 1). Both go to `discussHref(bookId, n)`.
+- `/discuss/[bookId]/[spine]`: the chapter's questions and guess card (P32); 404 for front matter (`chapterTitle` null).
+- `/together/book/[bookId]`: the timeline; the `💬 You discussed {labels, joined by Intl.ListFormat}` line (front matter left out) links each chapter to its `/discuss` page.
 - `POST /api/push/dispatch`: called only by `event_push`; 401 without the secret. Loads the event with the service role, words it with `notificationFor`, sends Web Push (VAPID) to each of the partner's `push_sub` rows. `src/proxy.ts` must let it, `/sw.js` and `/manifest.webmanifest` through without a session (open follow-up from P33).
 - `/library` and `/together` mount `<EnableNotifications/>`: permission is requested only on its button click. `/sw.js` (public/) shows the push and opens or focuses its `url` on click.
 
@@ -105,7 +106,8 @@ usePrefs(): [Prefs, (patch: Partial<Prefs>) => void]
 <ReaderPrefs handle={ReaderHandle | null} />   // theme / text size / background / app theme controls; applies prefs to the handle on mount and change
 // app dark mode: <html class="dark">, localStorage['app:theme'] = 'light'|'dark'|'system' (default system), set before paint by the inline script in app/layout.tsx
 // paint places each mark by: CFI if its text equals quote.exact → stored offset → findByQuote near offset (resolveAnchor)
-// locator.ts: resolveAnchor, toPos, fromPos, quoteAt, findByQuote, spineLengthsFromEpub, zipReader, canonicalText, offsetOf, rangeAt
+// locator.ts: resolveAnchor, toPos, fromPos, quoteAt, findByQuote, spineLengthsFromEpub, tocFromEpub, zipReader, canonicalText, offsetOf, rangeAt
+// together/discussion.ts: chapterTitle(toc: Toc | null, spine) → the TOC label at or before spine; null = front matter; toc null → `Chapter {spine+1}`
 displayPage(pos, spineLengths): number     // floor(chars before pos / 1500) + 1; display only, never stored
 // goTo anchors on the first non-whitespace char at or after the target offset (inter-block whitespace has no box to scroll to)
 
@@ -158,8 +160,8 @@ listBooks(coupleId, members): Promise<{ id; title; author; addedBy; createdAt }[
 uploadBookAction(prev, formData{file}) → { ok: string } | { error: string }              // server action
 
 // features/notify
-notificationFor(event, mark | null, parent | null, members: { userId; name; maxPos }[], recipientId, bookTitle)
-    → { title; body; url } | null   // pure; parent = the replied-to mark, or for a reaction the recipient's own mark at the same cfi
+notificationFor(event, mark | null, parent | null, members: { userId; name; maxPos }[], recipientId, book: { title; toc })
+    → { title; body; url } | null   // pure; null for chapter_finished/answer_revealed on front matter; parent = the replied-to mark, or for a reaction the recipient's own mark at the same cfi
 dispatch(db /* service role */, eventId, send: (target: { endpoint; keys }, payload: string) => Promise<unknown>)
     → { sent; removed }             // send rejecting with statusCode 404/410 deletes that push_sub
 <EnableNotifications/>             // client; registers /sw.js, subscribes with NEXT_PUBLIC_VAPID_PUBLIC_KEY, upserts push_sub

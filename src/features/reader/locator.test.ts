@@ -1,8 +1,34 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { canonicalTextFromXhtml, displayPage, findByQuote, fromPos, quoteAt, resolveAnchor, spineLengthsFromEpub, toPos } from './locator';
+import { canonicalTextFromXhtml, displayPage, findByQuote, fromPos, quoteAt, resolveAnchor, spineLengthsFromEpub, toPos, tocFromEpub } from './locator';
 
 const alice = new Uint8Array(readFileSync(new URL('../../../fixtures/alice.epub', import.meta.url)));
+const pride = new Uint8Array(readFileSync(new URL('../../../fixtures/pride-and-prejudice.epub', import.meta.url)));
+
+describe('tocFromEpub', () => {
+  it("reads alice.epub's EPUB3 nav: the cover has no entry, the title page's first entry wins, fragments are dropped", async () => {
+    const toc = await tocFromEpub(alice);
+    expect(toc!.slice(0, 4)).toEqual([
+      { spine: 1, label: 'Alice’s Adventures in Wonderland' },
+      { spine: 2, label: 'CHAPTER I. Down the Rabbit-Hole' },
+      { spine: 3, label: 'CHAPTER II. The Pool of Tears' },
+      { spine: 4, label: 'CHAPTER III. A Caucus-Race and a Long Tale' },
+    ]);
+    expect(toc!.at(-1)).toEqual({ spine: 14, label: 'THE FULL PROJECT GUTENBERG™ LICENSE' });
+    expect(toc).toHaveLength(14);
+  });
+
+  it("falls back to the NCX in pride-and-prejudice.epub, whose spine items each hold several chapters", async () => {
+    const toc = await tocFromEpub(pride);
+    expect(toc!.slice(0, 4)).toEqual([
+      { spine: 1, label: 'PRIDE. and PREJUDICE' },
+      { spine: 2, label: 'I hope Mr. Bingley will like it. CHAPTER II.' },
+      { spine: 3, label: 'Covering a screen. CHAPTER VIII.' },
+      { spine: 4, label: 'Piling up the fire. CHAPTER XI.' },
+    ]);
+    expect(toc).toHaveLength(15);
+  });
+});
 
 describe('spineLengthsFromEpub', () => {
   it('matches the lengths Chromium measures inside the reader iframe for alice.epub', async () => {

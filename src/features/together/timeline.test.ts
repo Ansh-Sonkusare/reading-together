@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { Toc } from '../reader';
 import { describeDay, groupByDay, memoriesLine, type TimelineEvent } from './timeline';
 
 const ME = 'me';
@@ -19,7 +20,7 @@ const ev = (type: TimelineEvent['type'], actorId: string, rest: Partial<Timeline
 });
 const highlight = (actorId: string) => ev('mark_created', actorId, { mark: { kind: 'highlight', emoji: null, cfi: `c-${Math.random()}` } });
 const react = (actorId: string, cfi: string, emoji: 'love' | 'funny') => ev('mark_created', actorId, { mark: { kind: 'reaction', emoji, cfi } });
-const day = (events: TimelineEvent[], meId = ME) => describeDay(events, members, meId, TITLE);
+const day = (events: TimelineEvent[], meId = ME, toc: Toc | null = null) => describeDay(events, members, meId, TITLE, toc);
 
 describe('describeDay', () => {
   it('writes the idea example day in order', () => {
@@ -69,9 +70,16 @@ describe('describeDay', () => {
     expect(day([q(0), q(2), q(0), mark('note'), mark('note'), mark('reply')])).toEqual([
       '📝 Sam left 2 notes',
       '💬 Sam wrote a reply',
-      '💬 You discussed Chapters 1 and 3',
+      '💬 You discussed Chapter 1 and Chapter 3',
     ]);
-    expect(day([q(0), q(1), q(2)])).toEqual(['💬 You discussed Chapters 1, 2 and 3']);
+    expect(day([q(0), q(1), q(2)])).toEqual(['💬 You discussed Chapter 1, Chapter 2, and Chapter 3']);
+    const toc = [
+      { spine: 1, label: 'CHAPTER I. Down the Rabbit-Hole' },
+      { spine: 2, label: 'CHAPTER II. The Pool of Tears' },
+    ];
+    expect(day([q(0), q(1)], ME, toc)).toEqual(['💬 You discussed CHAPTER I. Down the Rabbit-Hole']);
+    expect(day([q(2), q(1)], ME, toc)).toEqual(['💬 You discussed CHAPTER I. Down the Rabbit-Hole and CHAPTER II. The Pool of Tears']);
+    expect(day([q(0)], ME, toc)).toEqual([]);
   });
 
   it('says who added a memory, and counts it as one of the memories created', () => {

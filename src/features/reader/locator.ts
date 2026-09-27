@@ -247,23 +247,70 @@ function resolveHref(base: string, href: string): string {
   return out.join('/');
 }
 
-export async function spineLengthsFromEpub(bytes: Uint8Array): Promise<number[]> {
+const dirOf = (path: string) => path.slice(0, path.lastIndexOf('/') + 1);
+
+async function openPackage(bytes: Uint8Array) {
   const read = zipReader(bytes);
   const container = await read('META-INF/container.xml');
   const opfPath = attrs(/<rootfile\b[^>]*>/.exec(container)?.[0] ?? '')['full-path'];
   if (!opfPath) throw new Error('container.xml has no rootfile');
   const opf = await read(opfPath);
-  const base = opfPath.includes('/') ? opfPath.slice(0, opfPath.lastIndexOf('/') + 1) : '';
-  const hrefById = new Map<string, string>();
-  for (const m of opf.matchAll(/<(?:\w+:)?item\b[^>]*>/g)) {
-    const a = attrs(m[0]);
-    if (a.id && a.href) hrefById.set(a.id, a.href);
-  }
+  const items = [...opf.matchAll(/<(?:\w+:)?item\b[^>]*>/g)]
+    .map((m) => attrs(m[0]))
+    .filter((a) => a.id && a.href)
+    .map((a): Record<string, string> => ({ ...a, path: resolveHref(dirOf(opfPath), a.href) }));
+  const byId = new Map(items.map((a) => [a.id, a]));
+  const spine = [...opf.matchAll(/<(?:\w+:)?itemref\b[^>]*>/g)].map((m) => {
+    const idref = attrs(m[0]).idref;
+    const item = byId.get(idref);
+    if (!item) throw new Error(`spine itemref ${idref} not in manifest`);
+    return item.path;
+  });
+  const ncxId = attrs(/<(?:\w+:)?spine\b[^>]*>/.exec(opf)?.[0] ?? '').toc;
+  const nav = items.find((a) => a.properties?.split(/\s+/).includes('nav'));
+  const ncx = byId.get(ncxId) ?? items.find((a) => a['media-type'] === 'application/x-dtbncx+xml');
+  return { read, spine, nav, ncx };
+}
+
+export async function spineLengthsFromEpub(bytes: Uint8Array): Promise<number[]> {
+  const { read, spine } = await openPackage(bytes);
   const lengths: number[] = [];
-  for (const m of opf.matchAll(/<(?:\w+:)?itemref\b[^>]*>/g)) {
-    const href = hrefById.get(attrs(m[0]).idref);
-    if (!href) throw new Error(`spine itemref ${attrs(m[0]).idref} not in manifest`);
-    lengths.push(canonicalTextFromXhtml(await read(resolveHref(base, href))).length);
-  }
+  for (const path of spine) lengths.push(canonicalTextFromXhtml(await read(path)).length);
   return lengths;
+}
+
+// A label for each spine item the book's own table of contents points at, in spine order.
+export type Toc = { spine: number; label: string }[];
+
+const labelText = (inner: string) =>
+  decodeEntities(inner.replace(/<[^>]*>/g, ''))
+    .replace(/\s+/g, ' ')
+    .trim();
+
+// EPUB3 nav toc first, NCX second; the first entry targeting a spine item names it. Null when no entry lands on the spine.
+export async function tocFromEpub(bytes: Uint8Array): Promise<Toc | null> {
+  const { read, spine, nav, ncx } = await openPackage(bytes);
+  let links: { href: string; label: string }[];
+  let base: string;
+  if (nav) {
+    const doc = await read(nav.path);
+    const toc = /<(?:\w+:)?nav\b[^>]*\btype\s*=\s*["'][^"']*\btoc\b[^>]*>([\s\S]*?)<\/(?:\w+:)?nav>/.exec(doc)?.[1] ?? '';
+    links = [...toc.matchAll(/<(?:\w+:)?a\b([^>]*)>([\s\S]*?)<\/(?:\w+:)?a>/g)].map((m) => ({ href: attrs(m[1]).href ?? '', label: labelText(m[2]) }));
+    base = dirOf(nav.path);
+  } else if (ncx) {
+    const doc = await read(ncx.path);
+    links = [...doc.matchAll(/<(?:\w+:)?navLabel\b[^>]*>\s*<(?:\w+:)?text\b[^>]*>([\s\S]*?)<\/(?:\w+:)?text>[\s\S]*?<(?:\w+:)?content\b([^>]*)>/g)].map((m) => ({
+      href: attrs(m[2]).src ?? '',
+      label: labelText(m[1]),
+    }));
+    base = dirOf(ncx.path);
+  } else {
+    return null;
+  }
+  const toc: Toc = [];
+  for (const { href, label } of links) {
+    const index = href && label ? spine.indexOf(resolveHref(base, href)) : -1;
+    if (index !== -1 && !toc.some((e) => e.spine === index)) toc.push({ spine: index, label });
+  }
+  return toc.length ? toc.sort((a, b) => a.spine - b.spine) : null;
 }

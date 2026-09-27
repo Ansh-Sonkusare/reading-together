@@ -1,4 +1,4 @@
-import type { Locator } from '@/features/reader';
+import type { Locator, Toc } from '@/features/reader';
 import { REACTIONS } from '../marks/model';
 import { chapterTitle, discussHref } from '../together/discussion';
 import type { Tables } from '@/lib/types';
@@ -23,7 +23,7 @@ export function notificationFor(
   parent: NotifyMark | null,
   members: NotifyMember[],
   recipientId: string,
-  bookTitle: string,
+  { title: bookTitle, toc }: { title: string; toc: Toc | null },
 ): Notification | null {
   const actor = members.find((m) => m.userId === event.actor_id);
   const recipient = members.find((m) => m.userId === recipientId);
@@ -31,14 +31,17 @@ export function notificationFor(
   const name = actor.name;
   const book = `/book/${event.book_id}`;
   const spine = (event.data as { spine?: number } | null)?.spine ?? 0;
+  // Front matter has no chapter name, so its chapter_finished and answer_revealed events push nothing.
+  const chapter = chapterTitle(toc, spine);
+  if (chapter === null && (event.type === 'chapter_finished' || event.type === 'answer_revealed')) return null;
 
   switch (event.type) {
     case 'chapter_finished':
-      return { title: `📖 ${name} finished ${chapterTitle(spine)}`, body: 'Come read it with me!', url: book };
+      return { title: `📖 ${name} finished ${chapter}`, body: 'Come read it with me!', url: book };
     case 'book_finished':
       return { title: `🎉 ${name} finished ${bookTitle}`, body: 'Come finish it with me!', url: book };
     case 'answer_revealed':
-      return { title: `💬 ${name} answered too`, body: `Your answers for ${chapterTitle(spine)} are revealed`, url: discussHref(event.book_id, spine) };
+      return { title: `💬 ${name} answered too`, body: `Your answers for ${chapter} are revealed`, url: discussHref(event.book_id, spine) };
     case 'mark_created':
       break;
     default:

@@ -1,0 +1,21 @@
+diff --git a/paginator.js b/paginator.js
+index 7980c20297049e38b5e5a1d44a9eee11b1fbd68e..ade61bf6a6683b0870ef4e0a5927b513008dfa88 100644
+--- a/paginator.js
++++ b/paginator.js
+@@ -187,6 +187,7 @@ const getDirection = doc => {
+ }
+ 
+ const getBackground = doc => {
++    if (!doc?.body) return ''
+     const bodyStyle = doc.defaultView.getComputedStyle(doc.body)
+     return bodyStyle.backgroundColor === 'rgba(0, 0, 0, 0)'
+         && bodyStyle.backgroundImage === 'none'
+@@ -283,7 +284,7 @@ class View {
+         })
+     }
+     render(layout) {
+-        if (!layout) return
++        if (!layout || !this.document?.body) return
+         this.#column = layout.flow !== 'scrolled'
+         this.#layout = layout
+         if (this.#column) this.columnize(layout)

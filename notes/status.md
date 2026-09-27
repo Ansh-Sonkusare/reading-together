@@ -13,8 +13,9 @@ P21 reveal-on-reach, P22 re-anchor by quote, P23 bookmarks + send, P31 streaks +
 
 ## Open items
 - Local Supabase storage (1.77.0) doesn't drain the body of an upload it refuses on RLS, which can hang the next upload through the same Kong connection. Tests avoid it; the app checks membership before uploading. Reproducer: `docs/research/storage-refused-upload-repro.mjs`. Filing upstream is left to the owner.
-- foliate logs harmless console errors (getComputedStyle / destructure 'style'); nothing observed broken.
-- Chapter titles use spine index + 1; TOC labels are a follow-up.
+- F3 (branch worktree-agent-abe1f496d3b937945): chapter names come from `book.toc` (D18), and foliate's uncaught errors on chapter loads and after leaving the reader are fixed by a pnpm patch (D19), guarded by `tests/e2e/reader-errors.spec.ts`. Books uploaded before F3 keep `Chapter {spine+1}`.
+- The first TOC entry names a spine item, so a title page listed in the TOC is labelled with the book title (alice spine 1 "Alice’s Adventures in Wonderland", pride spine 1 "PRIDE. and PREJUDICE") and gets a "You finished …" prompt.
+- `streak.spec.ts` races partner B's 1 s debounced save: the "Start a streak" check fails when both opening saves land first (seen under heavy machine load).
 
 ## Contract requests
 _none_

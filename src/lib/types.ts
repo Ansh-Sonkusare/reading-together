@@ -44,13 +44,13 @@ isOneToOne: false
                   ]
                 },"book": {
                   Row: {
-                    "added_by": string,"author": string | null,"couple_id": string,"created_at": string,"id": string,"sha256": string | null,"spine_lengths": (number)[],"storage_path": string | null,"title": string
+                    "added_by": string,"author": string | null,"couple_id": string,"created_at": string,"id": string,"sha256": string | null,"spine_lengths": (number)[],"storage_path": string | null,"title": string,"toc": Json | null
                   }
                   Insert: {
-                    "added_by"?: string,"author"?: string | null,"couple_id": string,"created_at"?: string,"id"?: string,"sha256"?: string | null,"spine_lengths": (number)[],"storage_path"?: string | null,"title": string
+                    "added_by"?: string,"author"?: string | null,"couple_id": string,"created_at"?: string,"id"?: string,"sha256"?: string | null,"spine_lengths": (number)[],"storage_path"?: string | null,"title": string,"toc"?: Json | null
                   }
                   Update: {
-                    "added_by"?: string,"author"?: string | null,"couple_id"?: string,"created_at"?: string,"id"?: string,"sha256"?: string | null,"spine_lengths"?: (number)[],"storage_path"?: string | null,"title"?: string
+                    "added_by"?: string,"author"?: string | null,"couple_id"?: string,"created_at"?: string,"id"?: string,"sha256"?: string | null,"spine_lengths"?: (number)[],"storage_path"?: string | null,"title"?: string,"toc"?: Json | null
                   }
                   Relationships: [
                     {

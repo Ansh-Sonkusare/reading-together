@@ -18,7 +18,7 @@ export default async function BookTimelinePage({ params }: { params: Promise<{ b
           Our Reading
         </Link>
       </header>
-      <Timeline events={timeline.events} members={couple.members} meId={meId} title={timeline.title} />
+      <Timeline events={timeline.events} members={couple.members} meId={meId} title={timeline.title} toc={timeline.toc} />
     </main>
   );
 }

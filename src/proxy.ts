@@ -16,7 +16,8 @@ export async function proxy(request: NextRequest) {
   });
   const { data } = await supabase.auth.getClaims();
   const path = request.nextUrl.pathname;
-  if (!data?.claims && path !== '/login') {
+  const devOnly = process.env.NODE_ENV !== 'production' && path.startsWith('/dev/');
+  if (!data?.claims && path !== '/login' && !devOnly) {
     const login = new URL('/login', request.url);
     if (path !== '/') login.searchParams.set('next', path);
     return NextResponse.redirect(login);

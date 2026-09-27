@@ -57,7 +57,7 @@ Public-domain catalogue (D1), native apps, groups of more than two, PDFs, DRM bo
 | P01 | Scaffold: Next.js, pnpm, Tailwind + shadcn, vitest, Supabase CLI as a dev dependency, scripts from AGENTS.md | orch | `pnpm build && pnpm typecheck && pnpm test` | done |
 | P02 | Schema, RLS spoiler and reveal gates, event triggers, generated types | A | `pnpm test:db` runs the gate scenarios against local Supabase | done |
 | P03 | Reader engine spike: foliate-js vs epub.js; compute `pos`, CFI and quote | B | A script shows one passage gets the same `pos` at two font sizes; the loser is written up in decisions | done |
-| P04 | `verify-reading-together` skill: launch, doctor, two browser contexts as two partners | orch | The skill's own run passes and its evidence survives cleanup | wip |
+| P04 | `verify-reading-together` skill: launch, doctor, two browser contexts as two partners | orch | The skill's own run passes and its evidence survives cleanup | done |
 | P11 | Auth, couple, invite link, join (max 2) | D | verify: A invites, B joins, a third account is refused | done |
 | P12 | Upload EPUB → Storage, `sha256` + `spine_lengths`, shared library | D | verify: A uploads, B sees the book | done |
 | P13a | Reader engine behind `ReaderHandle` (foliate): render, paginate, relocate → Locator/pos, select, paint, goTo, font size, per-chapter length check; `/dev/reader` page; Playwright e2e | B | `pnpm test:e2e` reader spec: pos stable across font sizes in the real app | done |

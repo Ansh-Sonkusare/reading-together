@@ -76,9 +76,7 @@ it('B reads back every kind A created', async () => {
   ]);
 });
 
-// Expected to fail until mark_insert compares p.id = mark.parent_id: the unqualified
-// parent_id inside its EXISTS binds to p.parent_id, so RLS refuses every reply.
-it.fails("B's reply inherits the parent's locator and pos", async () => {
+it("B's reply inherits the parent's locator and pos", async () => {
   const reply = await createMark(B.db, { kind: 'reply', bookId, parentId: noteId, body: 'Me too!' });
   expect(reply).toMatchObject({ author_id: B.id, kind: 'reply', parent_id: noteId, body: 'Me too!', pos: 0.12, locator });
 });

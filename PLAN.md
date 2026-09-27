@@ -70,7 +70,7 @@ Public-domain catalogue (D1), native apps, groups of more than two, PDFs, DRM bo
 | P23 | Bookmarks with labels, "Reminded me of you" send | C | verify: the send appears in the partner's inbox | todo |
 | P31 | Chapter-finished events, streaks, goals | E | unit tests on the streak calculation + verify: the streak shows | done |
 | P32 | Chapter discussion and guess-the-reaction with blind reveal | E | `pnpm test:db` reveal gate + verify: reveal after both answer | done |
-| P33 | Web push: service worker, subscriptions, edge function wording | D | the edge function test renders the personal wording; subscription stored | todo |
+| P33 | Web push: service worker, subscriptions, edge function wording | D | the edge function test renders the personal wording; subscription stored | wip |
 | P41 | "Our Book" timeline | E | verify: timeline lists the day's events | done |
 | P42 | Couple stats dashboard | E | SQL view test with literal counts | done |
 | P43 | Couple memories (photo on a mark) | C | verify: a photo attached to a highlight shows for both | todo |

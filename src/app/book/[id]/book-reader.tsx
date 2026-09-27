@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Member } from '@/features/couple/couple';
 import { usePartnerProgress, useProgressSaver, type Progress } from '@/features/couple/progress';
-import { BookmarksPanel, RevealToast, SelectionMenu, ThreadPanel, createMark, toPaintMarks, useMarks, type Mark, type NewMark } from '@/features/marks';
+import { BookmarksPanel, RevealToast, Ribbon, SelectionMenu, ThreadPanel, createMark, inkOf, toPaintMarks, useMarks, type Mark, type NewMark } from '@/features/marks';
 import { createReader, displayPage, ReaderPrefs, type Locator, type Pos, type ReaderHandle, type Toc } from '@/features/reader';
 import { SyncInvite, SyncPill, useSync } from '@/features/sync';
 import { chapterTitle, discussHref } from '@/features/together/discussion';
@@ -30,6 +30,7 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
   const container = useRef<HTMLDivElement>(null);
   const [reader, setReader] = useState<ReaderHandle | null>(null);
   const [pos, setPos] = useState<number | null>(null);
+  const [pageEnd, setPageEnd] = useState<number | null>(null);
   const [mismatch, setMismatch] = useState(false);
   const [failed, setFailed] = useState(false);
   const [turning, setTurning] = useState(false);
@@ -55,6 +56,9 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
   const lastChapter = pos === null || pos < 1 ? null : chapterTitle(toc, Math.floor(pos) - 1);
 
   const bookmarks = useMemo(() => marks.filter((m) => m.kind === 'bookmark'), [marks]);
+  const onThisPage = pos === null || pageEnd === null ? [] : bookmarks.filter((m) => m.pos >= pos && m.pos <= pageEnd);
+  // A partner's mark revealed by reaching it inks in once; mine never animate.
+  const fresh = useMemo(() => new Set(revealed.filter((m) => m.author_id === partner?.userId).map((m) => m.locator!.cfi)), [revealed, partner]);
 
   useEffect(() => {
     const theirs = revealed.filter((m) => m.author_id === partner?.userId);
@@ -62,8 +66,8 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
   }, [revealed, partner]);
 
   useEffect(() => {
-    reader?.paint(toPaintMarks(anchors, members));
-  }, [reader, anchors, members]);
+    reader?.paint(toPaintMarks(anchors, members).map((p) => (fresh.has(p.id) ? { ...p, fresh: true } : p)));
+  }, [reader, anchors, members, fresh]);
 
   const mark = (input: NewMark) => {
     setSelection(null);
@@ -94,6 +98,7 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
       });
       r.on('relocate', (e) => {
         setPos(e.pos);
+        setPageEnd(e.pageEndPos);
         if (e.spine > maxSpine.current) {
           maxSpine.current = e.spine;
           setFinished(e.spine - 1);
@@ -200,14 +205,25 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
           </button>
         </aside>
       )}
-      <div ref={container} className="min-h-0 flex-1" />
+      <div className="relative min-h-0 flex-1">
+        <div ref={container} className="size-full" />
+        <ul aria-label="Bookmarks on this page" className="pointer-events-none absolute top-0 right-[12%] flex gap-1">
+          {onThisPage.map((m) => (
+            <li key={m.id} role="img" aria-label={`Bookmark: ${m.label}`} data-color={inkOf(m, members)}>
+              <Ribbon color={inkOf(m, members)} className="h-10 w-5" />
+            </li>
+          ))}
+        </ul>
+      </div>
       {selection && at && (
         <SelectionMenu
           rect={selection.rect}
-          onHighlight={() => mark({ kind: 'highlight', ...at })}
+          myColor={me.color}
+          partnerColor={partner?.color}
+          onHighlight={(color) => mark({ kind: 'highlight', ...at, color })}
           onReact={(emoji) => mark({ kind: 'reaction', ...at, emoji })}
-          onNote={(body) => mark({ kind: 'note', ...at, body })}
-          onBookmark={(label) => mark({ kind: 'bookmark', ...at, label })}
+          onNote={(body, color) => mark({ kind: 'note', ...at, body, color })}
+          onBookmark={(label, color) => mark({ kind: 'bookmark', ...at, label, color })}
           partnerName={partner?.name}
           onSend={(body) => mark({ kind: 'send', ...at, body })}
           onDismiss={() => setSelection(null)}

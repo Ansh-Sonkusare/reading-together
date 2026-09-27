@@ -1,4 +1,4 @@
-export { BookmarksPanel, Inbox, RevealToast, SelectionMenu, ThreadPanel } from './components';
+export { BookmarksPanel, Inbox, RevealToast, Ribbon, SelectionMenu, ThreadPanel } from './components';
 export { addMemory, createMark, memoryPhotoUrl, useMarks } from './data';
-export { BOOKMARK_LABELS, REACTIONS, describe, groupByAnchor, revealedBy, toPaintMarks } from './model';
+export { BOOKMARK_LABELS, REACTIONS, describe, groupByAnchor, inkOf, revealedBy, toPaintMarks } from './model';
 export type { Anchor, Mark, Member, NewMark, Reaction } from './model';

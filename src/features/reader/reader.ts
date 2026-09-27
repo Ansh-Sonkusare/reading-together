@@ -1,6 +1,7 @@
 import { QUOTE_CONTEXT, canonicalText, fromPos, offsetOf, quoteAt, rangeAt, resolveAnchor, toPos, type Locator, type Pos } from './locator';
 
-export type PaintMark = { id: string; locator: Locator; color: string; kind: 'highlight' | 'underline' };
+// A note is a highlight with an underline in the same ink. `fresh` inks it in once (a partner's mark just revealed).
+export type PaintMark = { id: string; locator: Locator; color: string; kind: 'highlight' | 'underline' | 'note'; fresh?: boolean };
 
 export type ReaderEvents = {
   relocate: (e: { locator: Locator; pos: Pos; pageEndPos: Pos; spine: number }) => void;
@@ -97,13 +98,39 @@ export async function createReader(container: HTMLElement, file: Blob, opts: { s
     emit('relocate', { locator, pos: posOf(index, locator.offset), pageEndPos: posOf(index, end), spine: index });
   });
 
+  const inked = new Set<string>();
+  const inkIn = (el: SVGElement) =>
+    requestAnimationFrame(() =>
+      el.animate([{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: 700, easing: 'cubic-bezier(.3,.7,.4,1)' }),
+    );
+  const HIGHLIGHT_OPACITY = '.22';
   view.addEventListener('draw-annotation', (e) => {
-    const { draw, annotation } = (e as CustomEvent<{ draw: (f: typeof Overlayer.highlight, o: { color: string }) => void; annotation: { mark: PaintMark } }>).detail;
-    const { id, kind, color } = annotation.mark;
-    const base = kind === 'underline' ? Overlayer.underline : Overlayer.highlight;
+    type Draw = (rects: DOMRectList, o: { color: string }) => SVGElement;
+    const { draw, annotation } = (e as CustomEvent<{ draw: (f: Draw, o: { color: string }) => void; annotation: { mark: PaintMark } }>).detail;
+    const { id, kind, color, fresh } = annotation.mark;
+    const highlight: Draw = (rects, o) => {
+      const g = Overlayer.highlight(rects, o);
+      g.style.opacity = HIGHLIGHT_OPACITY;
+      return g;
+    };
+    const shape: Draw =
+      kind === 'underline'
+        ? Overlayer.underline
+        : kind === 'highlight'
+          ? highlight
+          : (rects, o) => {
+              const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+              g.setAttribute('fill', o.color);
+              g.append(highlight(rects, o), Overlayer.underline(rects, { ...o, width: 2 }));
+              return g;
+            };
     draw((rects, o) => {
-      const el = base(rects, o);
+      const el = shape(rects, o);
       el.dataset.markId = id;
+      if (fresh && !inked.has(id) && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        inked.add(id);
+        inkIn(el);
+      }
       return el;
     }, { color });
   });

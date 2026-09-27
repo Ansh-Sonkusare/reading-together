@@ -17,7 +17,9 @@ book     (id, couple_id, title, author, sha256 text, storage_path, spine_lengths
 progress (user_id, book_id, pos numeric, max_pos numeric, locator jsonb, updated_at, pk(user_id, book_id))
          -- pos = start of the visible page (where to reopen); max_pos = greatest(max_pos, end of visible page), never decreases
 mark     (id, book_id, author_id, kind mark_kind, pos numeric, locator jsonb,
-          emoji reaction?, body text?, label text?, media_url text?, parent_id → mark?, created_at)
+          emoji reaction?, body text?, label text?, media_url text?, parent_id → mark?, color text?, created_at)
+         -- color (U1): null = the author's member ink; else one of inks(), only on highlight|note|bookmark,
+         -- and never the ink of another member of the book's couple (trigger mark_color_not_partners, 23514)
 answer   (id, book_id, spine int, kind answer_kind, prompt_key text, user_id, value text, created_at,
           unique(book_id, spine, prompt_key, user_id))
 event    (id, couple_id, book_id?, actor_id, type event_type, ref_id uuid?, pos numeric?, data jsonb, created_at)
@@ -99,7 +101,8 @@ ReaderHandle.on('select',   e => { locator, pos, text, rect })          // locat
 ReaderHandle.on('markClick', e => { id, rect })
 ReaderHandle.on('lengthMismatch', e => { spine, expected, actual })
 ReaderHandle.on('anchorLost', e => { id, spine })   // mark couldn't be placed by CFI, offset or quote (P22)
-ReaderHandle.paint(marks: PaintMark[])     // full set, idempotent; PaintMark = { id, locator, color, kind: 'highlight'|'underline' }
+ReaderHandle.paint(marks: PaintMark[])     // full set, idempotent; PaintMark = { id, locator, color, kind: 'highlight'|'underline'|'note', fresh? }
+    // highlight fill = ink at 22%; note = that fill + a 2px underline in the same ink; fresh inks in once (0.7 s wipe, skipped under reduced motion)
 ReaderHandle.goTo(target: Locator | Pos)   // nothing renders until the first goTo
 ReaderHandle.next() / prev() / setFontScale(n) / clearSelection() / destroy()   // clearSelection: after a mark is made
 ReaderHandle.setTheme({ background, color })   // colours inside the book iframe; shares foliate's styles slot with setFontScale, both survive section loads (P44)
@@ -125,16 +128,22 @@ revealedBy({ ids, maxPos }, marks): Mark[]    // unseen, top-level, in-text mark
 <RevealToast mark partner onShow onClose />   // role=status "✨ New from {partner}: {emoji | 'a note' | 'a memory' | 'a highlight'}" + Show (opens
     // the thread); 8 s. Never a count or hint of marks still ahead (D9): it only describes marks RLS already returned
 // bookmark and send marks carry a locator but aren't anchors: groupByAnchor skips them, so they're never painted or threaded
-<BookmarksPanel bookmarks members onGo(mark) onClose />   // header "Bookmarks" button on /book; label + quote, click → goTo
+<BookmarksPanel bookmarks members onGo(mark) onClose />   // Sheet (dialog) "Bookmarks" from the /book top bar; ribbon in inkOf + label + quote, click → goTo
+// /book/[id]: a bookmark whose pos is within the visible page [pos, pageEndPos] hangs as a ribbon in its ink from the top edge of the page
+//   (<li role=img aria-label="Bookmark: {label}">); it never paints on the text
 BOOKMARK_LABELS   // First quote we both loved · Favorite chapter · Funny part · Important conversation (+ custom text)
 useInbox(meId): Mark[]   // the partner's sends, newest first, live over inbox:{meId} (client-side kind check)
 <Inbox meId partner books />   // /library "From {partner}": quote, optional message, link /book/{id}?mark={markId}
 // /book/[id]?mark={id}: the server reads that mark's locator (RLS) and the reader opens there instead of progress.locator
-toPaintMarks(anchors, members): PaintMark[]   // one per CFI; both partners → 'underline' in the blend of their colours
-<SelectionMenu rect onHighlight onReact(r) onNote(body) onBookmark(label) partnerName? onSend(message|null) onDismiss />
+toPaintMarks(anchors, members): PaintMark[]   // one per CFI in each author's latest coloured mark there (else their ink); a note → 'note';
+    // both partners → 'underline' in the blend of their two inks
+inkOf(mark, members): string   // mark.color, unless null or now the partner's ink → the author's member ink
+<SelectionMenu rect myColor partnerColor? onHighlight(color?) onReact(r) onNote(body, color?) onBookmark(label, color?) partnerName? onSend(message|null) onDismiss />
+    // InkSwatches radios "Ink" (every ink but the partner's; default my ink, then the last one picked on this device, localStorage['marks:ink'])
+    // apply to Highlight, Note and Bookmark; reactions and sends stay in the author's ink
     // 7 reactions by aria-label + Highlight + Note + Bookmark (label picker) + "Send to {partner}" (optional message; solo: hidden);
     // kept inside the viewport; dismisses on Escape, a click outside it, or a click into the book (window blur)
-<ThreadPanel anchor members meId onReply(body) onClose />   // bottom sheet below md, side panel at md+; Escape closes
+<ThreadPanel anchor members meId onReply(body) onClose />   // Sheet (dialog) titled "In the margin": bottom sheet below md, side panel at md+; Escape or Close closes; each line's dot in inkOf
     // memories render in time order with the anchor's marks as <li aria-label="Memory"> (img alt "Memory photo", "📸 {You|name}: caption");
     // "Add a memory 📸" opens form "Add a memory" (Photo, Caption, Save memory) and calls addMemory itself; the mark arrives over marks:{bookId}
 // /book/[id]: select → SelectionMenu; markClick(id) → ThreadPanel for anchors.find(a => a.cfi === id);

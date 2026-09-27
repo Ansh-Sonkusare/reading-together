@@ -138,13 +138,13 @@ isOneToOne: true
                   ]
                 },"mark": {
                   Row: {
-                    "author_id": string,"body": string | null,"book_id": string,"created_at": string,"emoji": Database["public"]['Enums']["reaction"] | null,"id": string,"kind": Database["public"]['Enums']["mark_kind"],"label": string | null,"locator": Json | null,"media_url": string | null,"parent_id": string | null,"pos": number
+                    "author_id": string,"body": string | null,"book_id": string,"color": string | null,"created_at": string,"emoji": Database["public"]['Enums']["reaction"] | null,"id": string,"kind": Database["public"]['Enums']["mark_kind"],"label": string | null,"locator": Json | null,"media_url": string | null,"parent_id": string | null,"pos": number
                   }
                   Insert: {
-                    "author_id"?: string,"body"?: string | null,"book_id": string,"created_at"?: string,"emoji"?: Database["public"]['Enums']["reaction"] | null,"id"?: string,"kind": Database["public"]['Enums']["mark_kind"],"label"?: string | null,"locator"?: Json | null,"media_url"?: string | null,"parent_id"?: string | null,"pos": number
+                    "author_id"?: string,"body"?: string | null,"book_id": string,"color"?: string | null,"created_at"?: string,"emoji"?: Database["public"]['Enums']["reaction"] | null,"id"?: string,"kind": Database["public"]['Enums']["mark_kind"],"label"?: string | null,"locator"?: Json | null,"media_url"?: string | null,"parent_id"?: string | null,"pos": number
                   }
                   Update: {
-                    "author_id"?: string,"body"?: string | null,"book_id"?: string,"created_at"?: string,"emoji"?: Database["public"]['Enums']["reaction"] | null,"id"?: string,"kind"?: Database["public"]['Enums']["mark_kind"],"label"?: string | null,"locator"?: Json | null,"media_url"?: string | null,"parent_id"?: string | null,"pos"?: number
+                    "author_id"?: string,"body"?: string | null,"book_id"?: string,"color"?: string | null,"created_at"?: string,"emoji"?: Database["public"]['Enums']["reaction"] | null,"id"?: string,"kind"?: Database["public"]['Enums']["mark_kind"],"label"?: string | null,"locator"?: Json | null,"media_url"?: string | null,"parent_id"?: string | null,"pos"?: number
                   }
                   Relationships: [
                     {

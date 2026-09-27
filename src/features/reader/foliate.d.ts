@@ -18,7 +18,7 @@ declare module 'foliate-js/view.js' {
 }
 
 declare module 'foliate-js/overlayer.js' {
-  type Draw = (rects: DOMRectList, options: { color?: string }) => SVGElement;
+  type Draw = (rects: DOMRectList, options: { color?: string; width?: number }) => SVGElement;
   export class Overlayer {
     static highlight: Draw;
     static underline: Draw;

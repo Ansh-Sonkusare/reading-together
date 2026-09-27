@@ -75,7 +75,7 @@ export async function pageUntil(page: Page, done: (pos: string | null) => boolea
 }
 
 export const CHAPTER_1 = '2.000087';
-export const thread = (page: Page) => page.getByRole('region', { name: 'Thread' });
+export const thread = (page: Page) => page.getByRole('dialog', { name: 'In the margin' });
 
 export type Box = { x: number; y: number; width: number; height: number };
 export type Overlay = { id: string; fill: string | null; opacity: string; box: Box };

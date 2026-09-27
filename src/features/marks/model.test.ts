@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { MEMORY_MAX_BYTES, describe as describeMark, groupByAnchor, memoryExt, revealedBy, toPaintMarks, type Mark } from './model';
+import { MEMORY_MAX_BYTES, describe as describeMark, groupByAnchor, memoryExt, revealedBy, inkOf, toPaintMarks, type Mark } from './model';
 
 const A = 'user-a';
 const B = 'user-b';
@@ -19,6 +19,7 @@ const mark = (id: string, author: string, created: string, rest: Partial<Mark>):
   body: null,
   emoji: null,
   label: null,
+  color: null,
   media_url: null,
   parent_id: null,
   locator: null,
@@ -48,6 +49,26 @@ it('paints one mark per anchor, underlined in a blend when both partners marked 
     { id: loc1.cfi, locator: loc1, color: '#83409a', kind: 'underline' },
     { id: loc2.cfi, locator: loc2, color: '#e11d48', kind: 'highlight' },
   ]);
+});
+
+it("paints each anchor in its author's chosen ink; a note keeps its underline", () => {
+  const jadeNote = { ...noteA, color: '#0ca678' };
+  const violetHl = { ...hlA, color: '#7048e8' };
+  const jadeReact = mark('rj', A, '3', { kind: 'reaction', emoji: 'love', locator: loc2, pos: 2.005 });
+  expect(toPaintMarks(groupByAnchor([jadeNote, violetHl, jadeReact]), members)).toEqual([
+    { id: loc1.cfi, locator: loc1, color: '#0ca678', kind: 'note' },
+    { id: loc2.cfi, locator: loc2, color: '#7048e8', kind: 'highlight' },
+  ]);
+  expect(toPaintMarks(groupByAnchor([jadeNote, reactB]), members)).toEqual([
+    { id: loc1.cfi, locator: loc1, color: '#1985b2', kind: 'underline' },
+  ]);
+});
+
+it("falls back to the author's ink when a mark has none or holds the partner's ink", () => {
+  expect(inkOf({ author_id: A, color: null }, members)).toBe('#e11d48');
+  expect(inkOf({ author_id: A, color: '#0ca678' }, members)).toBe('#0ca678');
+  expect(inkOf({ author_id: A, color: '#2563eb' }, members)).toBe('#e11d48');
+  expect(inkOf({ author_id: 'gone', color: null }, members)).toBe('#9ca3af');
 });
 
 const bookmarkA = mark('b', A, '5', { kind: 'bookmark', label: 'Funny part', locator: loc2, pos: 2.005 });

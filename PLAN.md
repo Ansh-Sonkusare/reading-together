@@ -75,6 +75,6 @@ Public-domain catalogue (D1), native apps, groups of more than two, PDFs, DRM bo
 | P42 | Couple stats dashboard | E | SQL view test with literal counts | done |
 | P43 | Couple memories (photo on a mark) | C | verify: a photo attached to a highlight shows for both | todo |
 | P44 | Themes, dark mode, font size, background | D | verify: prefs persist across reload | done |
-| P51 | Sync reading mode (presence, follow the leader) | B | verify: B's page follows A's page turn | todo |
+| P51 | Sync reading mode (presence, follow the leader) | B | verify: B's page follows A's page turn | wip |
 
 Test book: a public-domain EPUB in `fixtures/` (test data only; D1 still holds for the product).

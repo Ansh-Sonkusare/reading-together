@@ -9,7 +9,6 @@ _Update before ending every session._
 - Decision trail: `notes/trail.tsv` (reviewed by a second model).
 
 ## Needs the owner
-- D10 (partner position and chapter-finished pushes visible while ahead) is a product call made autonomously; confirm or override.
 - Web push delivery to a real device is unverified; test on a phone. For a hosted deploy, call `set_push_dispatch_url` and turn off Realtime "Allow public access".
 - Upstream storage-api bug (refused upload leaves the Kong socket undrained): reproducer in `docs/research/`; filing it is your call.
 - Title pages that have a TOC entry get a "You finished <book title>" prompt; decide whether entries matching the book title count as front matter.

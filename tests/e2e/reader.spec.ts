@@ -94,3 +94,47 @@ test('pos is layout-stable and the ReaderHandle works inside the Next app', asyn
   for (let i = 0; i < 15; i++) await page.evaluate((s) => window.__reader!.goTo(s as Pos), i);
   expect(await page.evaluate(() => window.__lengthMismatches)).toEqual([]);
 });
+
+test('a painted highlight stays on its quoted words across font sizes and re-anchors when the CFI or offset misses', async ({ page }) => {
+  const exact = NEEDLE.slice(0, 20);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/dev/reader');
+  await page.waitForFunction(() => window.__reader);
+  await page.evaluate(() => window.__reader!.goTo(4.5 as Pos));
+  expect(await selectFirst20Chars(page)).toBe(SPIKE_POS);
+  const stored = await page.evaluate(() => window.__selected!.locator);
+  expect(stored.quote?.exact).toBe(exact);
+  expect(stored.cfi).toBe('epubcfi(/6/10!/4/2[pgepubid00005]/52,/1:14,/1:34)');
+
+  const paintAndRead = async (marks: { id: string; locator: BookLocator }[]) => {
+    await page.evaluate(() => window.__reader!.paint([]));
+    await expect.poll(() => page.evaluate(() => window.__paintedText!('m1'))).toBeNull();
+    await page.evaluate(async (ms) => {
+      await window.__reader!.goTo(ms[0].locator);
+      window.__reader!.paint(ms.map((m) => ({ ...m, color: '#e11d48', kind: 'highlight' as const })));
+    }, marks);
+    await expect.poll(() => page.evaluate(() => window.__paintedText!('m1'))).toBe(exact);
+  };
+
+  await paintAndRead([{ id: 'm1', locator: stored }]);
+
+  await page.getByLabel('Font size').selectOption('1.6');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await paintAndRead([{ id: 'm1', locator: stored }]);
+
+  await page.getByLabel('Font size').selectOption('0.8');
+  await paintAndRead([{ id: 'm1', locator: stored }]);
+
+  // Resolves cleanly, but to the first 20 chars of the same paragraph: only the quote check can reject it.
+  const bogusCfi = 'epubcfi(/6/10!/4/2[pgepubid00005]/52,/1:0,/1:20)';
+  await paintAndRead([{ id: 'm1', locator: { ...stored, cfi: bogusCfi } }]);
+  await paintAndRead([{ id: 'm1', locator: { ...stored, cfi: bogusCfi, offset: 10 } }]);
+
+  const missing = { ...stored, cfi: bogusCfi, offset: 10, quote: { exact: 'a sentence Carroll never wrote', prefix: '', suffix: '' } };
+  await paintAndRead([
+    { id: 'm1', locator: stored },
+    { id: 'lost', locator: missing },
+  ]);
+  expect(await page.evaluate(() => window.__paintedText!('lost'))).toBeNull();
+  expect(await page.evaluate(() => window.__anchorLost)).toEqual([{ id: 'lost', spine: 4 }]);
+});

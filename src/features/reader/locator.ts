@@ -114,6 +114,17 @@ export function findByQuote(text: string, quote: Quote, near?: number): number |
   return tied ? null : best;
 }
 
+// Where a locator's quote sits in `text`: at the stored offset if the text there
+// still matches, else wherever findByQuote puts it. Length is always quote.exact's.
+export function resolveAnchor(text: string, locator: Locator): { offset: number; length: number } | null {
+  const { quote, offset } = locator;
+  if (!quote?.exact) return null;
+  const length = quote.exact.length;
+  if (text.startsWith(quote.exact, offset)) return { offset, length };
+  const found = findByQuote(text, quote, offset);
+  return found === null ? null : { offset: found, length };
+}
+
 const XML_ENTITIES: Record<string, string> = { lt: '<', gt: '>', amp: '&', quot: '"', apos: "'" };
 
 function decodeEntities(s: string): string {

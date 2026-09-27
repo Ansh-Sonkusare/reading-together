@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { canonicalTextFromXhtml, displayPage, findByQuote, fromPos, quoteAt, spineLengthsFromEpub, toPos } from './locator';
+import { canonicalTextFromXhtml, displayPage, findByQuote, fromPos, quoteAt, resolveAnchor, spineLengthsFromEpub, toPos } from './locator';
 
 const alice = new Uint8Array(readFileSync(new URL('../../../fixtures/alice.epub', import.meta.url)));
 
@@ -67,6 +67,37 @@ describe('quoteAt / findByQuote', () => {
     expect(findByQuote(text, { exact: 'bird', prefix: '', suffix: '' })).toBeNull();
     expect(findByQuote(text, { exact: 'sat', prefix: '', suffix: '' })).toBeNull();
     expect(findByQuote(text, { exact: 'sat', prefix: '', suffix: '' }, 20)).toBe(21);
+  });
+});
+
+describe('resolveAnchor', () => {
+  const text = 'the cat sat. the dog sat. the cat ran.';
+  const at = (offset: number, length: number) => ({ spine: 4, offset, cfi: 'epubcfi(/6/10!/4/2)', quote: quoteAt(text, offset, length) });
+
+  it('keeps the stored offset when the text there still matches the quote', () => {
+    expect(resolveAnchor(text, at(17, 7))).toEqual({ offset: 17, length: 7 });
+  });
+
+  it('follows the quote to its new offset after text was inserted before it', () => {
+    const edited = 'Chapter 1. the cat sat. the dog sat. the cat ran.';
+    expect(resolveAnchor(edited, at(17, 7))).toEqual({ offset: 28, length: 7 });
+  });
+
+  it('takes the length from quote.exact, not from anything else in the locator', () => {
+    const edited = 'the cat sat. a dog sat. the cat ran.';
+    expect(resolveAnchor(edited, { ...at(17, 7), quote: { exact: 'dog sat', prefix: '', suffix: '' } })).toEqual({ offset: 15, length: 7 });
+  });
+
+  it('uses the stored offset to pick between identical occurrences', () => {
+    const twice = 'the cat sat. the cat sat.';
+    const quote = { exact: 'cat', prefix: 'the ', suffix: ' sat.' };
+    expect(resolveAnchor(twice, { spine: 0, offset: 19, cfi: '', quote })).toEqual({ offset: 17, length: 3 });
+    expect(resolveAnchor(twice, { spine: 0, offset: 2, cfi: '', quote })).toEqual({ offset: 4, length: 3 });
+  });
+
+  it('returns null when the quote is gone or the locator has none', () => {
+    expect(resolveAnchor(text, { spine: 0, offset: 4, cfi: '', quote: { exact: 'bird', prefix: '', suffix: '' } })).toBeNull();
+    expect(resolveAnchor(text, { spine: 0, offset: 4, cfi: '' })).toBeNull();
   });
 });
 

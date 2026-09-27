@@ -7,7 +7,22 @@ declare global {
   interface Window {
     __reader?: ReaderHandle;
     __lengthMismatches?: Parameters<ReaderEvents['lengthMismatch']>[0][];
+    __anchorLost?: Parameters<ReaderEvents['anchorLost']>[0][];
+    __paintedText?: (id: string) => string | null;
   }
+}
+
+type Overlayer = { element: SVGElement; hitTest(p: { x: number; y: number }): [string, Range] | [] };
+
+// The text under a painted mark, read back through foliate's own hit test on the mark's first rect.
+function paintedText(id: string): string | null {
+  const view = document.querySelector('foliate-view') as unknown as { renderer: { getContents(): { overlayer?: Overlayer }[] } } | null;
+  const overlayer = view?.renderer.getContents()[0]?.overlayer;
+  const rect = overlayer?.element.querySelector(`[data-mark-id="${id}"] rect`);
+  if (!overlayer || !rect) return null;
+  const n = (a: string) => Number(rect.getAttribute(a));
+  const [, range] = overlayer.hitTest({ x: n('x') + n('width') / 2, y: n('y') + n('height') / 2 });
+  return range?.toString() ?? null;
 }
 
 export function DevReader() {
@@ -30,6 +45,10 @@ export function DevReader() {
       const mismatches: Parameters<ReaderEvents['lengthMismatch']>[0][] = [];
       window.__lengthMismatches = mismatches;
       r.on('lengthMismatch', (e) => mismatches.push(e));
+      const lost: Parameters<ReaderEvents['anchorLost']>[0][] = [];
+      window.__anchorLost = lost;
+      r.on('anchorLost', (e) => lost.push(e));
+      window.__paintedText = paintedText;
       r.on('relocate', (e) => {
         setPos(e.pos.toFixed(6));
         setPageEndPos(e.pageEndPos.toFixed(6));

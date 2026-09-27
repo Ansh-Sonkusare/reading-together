@@ -1,4 +1,4 @@
-import { QUOTE_CONTEXT, canonicalText, fromPos, offsetOf, quoteAt, rangeAt, toPos, type Locator, type Pos } from './locator';
+import { QUOTE_CONTEXT, canonicalText, fromPos, offsetOf, quoteAt, rangeAt, resolveAnchor, toPos, type Locator, type Pos } from './locator';
 
 export type PaintMark = { id: string; locator: Locator; color: string; kind: 'highlight' | 'underline' };
 
@@ -7,6 +7,7 @@ export type ReaderEvents = {
   select: (e: { locator: Locator; pos: Pos; text: string; rect: DOMRect }) => void;
   markClick: (e: { id: string; rect: DOMRect }) => void;
   lengthMismatch: (e: { spine: number; expected: number; actual: number }) => void;
+  anchorLost: (e: { id: string; spine: number }) => void;
 };
 
 export type ReaderHandle = {
@@ -35,14 +36,16 @@ export async function createReader(container: HTMLElement, file: Blob, opts: { s
     select: new Set(),
     markClick: new Set(),
     lengthMismatch: new Set(),
+    anchorLost: new Set(),
   };
   const emit = <K extends keyof ReaderEvents>(k: K, e: Parameters<ReaderEvents[K]>[0]) => {
     for (const cb of listeners[k]) (cb as (e: Parameters<ReaderEvents[K]>[0]) => void)(e);
   };
   const texts = new Map<number, string>();
-  let displayed = false;
+  let shown: { index: number; doc: Document } | undefined;
   // ponytail: foliate keys annotations by CFI, so two marks on the identical range draw once (last wins); merge them upstream if that matters.
   let marks = new Map<string, PaintMark>();
+  const painted = new Map<string, string>();
 
   const view = document.createElement('foliate-view') as InstanceType<typeof View>;
   view.style.cssText = 'display:block;width:100%;height:100%';
@@ -62,7 +65,7 @@ export async function createReader(container: HTMLElement, file: Blob, opts: { s
     const { doc, index } = (e as CustomEvent<{ doc: Document; index: number }>).detail;
     const text = canonicalText(doc);
     texts.set(index, text);
-    displayed = true;
+    shown = { index, doc };
     if (text.length !== lengths[index]) emit('lengthMismatch', { spine: index, expected: lengths[index], actual: text.length });
     // Keys pressed after clicking into the book land in the section iframe; let the host page see them.
     doc.addEventListener('keydown', (k) => window.dispatchEvent(new KeyboardEvent('keydown', { key: k.key })));
@@ -102,10 +105,37 @@ export async function createReader(container: HTMLElement, file: Blob, opts: { s
 
   view.addEventListener('show-annotation', (e) => {
     const { value, range } = (e as CustomEvent<{ value: string; range: Range }>).detail;
-    for (const m of marks.values()) if (m.locator.cfi === value) emit('markClick', { id: m.id, rect: outerRect(range) });
+    for (const [id, v] of painted) if (v === value) emit('markClick', { id, rect: outerRect(range) });
   });
 
-  const add = (m: PaintMark) => view.addAnnotation({ value: m.locator.cfi, mark: m } as { value: string }).catch(console.error);
+  // The CFI only counts if it still lands on the quoted text; otherwise re-anchor by offset, then by quote.
+  const anchorRange = (doc: Document, locator: Locator): Range | null => {
+    try {
+      const r = view.resolveCFI(locator.cfi);
+      const range = r.index === locator.spine ? r.anchor(doc) : null;
+      if (range && (!locator.quote || range.toString() === locator.quote.exact)) return range;
+    } catch {
+      // Falls through: a CFI the engine can't parse is re-anchored like one that missed.
+    }
+    const hit = resolveAnchor(canonicalText(doc), locator);
+    if (!hit) return null;
+    const range = rangeAt(doc, hit.offset);
+    const end = rangeAt(doc, hit.offset + hit.length);
+    range.setEnd(end.startContainer, end.startOffset);
+    return range;
+  };
+
+  const add = (m: PaintMark) => {
+    if (shown?.index !== m.locator.spine) return;
+    const range = anchorRange(shown.doc, m.locator);
+    if (!range) {
+      painted.delete(m.id);
+      return emit('anchorLost', { id: m.id, spine: m.locator.spine });
+    }
+    const value = view.getCFI(m.locator.spine, range);
+    painted.set(m.id, value);
+    view.addAnnotation({ value, mark: m } as { value: string }).catch(console.error);
+  };
   view.addEventListener('create-overlay', (e) => {
     const { index } = (e as CustomEvent<{ index: number }>).detail;
     for (const m of marks.values()) if (m.locator.spine === index) add(m);
@@ -117,10 +147,12 @@ export async function createReader(container: HTMLElement, file: Blob, opts: { s
       return () => listeners[k].delete(cb);
     },
     paint(next) {
-      const keep = new Set(next.map((m) => m.locator.cfi));
-      for (const m of marks.values()) if (!keep.has(m.locator.cfi)) view.deleteAnnotation({ value: m.locator.cfi }).catch(console.error);
+      const old = new Set(painted.values());
+      painted.clear();
       marks = new Map(next.map((m) => [m.id, m]));
       for (const m of marks.values()) add(m);
+      const keep = new Set(painted.values());
+      for (const v of old) if (!keep.has(v)) view.deleteAnnotation({ value: v }).catch(console.error);
     },
     async goTo(target) {
       const { spine, offset } = typeof target === 'number' ? fromPos(target, lengths) : target;
@@ -139,7 +171,7 @@ export async function createReader(container: HTMLElement, file: Blob, opts: { s
     destroy() {
       for (const set of Object.values(listeners)) set.clear();
       // foliate's close() throws if no section was ever displayed.
-      if (displayed) view.close();
+      if (shown) view.close();
       view.remove();
     },
   };

@@ -11,6 +11,7 @@ declare module 'foliate-js/view.js' {
     next(): Promise<void>;
     prev(): Promise<void>;
     getCFI(index: number, range?: Range): string;
+    resolveCFI(cfi: string): { index: number; anchor: (doc: Document) => Range };
     addAnnotation(annotation: { value: string }): Promise<unknown>;
     deleteAnnotation(annotation: { value: string }): Promise<unknown>;
   }

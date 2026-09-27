@@ -75,3 +75,42 @@ export function useProgressSaver(bookId: string, userId: string, initial: Progre
 
   return { save: saver.save, savedPos };
 }
+
+// Realtime keys a postgres_changes subscription by its params, so leaving an old channel after an identical
+// one has joined (a StrictMode or fast remount) silently kills the new one. Joins wait for the last leave.
+let lastLeave: Promise<unknown> = Promise.resolve();
+
+// The partner's row, kept live over Realtime (RLS limits delivery to the couple).
+export function usePartnerProgress(bookId: string, partnerId: string | null, initial: Progress | null): Progress | null {
+  const [partner, setPartner] = useState(initial);
+  useEffect(() => {
+    if (!partnerId) return;
+    const db = createBrowserClient();
+    const set = (row: Progress) => setPartner({ ...row, pos: Number(row.pos), max_pos: Number(row.max_pos) });
+    let channel: ReturnType<typeof db.channel> | null = null;
+    let live = true;
+    lastLeave.then(async () => {
+      const { data: auth } = await db.auth.getSession();
+      if (!live) return;
+      // Without this the join can go out before the client has handed Realtime the session, and RLS then sees anon.
+      await db.realtime.setAuth(auth.session?.access_token ?? null);
+      channel = db
+        .channel(`book:${bookId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'progress', filter: `book_id=eq.${bookId}` }, (payload) => {
+          const row = payload.new as Progress;
+          if (row.user_id === partnerId) set(row);
+        })
+        .subscribe(async (status) => {
+          if (status !== 'SUBSCRIBED') return;
+          // Catch an update that landed between the server render and the subscription.
+          const { data } = await db.from('progress').select('user_id, pos, max_pos, locator').eq('book_id', bookId).eq('user_id', partnerId).maybeSingle();
+          if (data) set(data);
+        });
+    });
+    return () => {
+      live = false;
+      if (channel) lastLeave = db.removeChannel(channel);
+    };
+  }, [bookId, partnerId]);
+  return partner;
+}

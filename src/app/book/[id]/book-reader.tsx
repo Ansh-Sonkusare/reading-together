@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { useProgressSaver, type Progress } from '@/features/couple/progress';
+import type { Member } from '@/features/couple/couple';
+import { usePartnerProgress, useProgressSaver, type Progress } from '@/features/couple/progress';
 import { createReader, displayPage, type Locator, type Pos, type ReaderHandle } from '@/features/reader';
 
 const FONT_KEY = 'reader:fontScale';
@@ -24,9 +25,12 @@ type Props = {
   fileUrl: string;
   spineLengths: number[];
   mine: Progress | null;
+  me: Member;
+  partner: Member | null;
+  partnerProgress: Progress | null;
 };
 
-export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine }: Props) {
+export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine, me, partner, partnerProgress }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const [reader, setReader] = useState<ReaderHandle | null>(null);
   const [pos, setPos] = useState<number | null>(null);
@@ -35,6 +39,7 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine 
   const [failed, setFailed] = useState(false);
   const [turning, setTurning] = useState(false);
   const { save, savedPos } = useProgressSaver(bookId, userId, mine);
+  const theirs = usePartnerProgress(bookId, partner?.userId ?? null, partnerProgress);
 
   useEffect(() => {
     let handle: ReaderHandle | undefined;
@@ -108,6 +113,17 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine 
           Library
         </Link>
         <h1 className="truncate font-semibold">{title}</h1>
+        <p data-testid="progress-pair" className="ml-auto shrink-0 font-medium">
+          {partner && (
+            <>
+              <span style={{ color: partner.color }}>
+                {theirs ? `${partner.name} p.${displayPage(theirs.pos, spineLengths)}` : `${partner.name} hasn't started`}
+              </span>
+              {' · '}
+            </>
+          )}
+          <span style={{ color: me.color }}>you p.{displayPage(pos ?? mine?.pos ?? 0, spineLengths)}</span>
+        </p>
       </header>
       {mismatch && (
         <p role="status" className="bg-amber-50 px-3 py-1 text-xs text-amber-800">

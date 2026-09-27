@@ -18,6 +18,7 @@ export default async function BookPage({ params }: { params: Promise<{ id: strin
   ]);
   if (signed.error) throw signed.error;
   if (progress.error) throw progress.error;
+  const partner = couple.members.find((m) => m.userId !== userId);
   return (
     <BookReader
       bookId={book.id}
@@ -26,6 +27,9 @@ export default async function BookPage({ params }: { params: Promise<{ id: strin
       fileUrl={signed.data.signedUrl}
       spineLengths={book.spine_lengths}
       mine={progress.data.find((p) => p.user_id === userId) ?? null}
+      me={couple.members.find((m) => m.userId === userId)!}
+      partner={partner ?? null}
+      partnerProgress={progress.data.find((p) => p.user_id === partner?.userId) ?? null}
     />
   );
 }

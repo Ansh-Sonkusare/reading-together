@@ -53,11 +53,12 @@ Private bucket `books`, object path `{couple_id}/{book_id}.epub`, readable and w
 
 ## Routes
 
-- `/book/[id]`: server checks membership, signs a 60 s Storage URL; the client restores `progress.locator` (else pos 0), saves on relocate. Font scale is per device in `localStorage['reader:fontScale']`. Test hooks: `data-testid="my-pos"` and `"saved-pos"` (pos, 6 decimals).
+- `/book/[id]`: server checks membership, signs a 60 s Storage URL; the client restores `progress.locator` (else pos 0), saves on relocate. Font scale is per device in `localStorage['reader:fontScale']`. Test hooks: `data-testid="my-pos"` and `"saved-pos"` (pos, 6 decimals), `"progress-pair"` (the bar: `{partner} p.{n} · you p.{m}`, `{partner} hasn't started`, partner part hidden when solo; colours from `member.color`).
 
 ## Realtime channels
 
 - `book:{id}`: postgres_changes on `mark` and `progress`. RLS still applies, and the client re-fetches marks when its own progress moves past new ones.
+  Two client gotchas (P15): call `realtime.setAuth(session.access_token)` before joining, or the join can go out as anon and RLS delivers nothing; and don't join an identical channel before the previous leave resolves (StrictMode remount), because Realtime keys the subscription by its params and the late leave kills the new one.
 - `presence:book:{id}`: current locator, used by sync mode.
 
 ## Client module surfaces (signatures only)
@@ -83,7 +84,8 @@ useMarks(bookId): Mark[]   // re-fetches when my progress passes new marks
 // features/couple
 useProgressSaver(bookId, userId, initial: Progress | null): { save(pos, pageEndPos, locator); savedPos }   // client; 1 s debounce,
     // max_pos = max(initial.max_pos, every pageEndPos seen); flushes on pagehide / visibilitychange hidden via keepalive fetch
-useProgressPair(bookId): { me: Progress; partner: Progress | null }
+usePartnerProgress(bookId, partnerId | null, initial: Progress | null): Progress | null   // client; live via book:{id}
+    // (replaces the drafted useProgressPair: "me" is the reader's own relocate pos, so only the partner needs a hook)
 getMyCouple(): Promise<{ id; inviteCode; members: { userId; name; color }[] } | null>   // server only
 listBooks(coupleId, members): Promise<{ id; title; author; addedBy; createdAt }[]>       // server only
 uploadBookAction(prev, formData{file}) → { ok: string } | { error: string }              // server action

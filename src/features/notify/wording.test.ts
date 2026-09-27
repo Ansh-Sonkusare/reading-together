@@ -1,0 +1,89 @@
+import { describe, expect, it } from 'vitest';
+import { notificationFor, type NotifyEvent, type NotifyMark, type NotifyMember } from './wording';
+
+const SAM = 'sam';
+const ALEX = 'alex';
+const members: NotifyMember[] = [
+  { userId: SAM, name: 'Sam', maxPos: 3.5 },
+  { userId: ALEX, name: 'Alex', maxPos: 1.2 },
+];
+const locator = (exact: string) => ({ spine: 1, offset: 10, cfi: 'epubcfi(/6/4!/4/2,/1:10,/1:30)', quote: { exact, prefix: '', suffix: '' } });
+const markEvent = (pos: number, actor = SAM): NotifyEvent => ({ type: 'mark_created', actor_id: actor, book_id: 'b1', pos, data: {} });
+const mark = (m: Partial<NotifyMark>): NotifyMark => ({ author_id: SAM, kind: 'highlight', emoji: null, body: null, locator: null, ...m });
+
+describe('notificationFor', () => {
+  it('a reaction on the recipient’s own highlight quotes the passage', () => {
+    const reaction = mark({ kind: 'reaction', emoji: 'love', locator: locator('Curiouser and curiouser!') });
+    const highlight = mark({ author_id: ALEX, kind: 'highlight', locator: locator('Curiouser and curiouser!') });
+    expect(notificationFor(markEvent(1.1), reaction, highlight, members, ALEX, 'Alice')).toEqual({
+      title: '❤️ Sam reacted to your highlight',
+      body: '“Curiouser and curiouser!”',
+      url: '/book/b1',
+    });
+  });
+
+  it('a reaction on the recipient’s own note shows the note text', () => {
+    const reaction = mark({ kind: 'reaction', emoji: 'funny', locator: locator('the Cheshire Cat') });
+    const note = mark({ author_id: ALEX, kind: 'note', body: 'I love this part too!', locator: locator('the Cheshire Cat') });
+    expect(notificationFor(markEvent(1.1), reaction, note, members, ALEX, 'Alice')).toEqual({
+      title: '😂 Sam reacted to your note',
+      body: 'I love this part too!',
+      url: '/book/b1',
+    });
+  });
+
+  it('a reply to the recipient’s note shows the reply text', () => {
+    const reply = mark({ kind: 'reply', body: 'Same, I laughed out loud' });
+    const note = mark({ author_id: ALEX, kind: 'note', body: 'So funny' });
+    expect(notificationFor(markEvent(1.1), reply, note, members, ALEX, 'Alice')).toEqual({
+      title: '💬 Sam replied to your note',
+      body: 'Same, I laughed out loud',
+      url: '/book/b1',
+    });
+  });
+
+  it('a new note on a passage', () => {
+    const note = mark({ kind: 'note', body: 'This reminds me of our trip', locator: locator('down the rabbit-hole') });
+    expect(notificationFor(markEvent(0.5), note, null, members, ALEX, 'Alice')).toEqual({
+      title: '📝 Sam left a note',
+      body: 'This reminds me of our trip',
+      url: '/book/b1',
+    });
+  });
+
+  it('a finished chapter invites the partner', () => {
+    const event: NotifyEvent = { type: 'chapter_finished', actor_id: SAM, book_id: 'b1', pos: null, data: { spine: 4 } };
+    expect(notificationFor(event, null, null, members, ALEX, 'Alice')).toEqual({
+      title: '📖 Sam finished Chapter 5',
+      body: 'Come read it with me!',
+      url: '/book/b1',
+    });
+  });
+
+  it('a revealed answer links to the discussion', () => {
+    const event: NotifyEvent = { type: 'answer_revealed', actor_id: SAM, book_id: 'b1', pos: null, data: { spine: 2, prompt_key: 'q', kind: 'question' } };
+    expect(notificationFor(event, null, null, members, ALEX, 'Alice')).toEqual({
+      title: '💬 Sam answered too',
+      body: 'Your answers for Chapter 3 are revealed',
+      url: '/discuss/b1/2',
+    });
+  });
+
+  it('a mark ahead of the recipient sends nothing, one at their max_pos does', () => {
+    const note = mark({ kind: 'note', body: 'The Queen!' });
+    expect(notificationFor(markEvent(1.3), note, null, members, ALEX, 'Alice')).toBeNull();
+    expect(notificationFor(markEvent(1.2), note, null, members, ALEX, 'Alice')?.title).toBe('📝 Sam left a note');
+  });
+
+  it('an event by the recipient sends nothing to them', () => {
+    const note = mark({ author_id: ALEX, kind: 'note', body: 'mine' });
+    expect(notificationFor(markEvent(0.5, ALEX), note, null, members, ALEX, 'Alice')).toBeNull();
+    expect(notificationFor(markEvent(0.5, ALEX), note, null, members, SAM, 'Alice')?.title).toBe('📝 Alex left a note');
+  });
+
+  it('clips a long passage', () => {
+    const long = 'a'.repeat(200);
+    const body = notificationFor(markEvent(0.5), mark({ locator: locator(long) }), null, members, ALEX, 'Alice')?.body;
+    expect(body).toBe(`“${'a'.repeat(119)}…”`);
+  });
+});

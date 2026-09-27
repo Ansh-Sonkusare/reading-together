@@ -56,7 +56,7 @@ export function rangeAt(doc: Document, offset: number): Range {
   let left = offset;
   let last: Text | null = null;
   for (let n = walker.nextNode() as Text | null; n; n = walker.nextNode() as Text | null) {
-    if (left <= n.data.length) {
+    if (left < n.data.length) {
       range.setStart(n, left);
       return range;
     }

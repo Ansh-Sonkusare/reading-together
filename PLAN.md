@@ -75,6 +75,12 @@ Public-domain catalogue (D1), native apps, groups of more than two, PDFs, DRM bo
 | P42 | Couple stats dashboard | E | SQL view test with literal counts | done |
 | P43 | Couple memories (photo on a mark) | C | verify: a photo attached to a highlight shows for both | wip |
 | P44 | Themes, dark mode, font size, background | D | verify: prefs persist across reload | done |
-| P51 | Sync reading mode (presence, follow the leader) | B | verify: B's page follows A's page turn | wip |
+| P51 | Sync reading mode (presence, follow the leader) | B | verify: B's page follows A's page turn | done |
 
 Test book: a public-domain EPUB in `fixtures/` (test data only; D1 still holds for the product).
+
+## Follow-up problems
+
+| # | Problem | WS | Check that proves it | Status |
+|---|---|---|---|---|
+| F1 | Private Realtime channels: `sync:{bookId}` and the other broadcast/presence channels require couple membership (RLS on `realtime.messages`) | A | DB test: another couple's user can't join or send on the channel (positive control: partner can) | todo |

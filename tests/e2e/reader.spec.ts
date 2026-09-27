@@ -138,3 +138,28 @@ test('a painted highlight stays on its quoted words across font sizes and re-anc
   expect(await page.evaluate(() => window.__paintedText!('lost'))).toBeNull();
   expect(await page.evaluate(() => window.__anchorLost)).toEqual([{ id: 'lost', spine: 4 }]);
 });
+
+test('going to a page start lands on that page, including starts at a text-node boundary', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/dev/reader');
+  await page.waitForFunction(() => window.__reader);
+  await page.evaluate(() => {
+    window.__reader!.on('relocate', (e) => ((window as unknown as { __at: number }).__at = e.pos));
+    return window.__reader!.goTo(1 as Pos);
+  });
+  const at = () => page.evaluate(() => (window as unknown as { __at: number }).__at);
+  const misses: string[] = [];
+  for (let i = 0; i < 25; i++) {
+    const prev = await at();
+    await page.evaluate(() => window.__reader!.next());
+    await page.waitForFunction((p) => (window as unknown as { __at: number }).__at !== p, prev);
+    const start = await at();
+    await page.evaluate(() => window.__reader!.prev());
+    await page.waitForFunction((p) => (window as unknown as { __at: number }).__at !== p, start);
+    await page.evaluate((p) => window.__reader!.goTo(p as Pos), start);
+    await page.waitForFunction((p) => (window as unknown as { __at: number }).__at === p, start, { timeout: 5_000 }).catch(() => undefined);
+    const landed = await at();
+    if (landed !== start) misses.push(`${start.toFixed(6)} -> ${landed.toFixed(6)}`);
+  }
+  expect(misses).toEqual([]);
+});

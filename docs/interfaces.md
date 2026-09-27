@@ -13,7 +13,7 @@ progress (user_id, book_id, pos numeric, max_pos numeric, locator jsonb, updated
          -- pos = start of the visible page (where to reopen); max_pos = greatest(max_pos, end of visible page), never decreases
 mark     (id, book_id, author_id, kind mark_kind, pos numeric, locator jsonb,
           emoji reaction?, body text?, label text?, media_url text?, parent_id → mark?, created_at)
-answer   (id, book_id, spine int, kind ('question'|'guess'), prompt_key text, user_id, value text, created_at,
+answer   (id, book_id, spine int, kind answer_kind, prompt_key text, user_id, value text, created_at,
           unique(book_id, spine, prompt_key, user_id))
 event    (id, couple_id, book_id?, actor_id, type event_type, ref_id uuid?, pos numeric?, data jsonb, created_at)
          -- pos is set for events about a place in the text (mark_created) so the spoiler gate can hide them
@@ -23,6 +23,22 @@ push_sub (user_id, endpoint, keys jsonb)
 `mark_kind`: `highlight | reaction | note | reply | bookmark | send | memory`
 `reaction`: `love | funny | emotional | surprised | interesting | favorite | think`
 `event_type`: `book_added | book_started | mark_created | chapter_finished | book_finished | answer_revealed | goal_met`
+`answer_kind`: `question | guess`
+
+`chapter_finished.data = {spine: n}`, one row per newly finished spine. `answer_revealed.data = {spine, prompt_key, kind}`.
+
+## RPCs
+
+Clients never insert `couple` or `member` rows; they call:
+
+- `create_couple(name text, color text) → invite_code text`
+- `join_couple(invite_code text, name text = null, color text = null) → couple_id uuid` (raises `couple is full` for a third member)
+
+Members may update only their own `name`, `color`, `avatar_url`.
+
+## Storage
+
+Private bucket `books`, object path `{couple_id}/{book_id}.epub`, readable and writable only by that couple's members.
 
 ## Rules enforced in the database (RLS and triggers)
 

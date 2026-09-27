@@ -51,9 +51,14 @@ Private bucket `books`, object path `{couple_id}/{book_id}.epub`, readable and w
 5. `mark.pos` must be ≤ the author's own `progress.max_pos` + ε. You can't annotate text you haven't reached.
 6. `chapter` = spine item. `chapter_finished` fires when `floor(max_pos)` increases; `book_finished` fires when `max_pos` reaches the spine count.
 
+## Routes
+
+- `/book/[id]`: server checks membership, signs a 60 s Storage URL; the client restores `progress.locator` (else pos 0), saves on relocate. Font scale is per device in `localStorage['reader:fontScale']`. Test hooks: `data-testid="my-pos"` and `"saved-pos"` (pos, 6 decimals), `"progress-pair"` (the bar: `{partner} p.{n} · you p.{m}`, `{partner} hasn't started`, partner part hidden when solo; colours from `member.color`).
+
 ## Realtime channels
 
 - `marks:{bookId}` (mark) and `progress:{bookId}` (progress): postgres_changes, one channel per feature so names never collide in one client. RLS still applies, and the client re-fetches marks when its own progress moves past new ones.
+  Two client gotchas (P15): call `realtime.setAuth(session.access_token)` before joining, or the join can go out as anon and RLS delivers nothing; and don't join an identical channel before the previous leave resolves (StrictMode remount), because Realtime keys the subscription by its params and the late leave kills the new one.
 - `presence:book:{id}`: current locator, used by sync mode.
 
 ## Client module surfaces (signatures only)
@@ -68,14 +73,19 @@ ReaderHandle.on('lengthMismatch', e => { spine, expected, actual })
 ReaderHandle.paint(marks: PaintMark[])     // full set, idempotent; PaintMark = { id, locator, color, kind: 'highlight'|'underline' }
 ReaderHandle.goTo(target: Locator | Pos)   // nothing renders until the first goTo
 ReaderHandle.next() / prev() / setFontScale(n) / destroy()
-// locator.ts: toPos, fromPos, quoteAt, findByQuote, spineLengthsFromEpub, canonicalText, offsetOf, rangeAt
+// locator.ts: toPos, fromPos, quoteAt, findByQuote, spineLengthsFromEpub, zipReader, canonicalText, offsetOf, rangeAt
+displayPage(pos, spineLengths): number     // floor(chars before pos / 1500) + 1; display only, never stored
+// goTo anchors on the first non-whitespace char at or after the target offset (inter-block whitespace has no box to scroll to)
 
 // features/marks
 createMark(input: NewMark): Promise<Mark>
 useMarks(bookId): Mark[]   // re-fetches when my progress passes new marks
 
 // features/couple
-useProgressPair(bookId): { me: Progress; partner: Progress | null }
+useProgressSaver(bookId, userId, initial: Progress | null): { save(pos, pageEndPos, locator); savedPos }   // client; 1 s debounce,
+    // max_pos = max(initial.max_pos, every pageEndPos seen); flushes on pagehide / visibilitychange hidden via keepalive fetch
+usePartnerProgress(bookId, partnerId | null, initial: Progress | null): Progress | null   // client; live via book:{id}
+    // (replaces the drafted useProgressPair: "me" is the reader's own relocate pos, so only the partner needs a hook)
 getMyCouple(): Promise<{ id; inviteCode; members: { userId; name; color }[] } | null>   // server only
 listBooks(coupleId, members): Promise<{ id; title; author; addedBy; createdAt }[]>       // server only
 uploadBookAction(prev, formData{file}) → { ok: string } | { error: string }              // server action

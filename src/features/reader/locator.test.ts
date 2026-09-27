@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { canonicalTextFromXhtml, findByQuote, fromPos, quoteAt, spineLengthsFromEpub, toPos } from './locator';
+import { canonicalTextFromXhtml, displayPage, findByQuote, fromPos, quoteAt, spineLengthsFromEpub, toPos } from './locator';
 
 const alice = new Uint8Array(readFileSync(new URL('../../../fixtures/alice.epub', import.meta.url)));
 
@@ -81,5 +81,22 @@ describe('fromPos', () => {
   it('maps the end of the book to the end of the last spine item and rejects positions outside it', () => {
     expect(fromPos(5, lengths)).toEqual({ spine: 4, offset: 9597 });
     expect(() => fromPos(5.1, lengths)).toThrow('pos 5.1 outside book of 5 spine items');
+  });
+});
+
+describe('displayPage', () => {
+  const lengths = [24, 1424, 11549];
+
+  it('counts 1500-character pages from the start of the book', () => {
+    expect(displayPage(0, lengths)).toBe(1);
+    expect(displayPage(1, lengths)).toBe(1);
+    expect(displayPage(2, lengths)).toBe(1);
+    expect(displayPage(2 + 52 / 11549, lengths)).toBe(2);
+    expect(displayPage(2.5, lengths)).toBe(5);
+    expect(displayPage(3, lengths)).toBe(9);
+  });
+
+  it('puts pos 4.5 of alice.epub on page 20', () => {
+    expect(displayPage(4.5, [24, 1424, 11549, 10968, 9597, 13883])).toBe(20);
   });
 });

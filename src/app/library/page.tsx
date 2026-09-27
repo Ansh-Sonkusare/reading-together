@@ -1,4 +1,5 @@
 import { headers } from 'next/headers';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { signOut } from '@/features/couple/actions';
@@ -57,7 +58,11 @@ export default async function LibraryPage() {
           <tbody>
             {books.map((b) => (
               <tr key={b.id} className="border-b">
-                <td className="py-2">{b.title}</td>
+                <td className="py-2">
+                  <Link href={`/book/${b.id}`} className="underline">
+                    {b.title}
+                  </Link>
+                </td>
                 <td>{b.author}</td>
                 <td>{b.addedBy}</td>
                 <td>{dateFormat.format(new Date(b.createdAt))}</td>

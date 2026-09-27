@@ -1,17 +1,28 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { listBooks } from '@/features/couple/books';
-import { getMyCouple } from '@/features/couple/couple';
+import { getMyCouple, getUserId, type Couple } from '@/features/couple/couple';
+import { GoalForm, TimezoneSync } from '@/features/together/goal-form';
 import { getCoupleStats } from '@/features/together/stats';
+import { getStreakRow } from '@/features/together/streak-data';
 
-// P31 renders the reading streak here.
-function StreakRow(): null {
-  return null;
+async function StreakRow({ couple, me }: { couple: Couple; me: string }) {
+  const row = await getStreakRow(couple, me);
+  return (
+    <section className="flex flex-col gap-2 rounded-lg border p-4" aria-label="Streak">
+      <TimezoneSync current={row.timezone} />
+      <p className="text-lg font-semibold" data-testid="streak">
+        {row.streak}
+      </p>
+      {row.goalProgress && <p data-testid="goal-progress">{row.goalProgress}</p>}
+      <GoalForm goal={row.goal} />
+    </section>
+  );
 }
 
 export default async function TogetherPage() {
-  const couple = await getMyCouple();
-  if (!couple) redirect('/onboarding');
+  const [couple, me] = await Promise.all([getMyCouple(), getUserId()]);
+  if (!couple || !me) redirect('/onboarding');
   const [stats, books] = await Promise.all([getCoupleStats(couple.id), listBooks(couple.id, couple.members)]);
   const tiles = [
     ['📚', stats.booksTogether, stats.booksTogether === 1 ? 'book together' : 'books together'],
@@ -38,7 +49,7 @@ export default async function TogetherPage() {
           </li>
         ))}
       </ul>
-      <StreakRow />
+      <StreakRow couple={couple} me={me} />
       <section className="flex flex-col gap-2">
         <h2 className="font-semibold">Favorite reactions</h2>
         {stats.favoriteReactions.length === 0 ? (

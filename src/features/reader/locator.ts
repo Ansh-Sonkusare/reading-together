@@ -180,7 +180,7 @@ async function inflateRaw(data: Uint8Array): Promise<Uint8Array> {
 }
 
 // ponytail: no zip64 and no encrypted entries; EPUBs from Gutenberg-class sources never use them.
-async function unzip(bytes: Uint8Array): Promise<Map<string, () => Promise<string>>> {
+export function zipReader(bytes: Uint8Array): (path: string) => Promise<string> {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let eocd = bytes.length - 22;
   while (eocd >= 0 && view.getUint32(eocd, true) !== 0x06054b50) eocd--;
@@ -204,7 +204,11 @@ async function unzip(bytes: Uint8Array): Promise<Map<string, () => Promise<strin
       return utf8.decode(method === 0 ? raw : await inflateRaw(raw));
     });
   }
-  return files;
+  return async (path) => {
+    const get = files.get(path);
+    if (!get) throw new Error(`missing ${path} in EPUB`);
+    return get();
+  };
 }
 
 function attrs(tag: string): Record<string, string> {
@@ -224,12 +228,7 @@ function resolveHref(base: string, href: string): string {
 }
 
 export async function spineLengthsFromEpub(bytes: Uint8Array): Promise<number[]> {
-  const files = await unzip(bytes);
-  const read = (path: string) => {
-    const get = files.get(path);
-    if (!get) throw new Error(`missing ${path} in EPUB`);
-    return get();
-  };
+  const read = zipReader(bytes);
   const container = await read('META-INF/container.xml');
   const opfPath = attrs(/<rootfile\b[^>]*>/.exec(container)?.[0] ?? '')['full-path'];
   if (!opfPath) throw new Error('container.xml has no rootfile');

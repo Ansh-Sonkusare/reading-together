@@ -68,7 +68,7 @@ ReaderHandle.on('lengthMismatch', e => { spine, expected, actual })
 ReaderHandle.paint(marks: PaintMark[])     // full set, idempotent; PaintMark = { id, locator, color, kind: 'highlight'|'underline' }
 ReaderHandle.goTo(target: Locator | Pos)   // nothing renders until the first goTo
 ReaderHandle.next() / prev() / setFontScale(n) / destroy()
-// locator.ts: toPos, fromPos, quoteAt, findByQuote, spineLengthsFromEpub, canonicalText, offsetOf, rangeAt
+// locator.ts: toPos, fromPos, quoteAt, findByQuote, spineLengthsFromEpub, zipReader, canonicalText, offsetOf, rangeAt
 
 // features/marks
 createMark(input: NewMark): Promise<Mark>

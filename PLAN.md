@@ -71,8 +71,8 @@ Public-domain catalogue (D1), native apps, groups of more than two, PDFs, DRM bo
 | P31 | Chapter-finished events, streaks, goals | E | unit tests on the streak calculation + verify: the streak shows | todo |
 | P32 | Chapter discussion and guess-the-reaction with blind reveal | E | `pnpm test:db` reveal gate + verify: reveal after both answer | wip |
 | P33 | Web push: service worker, subscriptions, edge function wording | D | the edge function test renders the personal wording; subscription stored | todo |
-| P41 | "Our Book" timeline | E | verify: timeline lists the day's events | wip |
-| P42 | Couple stats dashboard | E | SQL view test with literal counts | wip |
+| P41 | "Our Book" timeline | E | verify: timeline lists the day's events | done |
+| P42 | Couple stats dashboard | E | SQL view test with literal counts | done |
 | P43 | Couple memories (photo on a mark) | C | verify: a photo attached to a highlight shows for both | todo |
 | P44 | Themes, dark mode, font size, background | D | verify: prefs persist across reload | todo |
 | P51 | Sync reading mode (presence, follow the leader) | B | verify: B's page follows A's page turn | todo |

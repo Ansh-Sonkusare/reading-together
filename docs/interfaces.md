@@ -109,6 +109,9 @@ ReaderHandle.paint(marks: PaintMark[])     // full set, idempotent; PaintMark = 
 ReaderHandle.goTo(target: Locator | Pos)   // nothing renders until the first goTo
 ReaderHandle.next() / prev() / setFontScale(n) / clearSelection() / destroy()   // clearSelection: after a mark is made
 ReaderHandle.setTheme({ background, color })   // colours inside the book iframe; shares foliate's styles slot with setFontScale, both survive section loads (P44)
+ReaderHandle.spotsFor(ids: string[]): Map<id, MarginSpot>   // painted marks with a line on the visible page; MarginSpot = { top, bottom, side: 'left'|'right' }
+    // (viewport px of the first visible line; side = the page of a two-page spread it's on, 'right' on one page). Call after relocate, in a rAF
+NOTE_MARGIN = 208   // at >=1024px the text narrows (foliate max-inline-size; 2 columns at >=1280, 1 below) to leave this outer margin per side for sticky notes
 // prefs.tsx (P44): device-local, localStorage['reader:prefs'] = { theme: 'light'|'sepia'|'dark'|'night', fontScale: 0.8..1.6, background?: '#rrggbb' }; parsePrefs defaults each bad field
 usePrefs(): [Prefs, (patch: Partial<Prefs>) => void]
 <ReaderPrefs handle={ReaderHandle | null} />   // theme / text size / background / app theme controls; applies prefs to the handle on mount and change
@@ -153,6 +156,11 @@ inkOf(mark, members): string   // mark.color, unless null or now the partner's i
     // a line canRemove allows gets a "Remove your {highlight|reaction|note|reply|memory}" button
     // memories render in time order with the anchor's marks as <li aria-label="Memory"> (img alt "Memory photo", "📸 {You|name}: caption");
     // "Add a memory 📸" opens form "Add a memory" (Photo, Caption, Save memory) and calls addMemory itself; the mark arrives over marks:{bookId}
+<StickyNotes reader anchors members meId onOpen(cfi) />   // each visible note mark on the page, in inkOf, tinted over the reading theme's page colour;
+    // >=1024px: role=note "{name}'s note" / "Your note" in the outer margin beside its passage's first line, tilted <=1.5deg, nudged down so none overlap
+    //   (sticky-layout.ts stack); the body scrolls past 9 lines (focusable); a click or "Open the thread on … note" → onOpen(cfi) → ThreadPanel
+    // <1024px: an ink tab button "{name}'s note" at the right page edge; tap → the note as a floating card; Escape or an outside tap closes
+    // repositions on relocate (page turn, font size, resize) and when anchors change, one rAF per burst
 // /book/[id]: select → SelectionMenu; markClick(id) → ThreadPanel for anchors.find(a => a.cfi === id);
 //   replies parent to the anchor's first mark. Overlay test hook: foliate overlay <g data-mark-id={cfi} fill={color}>
 // lib/realtime.ts

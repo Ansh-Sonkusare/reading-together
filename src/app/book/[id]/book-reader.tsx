@@ -8,7 +8,7 @@ import { DuetRibbon, type RibbonMark } from '@/components/ui/duet-ribbon';
 import { Toast } from '@/components/ui/toast';
 import type { Member } from '@/features/couple/couple';
 import { usePartnerProgress, useProgressSaver, type Progress } from '@/features/couple/progress';
-import { BookmarksPanel, RevealToast, Ribbon, SelectionMenu, ThreadPanel, createMark, inkOf, removeMark, toPaintMarks, useMarks, type Mark, type NewMark } from '@/features/marks';
+import { BookmarksPanel, RevealToast, Ribbon, SelectionMenu, StickyNotes, ThreadPanel, createMark, inkOf, removeMark, toPaintMarks, useMarks, type Mark, type NewMark } from '@/features/marks';
 import { createReader, displayPage, pageCount, ReaderPrefs, type Locator, type Pos, type ReaderHandle, type Toc } from '@/features/reader';
 import { SyncInvite, SyncPill, useSync } from '@/features/sync';
 import { chapterTitle, discussHref } from '@/features/together/discussion';
@@ -227,6 +227,16 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
             </li>
           ))}
         </ul>
+        <StickyNotes
+          reader={reader}
+          anchors={anchors}
+          members={members}
+          meId={userId}
+          onOpen={(cfi) => {
+            setSelection(null);
+            setThreadCfi(cfi);
+          }}
+        />
         {(['prev', 'next'] as const).map((dir) => (
           <button
             key={dir}

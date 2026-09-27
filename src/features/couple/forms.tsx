@@ -2,7 +2,8 @@
 
 import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { createCoupleAction, joinCoupleAction, signIn, signUp } from './actions';
+import { createCoupleAction, joinCoupleAction, signIn, signUp, uploadBookAction } from './actions';
+import { MAX_EPUB_BYTES } from './epub-meta';
 import { COLORS } from './palette';
 
 const input = 'w-full rounded-md border px-3 py-2';
@@ -101,6 +102,35 @@ export function JoinForm({ code }: { code: string }) {
       <Button type="submit" disabled={pending}>
         Join
       </Button>
+    </form>
+  );
+}
+
+export function UploadForm() {
+  const [state, action, pending] = useActionState(uploadBookAction, undefined);
+  const [tooBig, setTooBig] = useState(false);
+  const error = tooBig ? 'That file is over 50 MB.' : state && 'error' in state ? state.error : undefined;
+  return (
+    <form action={action} className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <input
+          name="file"
+          type="file"
+          accept=".epub,application/epub+zip"
+          aria-label="EPUB file"
+          required
+          onChange={(e) => setTooBig((e.target.files?.[0]?.size ?? 0) > MAX_EPUB_BYTES)}
+        />
+        <Button type="submit" disabled={pending || tooBig}>
+          {pending ? 'Uploading…' : 'Upload'}
+        </Button>
+      </div>
+      <ErrorLine error={error} />
+      {!tooBig && state && 'ok' in state && (
+        <p role="status" className="text-sm text-green-700">
+          {state.ok}
+        </p>
+      )}
     </form>
   );
 }

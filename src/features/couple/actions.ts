@@ -1,7 +1,9 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createUserClient } from '@/lib/supabase-server';
+import { uploadBook, type UploadResult } from './books';
 import { createCouple, joinCouple, parseProfile, type Result } from './couple';
 
 function safeNext(form: FormData): string {
@@ -54,4 +56,12 @@ export async function joinCoupleAction(_: Result, form: FormData): Promise<Resul
 export async function openInvite(form: FormData) {
   const code = String(form.get('code') ?? '').trim().split('/').filter(Boolean).pop() ?? '';
   redirect(`/join/${encodeURIComponent(code)}`);
+}
+
+export async function uploadBookAction(_: UploadResult, form: FormData): Promise<UploadResult> {
+  const file = form.get('file');
+  if (!(file instanceof File)) return { error: 'Choose an EPUB file.' };
+  const result = await uploadBook(file);
+  if (result && 'ok' in result) revalidatePath('/library');
+  return result;
 }

@@ -8,7 +8,9 @@ Only WS-A edits the schema. Any other workstream that needs a change posts a req
 couple   (id uuid pk, invite_code text unique, created_at)
 member   (user_id uuid pk → auth.users, couple_id → couple, name, color text, avatar_url)
          -- at most 2 members per couple (trigger)
-book     (id, couple_id, title, author, sha256 text, storage_path, spine_lengths int[], added_by, created_at)
+book     (id, couple_id, title, author, sha256 text, storage_path, spine_lengths int[], added_by, created_at,
+          unique(couple_id, sha256))
+         -- no client insert policy: only the uploadBook server action inserts, with the service role (D13)
 progress (user_id, book_id, pos numeric, max_pos numeric, locator jsonb, updated_at, pk(user_id, book_id))
          -- pos = start of the visible page (where to reopen); max_pos = greatest(max_pos, end of visible page), never decreases
 mark     (id, book_id, author_id, kind mark_kind, pos numeric, locator jsonb,
@@ -38,7 +40,7 @@ Members may update only their own `name`, `color`, `avatar_url`.
 
 ## Storage
 
-Private bucket `books`, object path `{couple_id}/{book_id}.epub`, readable and writable only by that couple's members.
+Private bucket `books`, object path `{couple_id}/{book_id}.epub`, readable and writable only by that couple's members. `uploadBook` writes the object with the member's own session, then inserts the `book` row with the service role.
 
 ## Rules enforced in the database (RLS and triggers)
 
@@ -70,4 +72,7 @@ useMarks(bookId): Mark[]   // re-fetches when my progress passes new marks
 
 // features/couple
 useProgressPair(bookId): { me: Progress; partner: Progress | null }
+getMyCouple(): Promise<{ id; inviteCode; members: { userId; name; color }[] } | null>   // server only
+listBooks(coupleId, members): Promise<{ id; title; author; addedBy; createdAt }[]>       // server only
+uploadBookAction(prev, formData{file}) → { ok: string } | { error: string }              // server action
 ```

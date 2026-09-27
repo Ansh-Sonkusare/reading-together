@@ -10,7 +10,7 @@ import { Toast } from '@/components/ui/toast';
 import { COLORS, type Color } from '@/features/couple/palette';
 import { createBrowserClient } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
-import { addMemory, memoryPhotoUrl, useInbox } from './data';
+import { addMemory, memoryPhotoUrl } from './data';
 import { BOOKMARK_LABELS, REACTIONS, describe, inkOf, type Anchor, type Mark, type Member, type Reaction } from './model';
 
 const GAP = 8;
@@ -410,29 +410,3 @@ export function BookmarksPanel({ bookmarks, members, onGo, onClose }: { bookmark
   );
 }
 
-export function Inbox({ meId, partner, books }: { meId: string; partner: Member; books: { id: string; title: string }[] }) {
-  const sends = useInbox(meId);
-  return (
-    <section aria-label={`From ${partner.name}`} className="flex flex-col gap-3">
-      <h2 className="font-semibold">From {partner.name}</h2>
-      {sends.length === 0 ? (
-        <p className="text-sm text-muted-foreground">When {partner.name} sends you a passage, it lands here.</p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {sends.map((m) => (
-            <li key={m.id} className="flex flex-col gap-1 rounded-lg border p-3">
-              <p className="text-xs text-muted-foreground">This reminded me of you</p>
-              <blockquote className="border-l-2 pl-3 text-sm italic" style={{ borderColor: partner.color }}>
-                {m.locator?.quote?.exact}
-              </blockquote>
-              {m.body && <p className="text-sm">{m.body}</p>}
-              <Link href={`/book/${m.book_id}?mark=${m.id}`} className="self-start text-sm underline">
-                Open in {books.find((b) => b.id === m.book_id)?.title ?? 'the book'}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}

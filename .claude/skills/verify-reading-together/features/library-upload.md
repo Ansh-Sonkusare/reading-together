@@ -44,10 +44,8 @@ Preconditions:
 
 ## Gotchas
 
-- The bucket is private and scoped per couple
-  (`docs/interfaces.md` Storage section) — verifying "shared" means reading
-  as partner B's own session, not the service role key, or the check proves
+- The bucket is private, scoped per couple — verify "shared" by reading as
+  partner B's own session, never the service role key, or it proves
   nothing about RLS.
-- This skill has no DB write access; it can only verify a book already
-  uploaded through the real UI, never seed one directly.
+- No DB write access here; only verify a book uploaded through the real UI.
 - Update the file-input selector from P12's actual markup once it ships.

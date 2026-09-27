@@ -32,31 +32,26 @@ Preconditions:
 - `import { partner, openReader, goTo, next, setFontScale, selectText, paint, readPos, readPageEndPos } from '../scripts/drive.mjs'`.
 
 - **Open the reader.** `const { page } = await partner('reader')` then
-  `await openReader(page, { baseURL })`. Waits for `window.__reader` to
-  exist; the page then auto-loads `fixtures/alice.epub` and calls `goTo(0)`.
-- **Go to a passage.** `await goTo(page, 4.5)`. `data-testid="pos"` reads
-  `≤ 4.5` and `data-testid="page-end-pos"` reads `≥ 4.5`.
-- **Select text.** `await selectText(page, 'the Dodo replied very gravely')`.
-  Returns the `data-testid="selection-pos"` string — the spike recorded this
-  exact passage as `4.504220` at every layout (`docs/research/reader-spike.md`).
-- **Change font size and re-select the same passage.** `await
-  setFontScale(page, 1.6)`, resize the viewport if you want to also force a
-  reflow, then `await selectText(page, 'the Dodo replied very gravely')`
-  again. The returned `selection-pos` must be **identical** to the 100% run
-  — that identity is the proof of `pos-stability`.
-- **Page forward.** `await next(page)` three times; `readPos(page)` must
-  strictly increase each time, and `readPageEndPos(page)` must stay `>=`
-  the new `pos`.
-- **Paint and click a highlight.** Capture a selection's `locator` (read
-  `window.__selected` after registering `window.__reader.on('select', ...)`,
-  or reuse the one `selectText` just made), then `await paint(page, [{ id:
-  'm1', locator, color: '#e11d48', kind: 'highlight' }])`. Click the
-  resulting `[data-mark-id="m1"]` element inside the `foliate-view`
-  overlayer; `data-testid="mark-clicked"` reads `m1`.
-- **Proof.** Screenshot the page after each font-size selection
-  (`page.screenshot({ path: '.verify/<run-id>/reader-100.png' })` and
-  `reader-160.png`), and record both `selection-pos` values in the run's
-  JSON transcript.
+  `await openReader(page, { baseURL })` — waits for `window.__reader`; the
+  page auto-loads `fixtures/alice.epub` and calls `goTo(0)`.
+- **Go to a passage.** `await goTo(page, 4.5)`. `pos` reads `≤ 4.5`,
+  `page-end-pos` reads `≥ 4.5`.
+- **Select text.** `await selectText(page, 'the Dodo replied very gravely')`
+  returns `selection-pos` — the spike recorded this exact passage as
+  `4.504220` at every layout (`docs/research/reader-spike.md`).
+- **Change font size and re-select.** `await setFontScale(page, 1.6)`, then
+  `selectText` the same passage again. The returned `selection-pos` must be
+  **identical** to the 100% run — that identity is the proof of
+  `pos-stability`.
+- **Page forward.** `await next(page)` three times; `readPos` must strictly
+  increase each time, `readPageEndPos` must stay `>=` the new `pos`.
+- **Paint and click a highlight.** Capture a selection's `locator` (from
+  `window.__selected`, or reuse `selectText`'s), then `await paint(page,
+  [{ id: 'm1', locator, color: '#e11d48', kind: 'highlight' }])`. Click the
+  resulting `[data-mark-id="m1"]` inside the `foliate-view` overlayer;
+  `mark-clicked` reads `m1`.
+- **Proof.** Screenshot after each font-size selection (`reader-100.png`,
+  `reader-160.png`), record both `selection-pos` values in the transcript.
 
 ## Gotchas
 

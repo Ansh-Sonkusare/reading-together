@@ -1,19 +1,8 @@
-// Playwright driving helpers for verify-reading-together.
-//
-// Two partners = two isolated BrowserContexts (own cookies/localStorage) in
-// one Chromium instance, not two OS processes.
-//
-// Import from a one-off Node ESM script or `node --input-type=module -e`, e.g.:
-//
-//   node --input-type=module -e "
-//     import { partner, closeAll, openReader, selectText } from
-//       './.claude/skills/verify-reading-together/scripts/drive.mjs';
-//     const { page } = await partner('alex', { baseURL: 'http://localhost:3123' });
-//     await openReader(page);
-//     console.log(await selectText(page, 'the Dodo replied very gravely'));
-//     await closeAll();
-//   "
-//
+// Playwright driving helpers for verify-reading-together. Two partners =
+// two isolated BrowserContexts (own cookies/storage) in one Chromium
+// instance, not two OS processes. Import from a one-off Node ESM script or
+// `node --input-type=module -e "import { partner, openReader, selectText }
+// from './.claude/skills/verify-reading-together/scripts/drive.mjs'; ..."`.
 // Resolves '@playwright/test' from the repo's own node_modules (Node walks
 // up from this file's directory), so no extra dependency is needed here.
 
@@ -126,13 +115,9 @@ async function trySelectOnce(page, needle, len) {
   return false;
 }
 
-/**
- * Selects the first `len` chars starting at `needle`, inside whichever frame
- * renders it (foliate renders the page into an iframe, so every frame is
- * searched) — the same technique tests/e2e/reader.spec.ts uses. Returns the
- * resulting data-testid="selection-pos" text once the reader's select
- * handler has updated it.
- */
+// Selects the first `len` chars at `needle`, in whichever frame renders it
+// (foliate renders into an iframe — same technique as reader.spec.ts).
+// Returns data-testid="selection-pos" once the select handler updates it.
 export async function selectText(page, needle, len = 20) {
   const deadline = Date.now() + 10_000;
   let found = false;

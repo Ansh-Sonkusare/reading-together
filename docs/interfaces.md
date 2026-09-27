@@ -90,6 +90,11 @@ ReaderHandle.on('anchorLost', e => { id, spine })   // mark couldn't be placed b
 ReaderHandle.paint(marks: PaintMark[])     // full set, idempotent; PaintMark = { id, locator, color, kind: 'highlight'|'underline' }
 ReaderHandle.goTo(target: Locator | Pos)   // nothing renders until the first goTo
 ReaderHandle.next() / prev() / setFontScale(n) / destroy()
+ReaderHandle.setTheme({ background, color })   // colours inside the book iframe; shares foliate's styles slot with setFontScale, both survive section loads (P44)
+// prefs.tsx (P44): device-local, localStorage['reader:prefs'] = { theme: 'light'|'sepia'|'dark'|'night', fontScale: 0.8..1.6, background?: '#rrggbb' }; parsePrefs defaults each bad field
+usePrefs(): [Prefs, (patch: Partial<Prefs>) => void]
+<ReaderPrefs handle={ReaderHandle | null} />   // theme / text size / background / app theme controls; applies prefs to the handle on mount and change
+// app dark mode: <html class="dark">, localStorage['app:theme'] = 'light'|'dark'|'system' (default system), set before paint by the inline script in app/layout.tsx
 // paint places each mark by: CFI if its text equals quote.exact → stored offset → findByQuote near offset (resolveAnchor)
 // locator.ts: resolveAnchor, toPos, fromPos, quoteAt, findByQuote, spineLengthsFromEpub, zipReader, canonicalText, offsetOf, rangeAt
 displayPage(pos, spineLengths): number     // floor(chars before pos / 1500) + 1; display only, never stored

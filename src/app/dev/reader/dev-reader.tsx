@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { createReader, spineLengthsFromEpub, type Pos, type ReaderEvents, type ReaderHandle } from '@/features/reader';
+import { Button } from '@/components/ui/button';
+import { ReaderPrefs, createReader, spineLengthsFromEpub, type Pos, type ReaderEvents, type ReaderHandle } from '@/features/reader';
 
 declare global {
   interface Window {
@@ -74,6 +75,8 @@ export function DevReader() {
         <select aria-label="Font size" defaultValue="1" disabled={!reader} onChange={(e) => reader?.setFontScale(Number(e.target.value))}>
           {[0.8, 1, 1.2, 1.6, 2].map((s) => <option key={s} value={s}>{Math.round(s * 100)}%</option>)}
         </select>
+        <ReaderPrefs handle={reader} />
+        <Button size="xs">Sample</Button>
         <span>pos <output data-testid="pos">{pos}</output></span>
         <span>end <output data-testid="page-end-pos">{pageEndPos}</output></span>
         <span>sel <output data-testid="selection-pos">{selectionPos}</output></span>

@@ -8,7 +8,7 @@ import { DuetRibbon, type RibbonMark } from '@/components/ui/duet-ribbon';
 import { Toast } from '@/components/ui/toast';
 import type { Member } from '@/features/couple/couple';
 import { usePartnerProgress, useProgressSaver, type Progress } from '@/features/couple/progress';
-import { BookmarksPanel, RevealToast, Ribbon, SelectionMenu, ThreadPanel, createMark, inkOf, removeMark, toPaintMarks, useMarks, type Mark, type NewMark } from '@/features/marks';
+import { BookmarksPanel, ReactionChips, RevealToast, Ribbon, SelectionMenu, ThreadPanel, createMark, inkOf, removeMark, toPaintMarks, toggleReaction, useMarks, type Anchor, type Mark, type NewMark } from '@/features/marks';
 import { createReader, displayPage, pageCount, ReaderPrefs, type Locator, type Pos, type ReaderHandle, type Toc } from '@/features/reader';
 import { SyncInvite, SyncPill, useSync } from '@/features/sync';
 import { chapterTitle, discussHref } from '@/features/together/discussion';
@@ -64,6 +64,7 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
 
   const bookmarks = useMemo(() => marks.filter((m) => m.kind === 'bookmark'), [marks]);
   const onThisPage = pos === null || pageEnd === null ? [] : bookmarks.filter((m) => m.pos >= pos && m.pos <= pageEnd);
+  const reactedHere = pos === null || pageEnd === null ? [] : anchors.filter((a) => a.pos >= pos && a.pos <= pageEnd && a.marks.some((m) => m.kind === 'reaction'));
   // A partner's mark revealed by reaching it inks in once; mine never animate.
   const fresh = useMemo(() => new Set(revealed.filter((m) => m.author_id === partner?.userId).map((m) => m.locator!.cfi)), [revealed, partner]);
 
@@ -81,6 +82,14 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
     reader?.clearSelection();
     setMarkFailed(false);
     createMark(db, input).catch((e) => {
+      console.error(e);
+      // A reaction I already left here (unique per emoji, D22) is already there.
+      if (e?.code !== '23505') setMarkFailed(true);
+    });
+  };
+  const react = (a: Anchor, emoji: string) => {
+    setMarkFailed(false);
+    toggleReaction(db, a, userId, emoji).catch((e) => {
       console.error(e);
       setMarkFailed(true);
     });
@@ -227,6 +236,15 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
             </li>
           ))}
         </ul>
+        {reactedHere.length > 0 && (
+          <ul aria-label="Reactions on this page" className="absolute top-1 right-[max(5rem,20%)] left-[max(2.75rem,7%)] z-10 flex flex-wrap gap-x-4 gap-y-1">
+            {reactedHere.map((a) => (
+              <li key={a.cfi} title={a.locator.quote?.exact}>
+                <ReactionChips anchor={a} members={members} meId={userId} onToggle={(emoji) => react(a, emoji)} />
+              </li>
+            ))}
+          </ul>
+        )}
         {(['prev', 'next'] as const).map((dir) => (
           <button
             key={dir}
@@ -293,6 +311,7 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
           members={members}
           meId={userId}
           onReply={(body) => mark({ kind: 'reply', bookId, parentId: thread.marks[0].id, body })}
+          onReact={(emoji) => react(thread, emoji)}
           onRemove={remove}
           onClose={() => setThreadCfi(null)}
         />

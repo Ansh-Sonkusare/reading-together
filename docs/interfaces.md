@@ -18,9 +18,11 @@ book     (id, couple_id, title, author, sha256 text, storage_path, spine_lengths
 progress (user_id, book_id, pos numeric, max_pos numeric, locator jsonb, updated_at, pk(user_id, book_id))
          -- pos = start of the visible page (where to reopen); max_pos = greatest(max_pos, end of visible page), never decreases
 mark     (id, book_id, author_id, kind mark_kind, pos numeric, locator jsonb,
-          emoji reaction?, body text?, label text?, media_url text?, parent_id → mark?, color text?, created_at)
+          emoji text?, body text?, label text?, media_url text?, parent_id → mark?, color text?, created_at)
          -- color (U1): null = the author's member ink; else one of inks(), only on highlight|note|bookmark,
          -- and never the ink of another member of the book's couple (trigger mark_color_not_partners, 23514)
+         -- emoji (D22): the emoji character itself; set exactly when kind = 'reaction', 1–16 chars, not blank (check mark_emoji_is_reaction, 23514);
+         -- one per (book_id, author_id, locator->>'cfi', emoji) among reactions (unique index mark_one_reaction_per_emoji, 23505)
 answer   (id, book_id, spine int, kind answer_kind, prompt_key text, user_id, value text, created_at,
           unique(book_id, spine, prompt_key, user_id))
 event    (id, couple_id, book_id?, actor_id, type event_type, ref_id uuid?, pos numeric?, data jsonb, created_at)
@@ -39,7 +41,6 @@ Views (security_invoker, so RLS applies): `couple_stats`; `reading_today (user_i
 `day_totals(uid, day) → (pages, chapters)`: pages = floor(chars between from and to, summed over the day's books / 1500), chapters = that member's `chapter_finished` events in the day. `pos_chars(pos, spine_lengths)` is displayPage's numerator; `display_page` uses it.
 
 `mark_kind`: `highlight | reaction | note | reply | bookmark | send | memory`
-`reaction`: `love | funny | emotional | surprised | interesting | favorite | think`
 `event_type`: `book_added | book_started | mark_created | chapter_finished | book_finished | answer_revealed | goal_met`
 `answer_kind`: `question | guess`
 `goal_kind`: `pages_per_day | chapters_per_day`
@@ -144,15 +145,23 @@ useInbox(meId): Mark[]   // the partner's sends, newest first, live over inbox:{
 toPaintMarks(anchors, members): PaintMark[]   // one per CFI in each author's latest coloured mark there (else their ink); a note → 'note';
     // both partners → 'underline' in the blend of their two inks
 inkOf(mark, members): string   // mark.color, unless null or now the partner's ink → the author's member ink
-<SelectionMenu rect myColor partnerColor? onHighlight(color?) onReact(r) onNote(body, color?) onBookmark(label, color?) partnerName? onSend(message|null) onDismiss />
+<SelectionMenu rect myColor partnerColor? onHighlight(color?) onReact(emoji) onNote(body, color?) onBookmark(label, color?) partnerName? onSend(message|null) onDismiss />
     // InkSwatches radios "Ink" (every ink but the partner's; default my ink, then the last one picked on this device, localStorage['marks:ink'])
     // apply to Highlight, Note and Bookmark; reactions and sends stay in the author's ink
-    // 7 reactions by aria-label + Highlight + Note + Bookmark (label picker) + "Send to {partner}" (optional message; solo: hidden);
+    // 7 quick-pick reactions (REACTIONS) by aria-label + "More reactions" (inline EmojiPanel) + Highlight + Note + Bookmark (label picker) + "Send to {partner}" (optional message; solo: hidden);
     // kept inside the viewport; dismisses on Escape, a click outside it, or a click into the book (window blur)
-<ThreadPanel anchor members meId onReply(body) onRemove(mark) onClose />   // Sheet (dialog) titled "In the margin": bottom sheet below md, side panel at md+; Escape or Close closes; each line's dot in inkOf;
-    // a line canRemove allows gets a "Remove your {highlight|reaction|note|reply|memory}" button
+<ThreadPanel anchor members meId onReply(body) onReact(emoji) onRemove(mark) onClose />   // Sheet (dialog) titled "In the margin": bottom sheet below md, side panel at md+; Escape or Close closes; each line's dot in inkOf;
+    // under the quote: <ReactionChips> (reactions aren't listed as lines); a line canRemove allows gets a "Remove your {highlight|note|reply|memory}" button
     // memories render in time order with the anchor's marks as <li aria-label="Memory"> (img alt "Memory photo", "📸 {You|name}: caption");
     // "Add a memory 📸" opens form "Add a memory" (Photo, Caption, Save memory) and calls addMemory itself; the mark arrives over marks:{bookId}
+reactionChips(anchor, members, meId): { emoji, count, names, mine? }[]   // one per emoji, in first-reacted order; names use "You" for me
+toggleReaction(db, anchor, meId, emoji): Promise<void>   // removes my reaction with that emoji there, else inserts one (a 23505 duplicate is success)
+<ReactionChips anchor members meId onToggle(emoji) />   // group "Reactions": button per chip, aria-label "{emoji} {count}: {names}", aria-pressed = mine,
+    // text "{emoji}{count}"; click toggles mine (not when canRemove forbids: aria-disabled); mouse hover or a long press shows role=tooltip "{names}";
+    // "Add reaction" opens EmojiPanel in a Popover (dialog "Add a reaction") from md, else a Sheet with that title
+<EmojiPanel onPick(emoji) />   // frimousse: searchbox "Search emoji", group "Recent" (localStorage['reactions:recent'], 8), gridcells named by emoji label, by category
+    // emoji data: emojibase-data from cdn.jsdelivr.net on first open, then cached by the browser
+// /book/[id]: anchors with reactions whose pos is within the visible page get a <ul aria-label="Reactions on this page"> of ReactionChips along the page's bottom edge
 // /book/[id]: select → SelectionMenu; markClick(id) → ThreadPanel for anchors.find(a => a.cfi === id);
 //   replies parent to the anchor's first mark. Overlay test hook: foliate overlay <g data-mark-id={cfi} fill={color}>
 // lib/realtime.ts

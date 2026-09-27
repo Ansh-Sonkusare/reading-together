@@ -40,6 +40,18 @@ export async function removeMark(db: Client, mark: Pick<Mark, 'id' | 'media_url'
   if (mark.media_url) await db.storage.from('memories').remove([mark.media_url]);
 }
 
+// A chip click: take my reaction off if I have one with this emoji here, else add it.
+// A duplicate insert (a double tap racing itself) already holds the reaction, so it isn't an error.
+export async function toggleReaction(db: Client, anchor: Anchor, meId: string, emoji: string): Promise<void> {
+  const mine = anchor.marks.find((m) => m.kind === 'reaction' && m.author_id === meId && m.emoji === emoji);
+  if (mine) return removeMark(db, mine);
+  try {
+    await createMark(db, { kind: 'reaction', bookId: anchor.marks[0].book_id, locator: anchor.locator, pos: anchor.pos, emoji });
+  } catch (e) {
+    if ((e as { code?: string }).code !== '23505') throw e;
+  }
+}
+
 export type NewMemory = { bookId: string; locator: Locator; pos: Pos; photo: Blob; caption: string | null };
 
 // The photo goes first, to the path the mark will own, so a mark never points at a missing photo;

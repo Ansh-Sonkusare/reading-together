@@ -22,6 +22,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "foliate-js": "github:johnfactotum/foliate-js#78914aef4466eb960965702401634c2cb348e9b1",
+    "frimousse": "0.4.0",
     "lucide-react": "^0.394.0",
     "next": "^16.3.6",
     "react": "^19.3.0",

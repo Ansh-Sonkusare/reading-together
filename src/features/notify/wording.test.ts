@@ -14,7 +14,7 @@ const mark = (m: Partial<NotifyMark>): NotifyMark => ({ author_id: SAM, kind: 'h
 
 describe('notificationFor', () => {
   it('a reaction on the recipient’s own highlight quotes the passage', () => {
-    const reaction = mark({ kind: 'reaction', emoji: 'love', locator: locator('Curiouser and curiouser!') });
+    const reaction = mark({ kind: 'reaction', emoji: '❤️', locator: locator('Curiouser and curiouser!') });
     const highlight = mark({ author_id: ALEX, kind: 'highlight', locator: locator('Curiouser and curiouser!') });
     expect(notificationFor(markEvent(1.1), reaction, highlight, members, ALEX, ALICE)).toEqual({
       title: '❤️ Sam reacted to your highlight',
@@ -24,11 +24,20 @@ describe('notificationFor', () => {
   });
 
   it('a reaction on the recipient’s own note shows the note text', () => {
-    const reaction = mark({ kind: 'reaction', emoji: 'funny', locator: locator('the Cheshire Cat') });
+    const reaction = mark({ kind: 'reaction', emoji: '😂', locator: locator('the Cheshire Cat') });
     const note = mark({ author_id: ALEX, kind: 'note', body: 'I love this part too!', locator: locator('the Cheshire Cat') });
     expect(notificationFor(markEvent(1.1), reaction, note, members, ALEX, ALICE)).toEqual({
       title: '😂 Sam reacted to your note',
       body: 'I love this part too!',
+      url: '/book/b1',
+    });
+  });
+
+  it('a reaction with any emoji from the picker leads with that emoji', () => {
+    const reaction = mark({ kind: 'reaction', emoji: '🦄', locator: locator('the Cheshire Cat') });
+    expect(notificationFor(markEvent(1.1), reaction, null, members, ALEX, ALICE)).toEqual({
+      title: '🦄 Sam reacted to a passage',
+      body: '“the Cheshire Cat”',
       url: '/book/b1',
     });
   });

@@ -71,15 +71,15 @@ beforeAll(async () => {
   await setPos(B, bookId, 0.5);
   await setPos(A, solo.id, 1);
 
-  const mark = (u: User, pos: number, kind: 'highlight' | 'reaction' | 'note', emoji?: 'love' | 'funny') =>
+  const mark = (u: User, pos: number, kind: 'highlight' | 'reaction' | 'note', emoji?: string) =>
     write(u.db.from('mark').insert({ book_id: bookId, author_id: u.id, kind, pos, emoji, body: kind === 'note' ? 'hm' : undefined }));
   await mark(A, 0.2, 'highlight');
   await mark(A, 1.2, 'highlight');
   await mark(B, 0.3, 'highlight');
-  await mark(A, 0.1, 'reaction', 'love');
-  await mark(B, 0.1, 'reaction', 'love');
-  await mark(B, 0.4, 'reaction', 'funny');
-  await mark(A, 1.4, 'reaction', 'funny');
+  await mark(A, 0.1, 'reaction', '❤️');
+  await mark(B, 0.1, 'reaction', '❤️');
+  await mark(B, 0.4, 'reaction', '😂');
+  await mark(A, 1.4, 'reaction', '😂');
   await mark(A, 0.25, 'note');
 
   const prompt = { book_id: bookId, spine: 0, kind: 'question' as const, prompt_key: 'q1' };
@@ -105,18 +105,18 @@ describe('couple_stats', () => {
   it('returns literal totals for the caller, counting only marks the caller has reached', async () => {
     // pages: A 2 (pos 1.5 = char 2000) + B 1 (char 500) on Together, A 3 (char 3000) on Solo.
     expect(await stats(A, coupleAB)).toEqual([
-      { books_together: 1, pages: 6, highlights: 3, discussions: 1, reactions: { love: 2, funny: 2 } },
+      { books_together: 1, pages: 6, highlights: 3, discussions: 1, reactions: { '❤️': 2, '😂': 2 } },
     ]);
     // A's highlight at 1.2 and funny reaction at 1.4 are ahead of B (0.5).
     expect(await stats(B, coupleAB)).toEqual([
-      { books_together: 1, pages: 6, highlights: 2, discussions: 1, reactions: { love: 2, funny: 1 } },
+      { books_together: 1, pages: 6, highlights: 2, discussions: 1, reactions: { '❤️': 2, '😂': 1 } },
     ]);
   });
 
   it("counts a partner's mark once the caller reaches it", async () => {
     await setPos(B, bookId, 1.5);
     expect(await stats(B, coupleAB)).toEqual([
-      { books_together: 1, pages: 7, highlights: 3, discussions: 1, reactions: { love: 2, funny: 2 } },
+      { books_together: 1, pages: 7, highlights: 3, discussions: 1, reactions: { '❤️': 2, '😂': 2 } },
     ]);
   });
 

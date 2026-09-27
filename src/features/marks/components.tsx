@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
-import { Trash2, X } from 'lucide-react';
+import { SmilePlus, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { InkSwatches } from '@/components/ui/ink';
@@ -11,7 +11,8 @@ import { COLORS, type Color } from '@/features/couple/palette';
 import { createBrowserClient } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { addMemory, memoryPhotoUrl } from './data';
-import { BOOKMARK_LABELS, REACTIONS, canRemove, describe, inkOf, type Anchor, type Mark, type Member, type Reaction } from './model';
+import { BOOKMARK_LABELS, REACTIONS, canRemove, describe, inkOf, type Anchor, type Mark, type Member } from './model';
+import { EmojiPanel, ReactionChips } from './reaction-chips';
 
 const GAP = 8;
 const textarea =
@@ -89,14 +90,14 @@ export function SelectionMenu({
   myColor: string;
   partnerColor?: string;
   onHighlight: (color?: Color) => void;
-  onReact: (r: Reaction) => void;
+  onReact: (emoji: string) => void;
   onNote: (body: string, color?: Color) => void;
   onBookmark: (label: string, color?: Color) => void;
   partnerName?: string;
   onSend: (message: string | null) => void;
   onDismiss: () => void;
 }) {
-  const [open, setOpen] = useState<'note' | 'bookmark' | 'send' | null>(null);
+  const [open, setOpen] = useState<'emoji' | 'note' | 'bookmark' | 'send' | null>(null);
   const [ink, setInk] = useState(() => lastInk(myColor, partnerColor));
   const pick = (c: string) => {
     if (!isInk(c)) return;
@@ -152,11 +153,15 @@ export function SelectionMenu({
     >
       <div className="flex flex-wrap justify-between">
         {REACTIONS.map((r) => (
-          <Button key={r.key} variant="quiet" size="icon-lg" className="text-xl" aria-label={r.label} title={r.label} onClick={() => onReact(r.key)}>
+          <Button key={r.key} variant="quiet" size="icon-lg" className="text-xl" aria-label={r.label} title={r.label} onClick={() => onReact(r.emoji)}>
             {r.emoji}
           </Button>
         ))}
+        <Button variant="quiet" size="icon-lg" className="text-pencil" aria-label="More reactions" title="More reactions" {...toggle('emoji')}>
+          <SmilePlus className="size-5" />
+        </Button>
       </div>
+      {open === 'emoji' && <EmojiPanel onPick={onReact} className="border-t border-rule pt-2" />}
       <InkSwatches
         label="Ink"
         name="mark-ink"
@@ -252,8 +257,7 @@ function Line({ mark, members, meId, onRemove }: { mark: Mark; members: Member[]
       </li>
     );
   }
-  const reaction = mark.kind === 'reaction' ? REACTIONS.find((r) => r.key === mark.emoji) : undefined;
-  const text = reaction ? `${reaction.emoji} ${reaction.label}` : mark.kind === 'highlight' ? 'highlighted this' : mark.body;
+  const text = mark.kind === 'highlight' ? 'highlighted this' : mark.body;
   return (
     <li className="flex items-baseline gap-2.5">
       <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ background: ink }} />
@@ -278,6 +282,7 @@ export function ThreadPanel({
   members,
   meId,
   onReply,
+  onReact,
   onRemove,
   onClose,
 }: {
@@ -285,18 +290,19 @@ export function ThreadPanel({
   members: Member[];
   meId: string;
   onReply: (body: string) => void;
+  onReact: (emoji: string) => void;
   onRemove: (m: Mark) => void;
   onClose: () => void;
 }) {
   const all = [...anchor.marks, ...anchor.replies];
+  const lines = anchor.marks.filter((m) => m.kind !== 'reaction');
   const line = (m: Mark) => <Line key={m.id} mark={m} members={members} meId={meId} onRemove={canRemove(m, all, meId) ? () => onRemove(m) : undefined} />;
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()} title="In the margin">
       <CloseButton onClick={onClose} />
       <blockquote className="border-l-2 border-rule pl-3 text-lg leading-relaxed text-pencil">{anchor.locator.quote?.exact}</blockquote>
-      <ol className="flex flex-col gap-2">
-        {anchor.marks.map(line)}
-      </ol>
+      <ReactionChips anchor={anchor} members={members} meId={meId} onToggle={onReact} />
+      {lines.length > 0 && <ol className="flex flex-col gap-2">{lines.map(line)}</ol>}
       {anchor.replies.length > 0 && (
         <ol aria-label="Replies" className="flex flex-col gap-2 border-t border-rule pt-3">
           {anchor.replies.map(line)}

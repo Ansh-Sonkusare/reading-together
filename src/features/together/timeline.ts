@@ -1,6 +1,4 @@
 import type { Enums } from '@/lib/types';
-import type { Reaction } from '../marks/model';
-import { REACTIONS } from '../marks/model';
 import type { Toc } from '../reader';
 import { chapterTitle } from './discussion';
 
@@ -10,7 +8,7 @@ export type TimelineEvent = {
   createdAt: string;
   data: { spine?: number; kind?: string };
   // The event's mark, when RLS lets the viewer read it.
-  mark?: { kind: Enums<'mark_kind'>; emoji: Reaction | null; cfi: string | null; quote?: string | null } | null;
+  mark?: { kind: Enums<'mark_kind'>; emoji: string | null; cfi: string | null; quote?: string | null } | null;
 };
 /** One timeline entry: its sentence, who it's about (for their ink dots), and a passage it points at, if any. */
 export type TimelineLine = { text: string; actors: string[]; quote?: string };
@@ -29,7 +27,7 @@ const MARK_LINES: Partial<Record<Enums<'mark_kind'>, [emoji: string, verb: strin
 const MONTHS = ['Jan.', 'Feb.', 'March', 'April', 'May', 'June', 'July', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.'];
 
 const qty = (n: number, one: string, many: string) => (n === 1 ? `a ${one}` : `${n} ${many}`);
-const emojiOf = (r: Reaction | null) => REACTIONS.find((x) => x.key === r)?.emoji ?? '💭';
+const emojiOf = (emoji: string | null) => emoji ?? '💭';
 
 export const DISCUSSED = '💬 You discussed';
 

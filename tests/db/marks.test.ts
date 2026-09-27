@@ -63,7 +63,7 @@ let noteId: string;
 
 it('B reads back every kind A created', async () => {
   const highlight = await createMark(A.db, { kind: 'highlight', bookId, locator, pos });
-  const reaction = await createMark(A.db, { kind: 'reaction', bookId, locator, pos, emoji: 'surprised' });
+  const reaction = await createMark(A.db, { kind: 'reaction', bookId, locator, pos, emoji: '😮' });
   const note = await createMark(A.db, { kind: 'note', bookId, locator, pos, body: 'This reminds me of you.' });
   noteId = note.id;
 
@@ -71,7 +71,7 @@ it('B reads back every kind A created', async () => {
   const base = { author_id: A.id, pos: 0.12, locator, emoji: null, body: null, parent_id: null };
   expect(seen).toEqual([
     { ...base, id: highlight.id, kind: 'highlight' },
-    { ...base, id: reaction.id, kind: 'reaction', emoji: 'surprised' },
+    { ...base, id: reaction.id, kind: 'reaction', emoji: '😮' },
     { ...base, id: note.id, kind: 'note', body: 'This reminds me of you.' },
   ]);
 });

@@ -1,5 +1,4 @@
 import type { Locator, Toc } from '@/features/reader';
-import { REACTIONS } from '../marks/model';
 import { chapterTitle, discussHref } from '../together/discussion';
 import type { Tables } from '@/lib/types';
 
@@ -52,10 +51,9 @@ export function notificationFor(
   const mine = parent?.author_id === recipientId ? parent : null;
   switch (mark.kind) {
     case 'reaction': {
-      const emoji = REACTIONS.find((r) => r.key === mark.emoji)?.emoji ?? '❤️';
       return mine
-        ? { title: `${emoji} ${name} reacted to your ${noun(mine)}`, body: textOf(mine), url: book }
-        : { title: `${emoji} ${name} reacted to a passage`, body: quoted(mark), url: book };
+        ? { title: `${mark.emoji ?? '❤️'} ${name} reacted to your ${noun(mine)}`, body: textOf(mine), url: book }
+        : { title: `${mark.emoji ?? '❤️'} ${name} reacted to a passage`, body: quoted(mark), url: book };
     }
     case 'reply':
       return { title: mine ? `💬 ${name} replied to your ${noun(mine)}` : `💬 ${name} replied`, body: textOf(mark), url: book };

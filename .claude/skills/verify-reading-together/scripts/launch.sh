@@ -4,7 +4,9 @@
 #
 # Usage: scripts/launch.sh [run-id]
 #   run-id defaults to a timestamp. Prints run-id/port/pid/log, and blocks until
-#   GET /dev/reader answers 200 (or times out after 60s).
+#   GET /login answers 200 (or times out after 60s). /login is a public route
+#   with no auth/couple/book preconditions, so it stays up across changes
+#   elsewhere in the app — see doctor.sh for the separate /dev/reader check.
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
@@ -45,8 +47,27 @@ EOF
 fi
 
 LOG="$OUT_DIR/dev-server.log"
-pnpm dev --port "$PORT" > "$LOG" 2>&1 &
-PID=$!
+
+# A free-looking port can still be unusable (Node/Chromium block a fixed list
+# of "reserved" ports, e.g. 3659 is reserved for apple-sasl — next dev exits
+# immediately). Rather than hardcode that list, retry forward a few ports
+# whenever the server exits before ever binding.
+for attempt in $(seq 0 9); do
+  P=$((PORT + attempt))
+  pnpm dev --port "$P" > "$LOG" 2>&1 &
+  PID=$!
+  sleep 2
+  if kill -0 "$PID" 2>/dev/null; then
+    PORT="$P"
+    break
+  fi
+  if [ "$attempt" -eq 9 ]; then
+    echo "FAIL dev server exited immediately on every port $PORT..$P tried; tail of $LOG:" >&2
+    tail -n 40 "$LOG" >&2
+    exit 1
+  fi
+  echo "dev server exited immediately on port $P (see $LOG), trying $((P + 1))"
+done
 
 {
   echo "RUN_ID=$RUN_ID"
@@ -57,9 +78,9 @@ PID=$!
 
 echo "launching: run=$RUN_ID pid=$PID port=$PORT log=$LOG"
 for i in $(seq 1 60); do
-  CODE=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/dev/reader" 2>/dev/null)
+  CODE=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/login" 2>/dev/null)
   if [ "$CODE" = "200" ]; then
-    echo "ready: http://localhost:$PORT/dev/reader -> 200 (after ${i}s)"
+    echo "ready: http://localhost:$PORT/login -> 200 (after ${i}s)"
     exit 0
   fi
   if ! kill -0 "$PID" 2>/dev/null; then
@@ -69,6 +90,6 @@ for i in $(seq 1 60); do
   fi
   sleep 1
 done
-echo "FAIL timed out waiting for /dev/reader to answer 200" >&2
+echo "FAIL timed out waiting for /login to answer 200" >&2
 tail -n 40 "$LOG" >&2
 exit 1

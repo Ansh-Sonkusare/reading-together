@@ -53,7 +53,9 @@ each action with an exact call and its observable result); `Gotchas`
 | Feature | PLAN.md | Status | File |
 |---|---|---|---|
 | Reader | P13a | built, verified below | [reader.md](./reader.md) |
-| Auth and couple | P11 | wip in another worktree, not here yet | [auth-and-couple.md](./auth-and-couple.md) |
-| Library upload | P12 | wip in another worktree, not here yet | [library-upload.md](./library-upload.md) |
-| Marks and realtime | P14 | not built yet | [marks-realtime.md](./marks-realtime.md) |
-| Spoiler reveal | P21 | not built yet | [spoiler-reveal.md](./spoiler-reveal.md) |
+| Auth and couple | P11 | built | [auth-and-couple.md](./auth-and-couple.md) |
+| Library upload | P12 | built | [library-upload.md](./library-upload.md) |
+| Book progress | P13b/P15 | built, verified below | [book-progress.md](./book-progress.md) |
+| Together stats and timeline | P41/P42 | built | [together-stats-timeline.md](./together-stats-timeline.md) |
+| Marks and realtime | P14 | in progress — components exist, not wired into `/book/[id]` yet | [marks-realtime.md](./marks-realtime.md) |
+| Spoiler reveal | P21 | in progress — RLS gate is done (P02), UI reveal isn't built | [spoiler-reveal.md](./spoiler-reveal.md) |

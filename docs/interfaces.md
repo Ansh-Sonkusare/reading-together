@@ -71,10 +71,12 @@ ReaderHandle.on('relocate', e => { locator, pos, pageEndPos, spine })   // pageE
 ReaderHandle.on('select',   e => { locator, pos, text, rect })          // locator.cfi spans the range
 ReaderHandle.on('markClick', e => { id, rect })
 ReaderHandle.on('lengthMismatch', e => { spine, expected, actual })
+ReaderHandle.on('anchorLost', e => { id, spine })   // mark couldn't be placed by CFI, offset or quote (P22)
 ReaderHandle.paint(marks: PaintMark[])     // full set, idempotent; PaintMark = { id, locator, color, kind: 'highlight'|'underline' }
 ReaderHandle.goTo(target: Locator | Pos)   // nothing renders until the first goTo
 ReaderHandle.next() / prev() / setFontScale(n) / destroy()
-// locator.ts: toPos, fromPos, quoteAt, findByQuote, spineLengthsFromEpub, zipReader, canonicalText, offsetOf, rangeAt
+// paint places each mark by: CFI if its text equals quote.exact → stored offset → findByQuote near offset (resolveAnchor)
+// locator.ts: resolveAnchor, toPos, fromPos, quoteAt, findByQuote, spineLengthsFromEpub, zipReader, canonicalText, offsetOf, rangeAt
 displayPage(pos, spineLengths): number     // floor(chars before pos / 1500) + 1; display only, never stored
 // goTo anchors on the first non-whitespace char at or after the target offset (inter-block whitespace has no box to scroll to)
 

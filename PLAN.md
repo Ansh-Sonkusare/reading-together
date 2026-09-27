@@ -66,7 +66,7 @@ Public-domain catalogue (D1), native apps, groups of more than two, PDFs, DRM bo
 | P14b | Wire marks into /book/[id]: select → menu → mark painted; markClick → thread; live for the partner | C | verify: A reacts and B sees it within 2 seconds; B replies and A sees it | wip |
 | P15 | Progress pair bar "Alex p.42 · you p.38" | D | verify: both positions shown and updated live | done |
 | P21 | Reveal-on-reach: marks ahead are invisible, then appear with "✨ new from Alex" | C | verify: gate scenario done by hand in the UI | todo |
-| P22 | Re-anchor a mark by text quote when its CFI misses | B | verify: a highlight lands on the same text at font sizes S and L | wip |
+| P22 | Re-anchor a mark by text quote when its CFI misses | B | verify: a highlight lands on the same text at font sizes S and L | done |
 | P23 | Bookmarks with labels, "Reminded me of you" send | C | verify: the send appears in the partner's inbox | todo |
 | P31 | Chapter-finished events, streaks, goals | E | unit tests on the streak calculation + verify: the streak shows | wip |
 | P32 | Chapter discussion and guess-the-reaction with blind reveal | E | `pnpm test:db` reveal gate + verify: reveal after both answer | done |

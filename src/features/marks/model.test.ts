@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { groupByAnchor, toPaintMarks, type Mark } from './model';
+import { describe as describeMark, groupByAnchor, revealedBy, toPaintMarks, type Mark } from './model';
 
 const A = 'user-a';
 const B = 'user-b';
@@ -48,4 +48,21 @@ it('paints one mark per anchor, underlined in a blend when both partners marked 
     { id: loc1.cfi, locator: loc1, color: '#83409a', kind: 'underline' },
     { id: loc2.cfi, locator: loc2, color: '#e11d48', kind: 'highlight' },
   ]);
+});
+
+const bookmarkA = mark('b', A, '5', { kind: 'bookmark', label: 'Funny part', locator: loc2, pos: 2.005 });
+const sendA = mark('s', A, '6', { kind: 'send', body: 'You!', locator: loc2, pos: 2.005 });
+
+it('keeps bookmarks and sends out of the painted anchors', () => {
+  expect(groupByAnchor([hlA, bookmarkA, sendA])).toEqual([{ cfi: loc2.cfi, locator: loc2, pos: 2.005, marks: [hlA], replies: [] }]);
+});
+
+it('reveals only unseen top-level text marks past the previous max_pos', () => {
+  const seen = { ids: new Set(['h']), maxPos: 1.5 };
+  const early = mark('e', B, '7', { kind: 'reaction', emoji: 'funny', locator: loc1, pos: 1.01 });
+  expect(revealedBy(seen, [early, hlA, noteA, reactB, replyB, bookmarkA, sendA])).toEqual([]);
+  const ahead = mark('x', B, '8', { kind: 'reaction', emoji: 'emotional', locator: loc2, pos: 2.005 });
+  const aheadNote = mark('y', B, '9', { kind: 'note', body: 'Ha', locator: loc2, pos: 2.005 });
+  expect(revealedBy(seen, [hlA, ahead, aheadNote, bookmarkA])).toEqual([ahead, aheadNote]);
+  expect([ahead, aheadNote, hlA].map(describeMark)).toEqual(['😭', 'a note', 'a highlight']);
 });

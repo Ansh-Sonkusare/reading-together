@@ -20,6 +20,7 @@ export type ReaderHandle = {
   prev(): Promise<void>;
   setFontScale(scale: number): void;
   setTheme(theme: ReaderTheme): void;
+  clearSelection(): void;
   destroy(): void;
 };
 
@@ -177,6 +178,9 @@ export async function createReader(container: HTMLElement, file: Blob, opts: { s
     setTheme({ background, color }) {
       styles[0] = `html, body { background: ${background} !important; color: ${color} !important; } body * { color: inherit !important; }`;
       view.renderer.setStyles(styles);
+    },
+    clearSelection() {
+      shown?.doc.getSelection()?.removeAllRanges();
     },
     destroy() {
       for (const set of Object.values(listeners)) set.clear();

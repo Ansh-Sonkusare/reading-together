@@ -2,17 +2,22 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
-import { REACTIONS, type Anchor, type Mark, type Member, type Reaction } from './model';
+import Link from 'next/link';
+import { useInbox } from './data';
+import { BOOKMARK_LABELS, REACTIONS, describe, type Anchor, type Mark, type Member, type Reaction } from './model';
 
 const GAP = 8;
 const textarea =
   'w-full resize-none rounded-lg border border-input bg-background p-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
 
-function BodyForm({ label, submit, onSubmit, autoFocus }: { label: string; submit: string; onSubmit: (body: string) => void; autoFocus?: boolean }) {
+type BodyFormProps = { label: string; submit: string; onSubmit: (body: string) => void; autoFocus?: boolean; optional?: boolean };
+
+function BodyForm({ label, submit, onSubmit, autoFocus, optional }: BodyFormProps) {
   const [body, setBody] = useState('');
+  const empty = !optional && !body.trim();
   const send = (e: FormEvent) => {
     e.preventDefault();
-    if (!body.trim()) return;
+    if (empty) return;
     onSubmit(body.trim());
     setBody('');
   };
@@ -30,7 +35,7 @@ function BodyForm({ label, submit, onSubmit, autoFocus }: { label: string; submi
           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) e.currentTarget.form?.requestSubmit();
         }}
       />
-      <Button type="submit" size="sm" className="self-end" disabled={!body.trim()}>
+      <Button type="submit" size="sm" className="self-end" disabled={empty}>
         {submit}
       </Button>
     </form>
@@ -53,15 +58,22 @@ export function SelectionMenu({
   onHighlight,
   onReact,
   onNote,
+  onBookmark,
+  partnerName,
+  onSend,
   onDismiss,
 }: {
   rect: DOMRect;
   onHighlight: () => void;
   onReact: (r: Reaction) => void;
   onNote: (body: string) => void;
+  onBookmark: (label: string) => void;
+  partnerName?: string;
+  onSend: (message: string | null) => void;
   onDismiss: () => void;
 }) {
-  const [noting, setNoting] = useState(false);
+  const [open, setOpen] = useState<'note' | 'bookmark' | 'send' | null>(null);
+  const toggle = (form: typeof open) => ({ 'aria-expanded': open === form, onClick: () => setOpen(open === form ? null : form) });
   const ref = useRef<HTMLDivElement>(null);
   const dismiss = useRef(onDismiss);
   useEffect(() => {
@@ -113,15 +125,41 @@ export function SelectionMenu({
           </Button>
         ))}
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button variant="secondary" onClick={onHighlight}>
           Highlight
         </Button>
-        <Button variant="secondary" aria-expanded={noting} onClick={() => setNoting(!noting)}>
+        <Button variant="secondary" {...toggle('note')}>
           Note
         </Button>
+        <Button variant="secondary" {...toggle('bookmark')}>
+          Bookmark
+        </Button>
+        {partnerName && (
+          <Button variant="secondary" {...toggle('send')}>
+            Send to {partnerName}
+          </Button>
+        )}
       </div>
-      {noting && <BodyForm label="Write a note" submit="Save" onSubmit={onNote} autoFocus />}
+      {open === 'note' && <BodyForm label="Write a note" submit="Save" onSubmit={onNote} autoFocus />}
+      {open === 'bookmark' && (
+        <div role="group" aria-label="Bookmark label" className="flex flex-col gap-2">
+          <div className="flex flex-wrap gap-1">
+            {BOOKMARK_LABELS.map((l) => (
+              <Button key={l} variant="outline" size="sm" onClick={() => onBookmark(l)}>
+                {l}
+              </Button>
+            ))}
+          </div>
+          <BodyForm label="Custom label" submit="Save bookmark" onSubmit={onBookmark} />
+        </div>
+      )}
+      {open === 'send' && (
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-medium">This reminded me of you</p>
+          <BodyForm label="Add a message (optional)" submit={`Send to ${partnerName}`} onSubmit={(m) => onSend(m || null)} autoFocus optional />
+        </div>
+      )}
     </div>
   );
 }
@@ -187,6 +225,93 @@ export function ThreadPanel({
         </ol>
       )}
       <BodyForm label="Reply" submit="Reply" onSubmit={onReply} />
+    </section>
+  );
+}
+
+export function RevealToast({ mark, partner, onShow, onClose }: { mark: Mark; partner: Member; onShow: () => void; onClose: () => void }) {
+  const close = useRef(onClose);
+  useEffect(() => {
+    close.current = onClose;
+  });
+  useEffect(() => {
+    const t = setTimeout(() => close.current(), 8000);
+    return () => clearTimeout(t);
+  }, [mark]);
+  return (
+    <div
+      role="status"
+      className="fixed inset-x-0 top-14 z-40 mx-auto flex w-fit max-w-[calc(100vw-1rem)] items-center gap-3 rounded-full border bg-background py-1 pr-1 pl-4 text-sm text-foreground shadow-lg"
+    >
+      <span>
+        ✨ New from <span style={{ color: partner.color }}>{partner.name}</span>: {describe(mark)}
+      </span>
+      <Button size="sm" onClick={onShow}>
+        Show
+      </Button>
+      <Button variant="ghost" size="icon-sm" aria-label="Dismiss" onClick={onClose}>
+        ✕
+      </Button>
+    </div>
+  );
+}
+
+export function BookmarksPanel({ bookmarks, members, onGo, onClose }: { bookmarks: Mark[]; members: Member[]; onGo: (m: Mark) => void; onClose: () => void }) {
+  return (
+    <section
+      aria-label="Bookmarks"
+      className="fixed inset-x-0 bottom-0 z-50 flex max-h-[70dvh] flex-col gap-3 overflow-y-auto rounded-t-xl border bg-background p-4 text-foreground shadow-lg md:inset-x-auto md:top-14 md:right-4 md:bottom-auto md:w-96 md:rounded-xl"
+    >
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold">Bookmarks</h2>
+        <Button variant="ghost" size="icon-sm" aria-label="Close" onClick={onClose}>
+          ✕
+        </Button>
+      </div>
+      {bookmarks.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Select a passage and tap Bookmark to keep it here.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {bookmarks.map((m) => (
+            <li key={m.id}>
+              <button className="flex w-full flex-col gap-1 rounded-lg p-2 text-left hover:bg-muted" onClick={() => onGo(m)}>
+                <span className="flex items-center gap-2 text-sm font-medium">
+                  <span aria-hidden className="size-2.5 rounded-full" style={{ background: members.find((p) => p.userId === m.author_id)?.color }} />
+                  {m.label}
+                </span>
+                <span className="line-clamp-2 text-sm italic text-muted-foreground">{m.locator?.quote?.exact}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+export function Inbox({ meId, partner, books }: { meId: string; partner: Member; books: { id: string; title: string }[] }) {
+  const sends = useInbox(meId);
+  return (
+    <section aria-label={`From ${partner.name}`} className="flex flex-col gap-3">
+      <h2 className="font-semibold">From {partner.name}</h2>
+      {sends.length === 0 ? (
+        <p className="text-sm text-muted-foreground">When {partner.name} sends you a passage, it lands here.</p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {sends.map((m) => (
+            <li key={m.id} className="flex flex-col gap-1 rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">This reminded me of you</p>
+              <blockquote className="border-l-2 pl-3 text-sm italic" style={{ borderColor: partner.color }}>
+                {m.locator?.quote?.exact}
+              </blockquote>
+              {m.body && <p className="text-sm">{m.body}</p>}
+              <Link href={`/book/${m.book_id}?mark=${m.id}`} className="self-start text-sm underline">
+                Open in {books.find((b) => b.id === m.book_id)?.title ?? 'the book'}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

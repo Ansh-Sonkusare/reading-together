@@ -18,13 +18,20 @@ export type NewMark =
   | { kind: 'highlight'; bookId: string; locator: Locator; pos: Pos }
   | { kind: 'reaction'; bookId: string; locator: Locator; pos: Pos; emoji: Reaction }
   | { kind: 'note'; bookId: string; locator: Locator; pos: Pos; body: string }
+  | { kind: 'bookmark'; bookId: string; locator: Locator; pos: Pos; label: string }
+  | { kind: 'send'; bookId: string; locator: Locator; pos: Pos; body: string | null }
   | { kind: 'reply'; bookId: string; parentId: string; body: string };
+
+export const BOOKMARK_LABELS = ['First quote we both loved', 'Favorite chapter', 'Funny part', 'Important conversation'];
 
 export type Mark = Omit<Tables<'mark'>, 'locator'> & { locator: Locator | null };
 
 export type Anchor = { cfi: string; locator: Locator; pos: Pos; marks: Mark[]; replies: Mark[] };
 
 export type { Member };
+
+// Bookmarks and sends point at a passage but live in their own lists, not in the book's paint and threads.
+const inText = (m: Mark) => m.kind !== 'bookmark' && m.kind !== 'send';
 
 const byTime = (a: Mark, b: Mark) => a.created_at.localeCompare(b.created_at);
 
@@ -38,7 +45,7 @@ export function groupByAnchor(marks: Mark[]): Anchor[] {
 
   const sorted = [...marks].sort(byTime);
   for (const m of sorted) {
-    if (m.parent_id || !m.locator) continue;
+    if (m.parent_id || !m.locator || !inText(m)) continue;
     const a = anchors.get(m.locator.cfi);
     if (a) a.marks.push(m);
     else anchors.set(m.locator.cfi, { cfi: m.locator.cfi, locator: m.locator, pos: m.pos as Pos, marks: [m], replies: [] });
@@ -49,6 +56,17 @@ export function groupByAnchor(marks: Mark[]): Anchor[] {
     if (cfi) anchors.get(cfi)?.replies.push(m);
   }
   return [...anchors.values()].sort((a, b) => a.pos - b.pos);
+}
+
+// Marks that just became visible because my max_pos rose past them (RLS hid them until then, D9).
+export function revealedBy(before: { ids: Set<string>; maxPos: number }, after: Mark[]): Mark[] {
+  return after.filter((m) => !before.ids.has(m.id) && Number(m.pos) > before.maxPos && !m.parent_id && m.locator && inText(m));
+}
+
+// The toast's summary of what appeared: the reaction's emoji, else a word for the kind.
+export function describe(m: Mark): string {
+  if (m.kind === 'reaction') return REACTIONS.find((r) => r.key === m.emoji)?.emoji ?? 'a reaction';
+  return m.kind === 'note' ? 'a note' : 'a highlight';
 }
 
 const UNKNOWN_COLOR = '#9ca3af';

@@ -4,23 +4,11 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Member } from '@/features/couple/couple';
 import { usePartnerProgress, useProgressSaver, type Progress } from '@/features/couple/progress';
-import { SelectionMenu, ThreadPanel, createMark, toPaintMarks, useMarks, type NewMark } from '@/features/marks';
-import { createReader, displayPage, type Locator, type Pos, type ReaderHandle } from '@/features/reader';
+import { BookmarksPanel, RevealToast, SelectionMenu, ThreadPanel, createMark, toPaintMarks, useMarks, type Mark, type NewMark } from '@/features/marks';
+import { createReader, displayPage, ReaderPrefs, type Locator, type Pos, type ReaderHandle } from '@/features/reader';
 import { createBrowserClient } from '@/lib/supabase';
 
 type Selected = { locator: Locator; pos: Pos; rect: DOMRect };
-
-const FONT_KEY = 'reader:fontScale';
-const FONT_SCALES = [0.8, 1, 1.2, 1.6, 2];
-
-function storedScale(): number {
-  try {
-    const n = Number(localStorage.getItem(FONT_KEY));
-    return FONT_SCALES.includes(n) ? n : 1;
-  } catch {
-    return 1;
-  }
-}
 
 type Props = {
   bookId: string;
@@ -32,25 +20,34 @@ type Props = {
   me: Member;
   partner: Member | null;
   partnerProgress: Progress | null;
+  startAt: Locator | null;
 };
 
-export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine, me, partner, partnerProgress }: Props) {
+export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine, me, partner, partnerProgress, startAt }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const [reader, setReader] = useState<ReaderHandle | null>(null);
   const [pos, setPos] = useState<number | null>(null);
-  const [scale, setScale] = useState(1);
   const [mismatch, setMismatch] = useState(false);
   const [failed, setFailed] = useState(false);
   const [turning, setTurning] = useState(false);
   const [markFailed, setMarkFailed] = useState(false);
   const [selection, setSelection] = useState<Selected | null>(null);
   const [threadCfi, setThreadCfi] = useState<string | null>(null);
+  const [bookmarksOpen, setBookmarksOpen] = useState(false);
+  const [toast, setToast] = useState<Mark | null>(null);
   const [db] = useState(createBrowserClient);
   const { save, savedPos, savedMaxPos } = useProgressSaver(bookId, userId, mine);
   const theirs = usePartnerProgress(bookId, partner?.userId ?? null, partnerProgress);
-  const { anchors } = useMarks(bookId, { myMaxPos: savedMaxPos });
+  const { marks, anchors, revealed } = useMarks(bookId, { myMaxPos: savedMaxPos });
   const members = useMemo(() => (partner ? [me, partner] : [me]), [me, partner]);
   const thread = anchors.find((a) => a.cfi === threadCfi);
+
+  const bookmarks = useMemo(() => marks.filter((m) => m.kind === 'bookmark'), [marks]);
+
+  useEffect(() => {
+    const theirs = revealed.filter((m) => m.author_id === partner?.userId);
+    if (theirs.length) setToast(theirs[0]);
+  }, [revealed, partner]);
 
   useEffect(() => {
     reader?.paint(toPaintMarks(anchors, members));
@@ -58,6 +55,7 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
 
   const mark = (input: NewMark) => {
     setSelection(null);
+    reader?.clearSelection();
     setMarkFailed(false);
     createMark(db, input).catch((e) => {
       console.error(e);
@@ -91,10 +89,8 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
         setSelection(null);
         setThreadCfi(id);
       });
-      const s = storedScale();
-      setScale(s);
-      if (s !== 1) r.setFontScale(s);
-      await (mine?.locator ? r.goTo(mine.locator as Locator) : r.goTo((mine?.pos ?? 0) as Pos));
+      const start = startAt ?? (mine?.locator as Locator | null);
+      await (start ? r.goTo(start) : r.goTo((mine?.pos ?? 0) as Pos));
       setReader(r);
     })().catch((e) => {
       console.error(e);
@@ -128,14 +124,6 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  const changeScale = (s: number) => {
-    setScale(s);
-    reader?.setFontScale(s);
-    try {
-      localStorage.setItem(FONT_KEY, String(s));
-    } catch {}
-  };
-
   return (
     <div className="flex h-dvh flex-col">
       <header className="flex items-center gap-3 border-b px-3 py-2 text-sm">
@@ -143,7 +131,10 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
           Library
         </Link>
         <h1 className="truncate font-semibold">{title}</h1>
-        <p data-testid="progress-pair" className="ml-auto shrink-0 font-medium">
+        <button className="ml-auto shrink-0 underline" aria-expanded={bookmarksOpen} onClick={() => setBookmarksOpen(!bookmarksOpen)}>
+          Bookmarks
+        </button>
+        <p data-testid="progress-pair" className="shrink-0 font-medium">
           {partner && (
             <>
               <span style={{ color: partner.color }}>
@@ -177,6 +168,9 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
           onHighlight={() => mark({ kind: 'highlight', ...at })}
           onReact={(emoji) => mark({ kind: 'reaction', ...at, emoji })}
           onNote={(body) => mark({ kind: 'note', ...at, body })}
+          onBookmark={(label) => mark({ kind: 'bookmark', ...at, label })}
+          partnerName={partner?.name}
+          onSend={(body) => mark({ kind: 'send', ...at, body })}
           onDismiss={() => setSelection(null)}
         />
       )}
@@ -187,6 +181,29 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
           meId={userId}
           onReply={(body) => mark({ kind: 'reply', bookId, parentId: thread.marks[0].id, body })}
           onClose={() => setThreadCfi(null)}
+        />
+      )}
+      {bookmarksOpen && (
+        <BookmarksPanel
+          bookmarks={bookmarks}
+          members={members}
+          onGo={(m) => {
+            setBookmarksOpen(false);
+            if (m.locator) reader?.goTo(m.locator);
+          }}
+          onClose={() => setBookmarksOpen(false)}
+        />
+      )}
+      {toast && partner && (
+        <RevealToast
+          mark={toast}
+          partner={partner}
+          onShow={() => {
+            setToast(null);
+            setSelection(null);
+            setThreadCfi(toast.locator!.cfi);
+          }}
+          onClose={() => setToast(null)}
         />
       )}
       <footer className="flex items-center justify-between gap-3 border-t px-3 py-2 text-sm">
@@ -201,13 +218,12 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
           <output data-testid="saved-pos" className="sr-only">
             {savedPos?.toFixed(6)}
           </output>
-          <select aria-label="Font size" value={scale} disabled={!reader} onChange={(e) => changeScale(Number(e.target.value))}>
-            {FONT_SCALES.map((s) => (
-              <option key={s} value={s}>
-                {Math.round(s * 100)}%
-              </option>
-            ))}
-          </select>
+          <details className="relative">
+            <summary aria-label="Reading settings" className="cursor-pointer select-none px-1">Aa</summary>
+            <div className="absolute bottom-8 right-0 z-20 rounded-md border bg-background p-2 shadow">
+              <ReaderPrefs handle={reader} />
+            </div>
+          </details>
         </span>
         <button aria-label="Next page" disabled={!reader || turning} onClick={() => turn('next')} className="px-2 disabled:opacity-40">
           ›

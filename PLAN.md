@@ -69,10 +69,10 @@ Public-domain catalogue (D1), native apps, groups of more than two, PDFs, DRM bo
 | P22 | Re-anchor a mark by text quote when its CFI misses | B | verify: a highlight lands on the same text at font sizes S and L | todo |
 | P23 | Bookmarks with labels, "Reminded me of you" send | C | verify: the send appears in the partner's inbox | todo |
 | P31 | Chapter-finished events, streaks, goals | E | unit tests on the streak calculation + verify: the streak shows | todo |
-| P32 | Chapter discussion and guess-the-reaction with blind reveal | E | `pnpm test:db` reveal gate + verify: reveal after both answer | todo |
+| P32 | Chapter discussion and guess-the-reaction with blind reveal | E | `pnpm test:db` reveal gate + verify: reveal after both answer | wip |
 | P33 | Web push: service worker, subscriptions, edge function wording | D | the edge function test renders the personal wording; subscription stored | todo |
-| P41 | "Our Book" timeline | E | verify: timeline lists the day's events | todo |
-| P42 | Couple stats dashboard | E | SQL view test with literal counts | todo |
+| P41 | "Our Book" timeline | E | verify: timeline lists the day's events | wip |
+| P42 | Couple stats dashboard | E | SQL view test with literal counts | wip |
 | P43 | Couple memories (photo on a mark) | C | verify: a photo attached to a highlight shows for both | todo |
 | P44 | Themes, dark mode, font size, background | D | verify: prefs persist across reload | todo |
 | P51 | Sync reading mode (presence, follow the leader) | B | verify: B's page follows A's page turn | todo |

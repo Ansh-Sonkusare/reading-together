@@ -12,3 +12,4 @@
 10. `next dev` appends a `nextjs-agent-rules` block to AGENTS.md. It's committed on master, so leave it alone. Don't revert or edit it.
 11. Next 16 differs from your training data. Read `node_modules/next/dist/docs/` before using a Next API you aren't sure of (for example proxy.ts instead of middleware.ts).
 12. Every test that asserts a refusal (RLS denies, a validation rejects) needs a positive control in the same test: the same actor succeeding at the allowed version of the action. A refusal test alone passes when everything is refused. That's how the reply-parent bug in P02 hid.
+13. Apply new migrations with `pnpm supabase migration up --local`, never `db reset`: other workers keep test data in the shared DB. Name a migration with a timestamp after the newest one in supabase/migrations/. Then run `pnpm db:types`.

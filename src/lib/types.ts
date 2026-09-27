@@ -1,0 +1,331 @@
+
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+
+export type Database = {
+  
+  "graphql_public": {
+          Tables: {
+            [_ in never]: never
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "graphql":
+{ Args: { "extensions"?: Json,"operationName"?: string,"query"?: string,"variables"?: Json }; Returns: Json
+                           }
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        },"public": {
+          Tables: {
+            "answer": {
+                  Row: {
+                    "book_id": string,"created_at": string,"id": string,"kind": Database["public"]['Enums']["answer_kind"],"prompt_key": string,"spine": number,"user_id": string,"value": string
+                  }
+                  Insert: {
+                    "book_id": string,"created_at"?: string,"id"?: string,"kind": Database["public"]['Enums']["answer_kind"],"prompt_key": string,"spine": number,"user_id"?: string,"value": string
+                  }
+                  Update: {
+                    "book_id"?: string,"created_at"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["answer_kind"],"prompt_key"?: string,"spine"?: number,"user_id"?: string,"value"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "answer_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"book": {
+                  Row: {
+                    "added_by": string,"author": string | null,"couple_id": string,"created_at": string,"id": string,"sha256": string | null,"spine_lengths": (number)[],"storage_path": string | null,"title": string
+                  }
+                  Insert: {
+                    "added_by"?: string,"author"?: string | null,"couple_id": string,"created_at"?: string,"id"?: string,"sha256"?: string | null,"spine_lengths": (number)[],"storage_path"?: string | null,"title": string
+                  }
+                  Update: {
+                    "added_by"?: string,"author"?: string | null,"couple_id"?: string,"created_at"?: string,"id"?: string,"sha256"?: string | null,"spine_lengths"?: (number)[],"storage_path"?: string | null,"title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "book_couple_id_fkey"
+      columns: ["couple_id"]
+isOneToOne: false
+      referencedRelation: "couple"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"couple": {
+                  Row: {
+                    "created_at": string,"id": string,"invite_code": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"invite_code"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"invite_code"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"event": {
+                  Row: {
+                    "actor_id": string,"book_id": string | null,"couple_id": string,"created_at": string,"data": NonNullable<Json>,"id": string,"pos": number | null,"ref_id": string | null,"type": Database["public"]['Enums']["event_type"]
+                  }
+                  Insert: {
+                    "actor_id": string,"book_id"?: string | null,"couple_id": string,"created_at"?: string,"data"?: NonNullable<Json>,"id"?: string,"pos"?: number | null,"ref_id"?: string | null,"type": Database["public"]['Enums']["event_type"]
+                  }
+                  Update: {
+                    "actor_id"?: string,"book_id"?: string | null,"couple_id"?: string,"created_at"?: string,"data"?: NonNullable<Json>,"id"?: string,"pos"?: number | null,"ref_id"?: string | null,"type"?: Database["public"]['Enums']["event_type"]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "event_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "event_couple_id_fkey"
+      columns: ["couple_id"]
+isOneToOne: false
+      referencedRelation: "couple"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"mark": {
+                  Row: {
+                    "author_id": string,"body": string | null,"book_id": string,"created_at": string,"emoji": Database["public"]['Enums']["reaction"] | null,"id": string,"kind": Database["public"]['Enums']["mark_kind"],"label": string | null,"locator": Json | null,"media_url": string | null,"parent_id": string | null,"pos": number
+                  }
+                  Insert: {
+                    "author_id"?: string,"body"?: string | null,"book_id": string,"created_at"?: string,"emoji"?: Database["public"]['Enums']["reaction"] | null,"id"?: string,"kind": Database["public"]['Enums']["mark_kind"],"label"?: string | null,"locator"?: Json | null,"media_url"?: string | null,"parent_id"?: string | null,"pos": number
+                  }
+                  Update: {
+                    "author_id"?: string,"body"?: string | null,"book_id"?: string,"created_at"?: string,"emoji"?: Database["public"]['Enums']["reaction"] | null,"id"?: string,"kind"?: Database["public"]['Enums']["mark_kind"],"label"?: string | null,"locator"?: Json | null,"media_url"?: string | null,"parent_id"?: string | null,"pos"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "mark_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mark_parent_id_fkey"
+      columns: ["parent_id"]
+isOneToOne: false
+      referencedRelation: "mark"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"member": {
+                  Row: {
+                    "avatar_url": string | null,"color": string | null,"couple_id": string,"name": string | null,"user_id": string
+                  }
+                  Insert: {
+                    "avatar_url"?: string | null,"color"?: string | null,"couple_id": string,"name"?: string | null,"user_id": string
+                  }
+                  Update: {
+                    "avatar_url"?: string | null,"color"?: string | null,"couple_id"?: string,"name"?: string | null,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "member_couple_id_fkey"
+      columns: ["couple_id"]
+isOneToOne: false
+      referencedRelation: "couple"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"progress": {
+                  Row: {
+                    "book_id": string,"locator": Json | null,"max_pos": number,"pos": number,"updated_at": string,"user_id": string
+                  }
+                  Insert: {
+                    "book_id": string,"locator"?: Json | null,"max_pos"?: number,"pos"?: number,"updated_at"?: string,"user_id"?: string
+                  }
+                  Update: {
+                    "book_id"?: string,"locator"?: Json | null,"max_pos"?: number,"pos"?: number,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "progress_book_id_fkey"
+      columns: ["book_id"]
+isOneToOne: false
+      referencedRelation: "book"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"push_sub": {
+                  Row: {
+                    "endpoint": string,"keys": NonNullable<Json>,"user_id": string
+                  }
+                  Insert: {
+                    "endpoint": string,"keys": NonNullable<Json>,"user_id"?: string
+                  }
+                  Update: {
+                    "endpoint"?: string,"keys"?: NonNullable<Json>,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                }
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "book_couple_id":
+{ Args: { "bid": string }; Returns: string
+                           },
+"create_couple":
+{ Args: { "color": string,"name": string }; Returns: string
+                           },
+"i_answered":
+{ Args: { "bid": string,"k": Database["public"]['Enums']["answer_kind"],"key": string,"s": number }; Returns: boolean
+                           },
+"is_couple_member":
+{ Args: { "cid": string }; Returns: boolean
+                           },
+"join_couple":
+{ Args: { "color"?: string,"invite_code": string,"name"?: string }; Returns: string
+                           },
+"my_couple_id":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"my_max_pos":
+{ Args: { "bid": string }; Returns: number
+                           }
+          }
+          Enums: {
+            "answer_kind": "question"|"guess","event_type": "book_added"|"book_started"|"mark_created"|"chapter_finished"|"book_finished"|"answer_revealed"|"goal_met","mark_kind": "highlight"|"reaction"|"note"|"reply"|"bookmark"|"send"|"memory","reaction": "love"|"funny"|"emotional"|"surprised"|"interesting"|"favorite"|"think"
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        }
+}
+
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
+
+export const Constants = {
+  "graphql_public": {
+          Enums: {
+            
+          }
+        },"public": {
+          Enums: {
+            "answer_kind": ["question", "guess"],"event_type": ["book_added", "book_started", "mark_created", "chapter_finished", "book_finished", "answer_revealed", "goal_met"],"mark_kind": ["highlight", "reaction", "note", "reply", "bookmark", "send", "memory"],"reaction": ["love", "funny", "emotional", "surprised", "interesting", "favorite", "think"]
+          }
+        }
+} as const
+

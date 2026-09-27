@@ -1,0 +1,9 @@
+# Supabase local development configuration
+[db]
+port = 54321
+
+[studio]
+port = 54323
+
+[inbucket]
+port = 54324

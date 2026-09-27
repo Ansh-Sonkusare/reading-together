@@ -5,17 +5,17 @@ const SHOTS = '.verify/f2';
 const QUESTION = 'What do you think happens next?';
 const pastChapter1 = (pos: string | null) => pos?.startsWith('3.') ?? false;
 
-// Chapter I of alice.epub is spine 2; chapterTitle() numbers spines from 1, so it's "Chapter 3" in the app.
+// Chapter I of alice.epub is spine 2; the app names it from the book's TOC.
 async function finishChapter1AndFollowPrompt(page: Page, bookId: string, shot: string) {
   await pageUntil(page, pastChapter1);
   await waitForSave(page);
   const prompt = page.getByRole('complementary', { name: 'Chapter finished' });
-  await expect(prompt).toContainText('You finished Chapter 3.');
-  await expect(page.getByRole('link', { name: 'Discuss Chapter 3' })).toHaveAttribute('href', `/discuss/${bookId}/2`);
+  await expect(prompt).toContainText('You finished CHAPTER I. Down the Rabbit-Hole.');
+  await expect(page.getByRole('link', { name: 'Discuss CHAPTER I. Down the Rabbit-Hole' })).toHaveAttribute('href', `/discuss/${bookId}/2`);
   await page.screenshot({ path: `${SHOTS}/${shot}` });
   await prompt.getByRole('link', { name: 'Discuss it together →' }).click();
   await page.waitForURL(`**/discuss/${bookId}/2`);
-  await expect(page.getByRole('heading', { name: 'Discuss Chapter 3' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Discuss CHAPTER I. Down the Rabbit-Hole' })).toBeVisible();
 }
 
 async function answer(page: Page, text: string) {
@@ -78,9 +78,9 @@ test('finishing a chapter links to its discussion, and answers and guesses revea
 
   await a.goto(`/together/book/${bookId}`);
   const timeline = a.getByRole('list', { name: 'Timeline' });
-  await expect(timeline).toContainText('💬 You discussed Chapter 3');
+  await expect(timeline).toContainText('💬 You discussed CHAPTER I. Down the Rabbit-Hole');
   await a.screenshot({ path: `${SHOTS}/d6-timeline-a-alex.png` });
-  await timeline.getByRole('link', { name: 'Chapter 3' }).click();
+  await timeline.getByRole('link', { name: 'CHAPTER I. Down the Rabbit-Hole' }).click();
   await a.waitForURL(`**/discuss/${bookId}/2`);
   await expect(a.getByRole('region', { name: QUESTION })).toContainText('A tea party, surely.');
 });

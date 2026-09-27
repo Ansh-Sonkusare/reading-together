@@ -1,5 +1,5 @@
 import 'server-only';
-import { spineLengthsFromEpub } from '@/features/reader/locator';
+import { spineLengthsFromEpub, tocFromEpub, type Toc } from '@/features/reader/locator';
 import { createAdminClient, createUserClient } from '@/lib/supabase-server';
 import type { Member } from './couple';
 import { MAX_EPUB_BYTES, epubMeta } from './epub-meta';
@@ -52,6 +52,8 @@ export async function uploadBook(file: File): Promise<UploadResult> {
   } catch (e) {
     return { error: `This EPUB can't be read: ${(e as Error).message}` };
   }
+  // A missing or unreadable TOC only costs chapter names, so the book still goes in with toc null.
+  const toc: Toc | null = await tocFromEpub(bytes).catch(() => null);
   const hash = await sha256(bytes);
   const title = meta.title ?? file.name.replace(/\.epub$/i, '');
 
@@ -72,6 +74,7 @@ export async function uploadBook(file: File): Promise<UploadResult> {
     sha256: hash,
     storage_path: path,
     spine_lengths: spineLengths,
+    toc,
     added_by: auth.user.id,
   });
   if (error) {

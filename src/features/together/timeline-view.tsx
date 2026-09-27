@@ -3,18 +3,19 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Fragment, useSyncExternalStore } from 'react';
-import { chapterTitle, discussHref } from './discussion';
-import { DISCUSSED, describeDay, discussedSpines, groupByDay, memoriesLine, type TimelineEvent, type TimelineMember } from './timeline';
+import type { Toc } from '../reader';
+import { discussHref } from './discussion';
+import { DISCUSSED, chapterList, describeDay, discussedChapters, groupByDay, memoriesLine, type TimelineEvent, type TimelineMember } from './timeline';
 
 const noop = () => () => {};
 const browserZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 // Days are the reader's local days, so the server renders UTC and the browser regroups after hydration.
-export function Timeline(props: { events: TimelineEvent[]; members: TimelineMember[]; meId: string; title: string }) {
+export function Timeline(props: { events: TimelineEvent[]; members: TimelineMember[]; meId: string; title: string; toc: Toc | null }) {
   const timeZone = useSyncExternalStore(noop, browserZone, () => 'UTC');
   const { bookId } = useParams<{ bookId: string }>();
   const days = groupByDay(props.events, timeZone)
-    .map((d) => ({ ...d, lines: describeDay(d.events, props.members, props.meId, props.title) }))
+    .map((d) => ({ ...d, lines: describeDay(d.events, props.members, props.meId, props.title, props.toc) }))
     .filter((d) => d.lines.length);
   return (
     <>
@@ -28,7 +29,7 @@ export function Timeline(props: { events: TimelineEvent[]; members: TimelineMemb
               <h2 className="font-semibold">{d.label}</h2>
               <ul className="mt-1 flex flex-col gap-1">
                 {d.lines.map((line) => (
-                  <li key={line}>{line.startsWith(DISCUSSED) ? <Discussed bookId={bookId} spines={discussedSpines(d.events)} /> : line}</li>
+                  <li key={line}>{line.startsWith(DISCUSSED) ? <Discussed bookId={bookId} chapters={discussedChapters(d.events, props.toc)} /> : line}</li>
                 ))}
               </ul>
             </li>
@@ -41,22 +42,20 @@ export function Timeline(props: { events: TimelineEvent[]; members: TimelineMemb
 }
 
 // Same wording as describeDay's line, with each chapter linking to its discussion.
-function Discussed({ bookId, spines }: { bookId: string; spines: number[] }) {
-  const link = (s: number, text: string) => (
-    <Link key={s} href={discussHref(bookId, s)} className="underline">
-      {text}
-    </Link>
-  );
-  if (spines.length === 1) return <>{DISCUSSED} {link(spines[0], chapterTitle(spines[0]))}</>;
+function Discussed({ bookId, chapters }: { bookId: string; chapters: { spine: number; label: string }[] }) {
+  let next = 0;
   return (
     <>
-      {DISCUSSED} Chapters{' '}
-      {spines.map((s, i) => (
-        <Fragment key={s}>
-          {i === 0 ? '' : i === spines.length - 1 ? ' and ' : ', '}
-          {link(s, String(s + 1))}
-        </Fragment>
-      ))}
+      {DISCUSSED}{' '}
+      {chapterList.formatToParts(chapters.map((c) => c.label)).map((part, k) => {
+        if (part.type === 'literal') return <Fragment key={k}>{part.value}</Fragment>;
+        const { spine, label } = chapters[next++];
+        return (
+          <Link key={k} href={discussHref(bookId, spine)} className="underline">
+            {label}
+          </Link>
+        );
+      })}
     </>
   );
 }

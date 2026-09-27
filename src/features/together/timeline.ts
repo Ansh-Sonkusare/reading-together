@@ -1,6 +1,8 @@
 import type { Enums } from '@/lib/types';
 import type { Reaction } from '../marks/model';
 import { REACTIONS } from '../marks/model';
+import type { Toc } from '../reader';
+import { chapterTitle } from './discussion';
 
 export type TimelineEvent = {
   type: Enums<'event_type'>;
@@ -29,18 +31,18 @@ const emojiOf = (r: Reaction | null) => REACTIONS.find((x) => x.key === r)?.emoj
 
 export const DISCUSSED = '💬 You discussed';
 
-export function discussedSpines(events: TimelineEvent[]): number[] {
+export const chapterList = new Intl.ListFormat('en', { type: 'conjunction' });
+
+// Chapters discussed that day, by TOC label; a spine without one (front matter) is left out.
+export function discussedChapters(events: TimelineEvent[], toc: Toc | null): { spine: number; label: string }[] {
   const spines = events.filter((e) => e.type === 'answer_revealed' && e.data.kind === 'question' && e.data.spine !== undefined).map((e) => e.data.spine!);
-  return [...new Set(spines)].sort((a, b) => a - b);
+  return [...new Set(spines)]
+    .sort((a, b) => a - b)
+    .map((spine) => ({ spine, label: chapterTitle(toc, spine) }))
+    .filter((c): c is { spine: number; label: string } => c.label !== null);
 }
 
-function chapters(spines: number[]): string {
-  const names = spines.map((s) => String(s + 1));
-  if (names.length === 1) return `Chapter ${names[0]}`;
-  return `Chapters ${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
-}
-
-export function describeDay(events: TimelineEvent[], members: TimelineMember[], meId: string, title: string): string[] {
+export function describeDay(events: TimelineEvent[], members: TimelineMember[], meId: string, title: string, toc: Toc | null): string[] {
   const subject = (group: TimelineEvent[]) => {
     const actors = new Set(group.map((e) => e.actorId));
     if (actors.size > 1) return 'You both';
@@ -75,8 +77,8 @@ export function describeDay(events: TimelineEvent[], members: TimelineMember[], 
   }
 
   const revealed = ofType('answer_revealed');
-  const discussed = discussedSpines(events);
-  if (discussed.length) lines.push(`${DISCUSSED} ${chapters(discussed)}`);
+  const discussed = discussedChapters(events, toc);
+  if (discussed.length) lines.push(`${DISCUSSED} ${chapterList.format(discussed.map((c) => c.label))}`);
   const guesses = revealed.filter((e) => e.data.kind === 'guess').length;
   if (guesses) lines.push(`🎯 You guessed each other's reaction${guesses === 1 ? '' : ` ${guesses} times`}`);
 

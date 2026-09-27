@@ -1,8 +1,14 @@
+import type { Toc } from '../reader';
 import { REACTIONS } from '../marks/model';
 
 export const discussHref = (bookId: string, spine: number) => `/discuss/${bookId}/${spine}`;
 
-export const chapterTitle = (spine: number) => `Chapter ${spine + 1}`;
+// The TOC entry at or before `spine` names it; null is front matter, which gets no prompt, discussion or push.
+// A book uploaded before TOCs were stored (toc null) keeps the old numbering.
+export function chapterTitle(toc: Toc | null, spine: number): string | null {
+  if (!toc) return `Chapter ${spine + 1}`;
+  return toc.findLast((e) => e.spine <= spine)?.label ?? null;
+}
 
 export const guessKey = (spine: number) => `guess:${spine}`;
 

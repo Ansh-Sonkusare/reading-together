@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Locator } from '@/features/reader';
+import type { Locator, Toc } from '@/features/reader';
 import type { Database } from '@/lib/types';
 import { notificationFor, type NotifyMark } from './wording';
 
@@ -22,7 +22,7 @@ export async function dispatch(db: SupabaseClient<Database>, eventId: string, se
 
   const [{ data: members }, { data: book }, { data: progress }] = await Promise.all([
     db.from('member').select('user_id, name').eq('couple_id', event.couple_id).throwOnError(),
-    db.from('book').select('title').eq('id', bookId).single().throwOnError(),
+    db.from('book').select('title, toc').eq('id', bookId).single().throwOnError(),
     db.from('progress').select('user_id, max_pos').eq('book_id', bookId).throwOnError(),
   ]);
   const recipientId = members.find((m) => m.user_id !== event.actor_id)?.user_id;
@@ -43,7 +43,7 @@ export async function dispatch(db: SupabaseClient<Database>, eventId: string, se
 
   const maxPos = (id: string) => progress.find((p) => p.user_id === id)?.max_pos ?? 0;
   const roster = members.map((m) => ({ userId: m.user_id, name: m.name ?? 'Your partner', maxPos: maxPos(m.user_id) }));
-  const note = notificationFor(event, mark, parent, roster, recipientId, book.title);
+  const note = notificationFor(event, mark, parent, roster, recipientId, { title: book.title, toc: book.toc as Toc | null });
   if (!note) return none;
 
   const { data: subs } = await db.from('push_sub').select('endpoint, keys').eq('user_id', recipientId).throwOnError();

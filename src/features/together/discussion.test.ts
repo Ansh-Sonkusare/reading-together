@@ -1,6 +1,28 @@
 import { describe, expect, it } from 'vitest';
-import { discussHref, parseGuess, revealGuess } from './discussion';
+import { chapterTitle, discussHref, parseGuess, revealGuess } from './discussion';
 import { questionsFor } from './questions';
+
+describe('chapterTitle', () => {
+  const toc = [
+    { spine: 2, label: 'CHAPTER I. Down the Rabbit-Hole' },
+    { spine: 3, label: 'CHAPTER II. The Pool of Tears' },
+    { spine: 6, label: 'CHAPTER III. A Caucus-Race' },
+  ];
+
+  it("uses the TOC entry for the spine, else the nearest one before it, else null for front matter", () => {
+    expect(chapterTitle(toc, 2)).toBe('CHAPTER I. Down the Rabbit-Hole');
+    expect(chapterTitle(toc, 3)).toBe('CHAPTER II. The Pool of Tears');
+    expect(chapterTitle(toc, 5)).toBe('CHAPTER II. The Pool of Tears');
+    expect(chapterTitle(toc, 9)).toBe('CHAPTER III. A Caucus-Race');
+    expect(chapterTitle(toc, 0)).toBeNull();
+    expect(chapterTitle(toc, 1)).toBeNull();
+  });
+
+  it('numbers spines from 1 for a book stored without a TOC', () => {
+    expect(chapterTitle(null, 0)).toBe('Chapter 1');
+    expect(chapterTitle(null, 2)).toBe('Chapter 3');
+  });
+});
 
 describe('questionsFor', () => {
   it('gives each chapter three stable questions, rotating across chapters', () => {

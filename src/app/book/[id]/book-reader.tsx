@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Member } from '@/features/couple/couple';
 import { usePartnerProgress, useProgressSaver, type Progress } from '@/features/couple/progress';
 import { BookmarksPanel, RevealToast, SelectionMenu, ThreadPanel, createMark, toPaintMarks, useMarks, type Mark, type NewMark } from '@/features/marks';
-import { createReader, displayPage, ReaderPrefs, type Locator, type Pos, type ReaderHandle } from '@/features/reader';
+import { createReader, displayPage, ReaderPrefs, type Locator, type Pos, type ReaderHandle, type Toc } from '@/features/reader';
 import { SyncInvite, SyncPill, useSync } from '@/features/sync';
 import { chapterTitle, discussHref } from '@/features/together/discussion';
 import { createBrowserClient } from '@/lib/supabase';
@@ -18,6 +18,7 @@ type Props = {
   userId: string;
   fileUrl: string;
   spineLengths: number[];
+  toc: Toc | null;
   mine: Progress | null;
   me: Member;
   partner: Member | null;
@@ -25,7 +26,7 @@ type Props = {
   startAt: Locator | null;
 };
 
-export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine, me, partner, partnerProgress, startAt }: Props) {
+export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, mine, me, partner, partnerProgress, startAt }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const [reader, setReader] = useState<ReaderHandle | null>(null);
   const [pos, setPos] = useState<number | null>(null);
@@ -49,6 +50,9 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
   const { sync, notice, signal, relocated } = useSync(bookId, userId, reader);
   // Moving on your own while following leaves sync; the pill says so.
   const leaveIfFollowing = () => sync.kind === 'following' && signal('leave');
+
+  const finishedTitle = finished === null ? null : chapterTitle(toc, finished);
+  const lastChapter = pos === null || pos < 1 ? null : chapterTitle(toc, Math.floor(pos) - 1);
 
   const bookmarks = useMemo(() => marks.filter((m) => m.kind === 'bookmark'), [marks]);
 
@@ -149,9 +153,9 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
         <button className="ml-auto shrink-0 underline" aria-expanded={bookmarksOpen} onClick={() => setBookmarksOpen(!bookmarksOpen)}>
           Bookmarks
         </button>
-        {pos !== null && pos >= 1 && (
-          <Link href={discussHref(bookId, Math.floor(pos) - 1)} className="shrink-0 underline">
-            Discuss {chapterTitle(Math.floor(pos) - 1)}
+        {lastChapter !== null && (
+          <Link href={discussHref(bookId, Math.floor(pos!) - 1)} className="shrink-0 underline">
+            Discuss {lastChapter}
           </Link>
         )}
         <p data-testid="progress-pair" className="shrink-0 font-medium">
@@ -181,13 +185,13 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
           Could not save that. Try again.
         </p>
       )}
-      {finished !== null && (
+      {finished !== null && finishedTitle !== null && (
         // Floats over the page: taking layout space would reflow the book and move page boundaries.
         <aside
           aria-label="Chapter finished"
           className="fixed inset-x-0 bottom-14 z-30 mx-auto flex w-fit max-w-[calc(100vw-1rem)] items-center gap-2 rounded-full border bg-rose-50 py-1 pr-1 pl-4 text-sm shadow-lg"
         >
-          <span>You finished {chapterTitle(finished)}.</span>
+          <span>You finished {finishedTitle}.</span>
           <Link href={discussHref(bookId, finished)} className="font-medium underline">
             Discuss it together →
           </Link>

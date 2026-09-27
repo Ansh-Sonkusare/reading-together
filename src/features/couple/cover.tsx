@@ -8,7 +8,7 @@ export function BookCover({ title, url, className }: { title: string; url: strin
         <img src={url} alt="" className="size-full object-cover" loading="lazy" />
       ) : (
         <div className="flex size-full flex-col justify-between p-[9%]">
-          <span className="line-clamp-5 font-serif text-[clamp(0.8rem,11cqi,1.25rem)] leading-snug font-semibold text-balance text-ink">{title}</span>
+          <span className="line-clamp-5 font-serif text-[clamp(0.3rem,11cqi,1.25rem)] leading-snug font-semibold text-balance text-ink">{title}</span>
           <span className="h-px w-2/5 bg-ink/60" />
         </div>
       )}

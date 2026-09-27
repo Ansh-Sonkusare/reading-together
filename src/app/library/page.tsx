@@ -10,6 +10,7 @@ import { BookCover } from '@/features/couple/cover';
 import { CopyInvite, UploadForm } from '@/features/couple/forms';
 import { Inbox } from '@/features/couple/inbox';
 import { EnableNotifications } from '@/features/notify/enable';
+import { TimezoneSync } from '@/features/together/goal-form';
 import { getStreakRow } from '@/features/together/streak-data';
 
 const quietLink = 'rounded-full px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-wash hover:text-foreground';
@@ -19,7 +20,7 @@ export default async function LibraryPage() {
   if (!couple || !userId) redirect('/onboarding');
   const me = couple.members.find((m) => m.userId === userId)!;
   const partner = couple.members.find((m) => m.userId !== userId);
-  const [books, streak] = await Promise.all([listBooks(couple.id), partner ? getStreakRow(couple, userId) : null]);
+  const [books, streak] = await Promise.all([listBooks(couple.id), getStreakRow(couple, userId)]);
   const current = lastRead(books, userId);
   const h = await headers();
   const inviteUrl = `${h.get('x-forwarded-proto') ?? 'http'}://${h.get('host')}/join/${couple.inviteCode}`;
@@ -43,7 +44,8 @@ export default async function LibraryPage() {
           <h1 className="text-3xl sm:text-4xl">
             <Names readers={readers} />
           </h1>
-          {streak && <p className="text-muted-foreground">{streak.streak}</p>}
+          <TimezoneSync current={streak.timezone} />
+          {partner && <p className="text-muted-foreground">{streak.streak}</p>}
         </div>
         <UploadForm className="sm:items-end" />
       </header>

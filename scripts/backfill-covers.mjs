@@ -1,5 +1,5 @@
 // Gives books uploaded before covers existed their cover. Idempotent: only books with no cover_path are looked at.
-// Usage: node scripts/backfill-covers.mjs   (reads .env.local; never prints its values)
+// Usage: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/backfill-covers.mjs   (reads .env.local, never prints it)
 import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { epubCover } from '../src/features/couple/epub-cover.ts';

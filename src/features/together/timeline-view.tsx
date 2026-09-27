@@ -12,6 +12,9 @@ const browserZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 type Member = TimelineMember & { color: string };
 
+// A passage that opens with its own quotation mark keeps it instead of getting a second one.
+const quoted = (q: string) => (/^["“‘']/.test(q) ? q : `“${q}”`);
+
 // Days are the reader's local days, so the server renders UTC and the browser regroups after hydration.
 export function Timeline(props: { events: TimelineEvent[]; members: Member[]; meId: string; title: string; toc: Toc | null }) {
   const timeZone = useSyncExternalStore(noop, browserZone, () => 'UTC');
@@ -41,7 +44,7 @@ export function Timeline(props: { events: TimelineEvent[]; members: Member[]; me
                   <li key={line.text} className="relative flex flex-col gap-1.5">
                     <Dot colors={colorsOf(line.actors)} />
                     <p>{line.text.startsWith(DISCUSSED) ? <Discussed bookId={bookId} chapters={discussedChapters(d.events, props.toc)} /> : line.text}</p>
-                    {line.quote && <blockquote className="line-clamp-3 text-lg leading-relaxed text-muted-foreground">&ldquo;{line.quote}&rdquo;</blockquote>}
+                    {line.quote && <blockquote className="line-clamp-3 text-lg leading-relaxed text-muted-foreground">{quoted(line.quote)}</blockquote>}
                   </li>
                 ))}
               </ul>

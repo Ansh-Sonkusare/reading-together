@@ -10,8 +10,10 @@ export type TimelineEvent = {
   createdAt: string;
   data: { spine?: number; kind?: string };
   // The event's mark, when RLS lets the viewer read it.
-  mark?: { kind: Enums<'mark_kind'>; emoji: Reaction | null; cfi: string | null } | null;
+  mark?: { kind: Enums<'mark_kind'>; emoji: Reaction | null; cfi: string | null; quote?: string | null } | null;
 };
+/** One timeline entry: its sentence, who it's about (for their ink dots), and a passage it points at, if any. */
+export type TimelineLine = { text: string; actors: string[]; quote?: string };
 export type TimelineMember = { userId: string; name: string };
 export type TimelineDay = { key: string; label: string; events: TimelineEvent[] };
 
@@ -42,7 +44,7 @@ export function discussedChapters(events: TimelineEvent[], toc: Toc | null): { s
     .filter((c): c is { spine: number; label: string } => c.label !== null);
 }
 
-export function describeDay(events: TimelineEvent[], members: TimelineMember[], meId: string, title: string, toc: Toc | null): string[] {
+export function describeDay(events: TimelineEvent[], members: TimelineMember[], meId: string, title: string, toc: Toc | null): TimelineLine[] {
   const subject = (group: TimelineEvent[]) => {
     const actors = new Set(group.map((e) => e.actorId));
     if (actors.size > 1) return 'You both';
@@ -50,18 +52,23 @@ export function describeDay(events: TimelineEvent[], members: TimelineMember[], 
     return id === meId ? 'You' : (members.find((m) => m.userId === id)?.name ?? 'Your partner');
   };
   const ofType = (t: TimelineEvent['type']) => events.filter((e) => e.type === t);
-  const lines: string[] = [];
+  const lines: TimelineLine[] = [];
+  const push = (text: string, group: TimelineEvent[] | 'both', quoted = false) => {
+    const quote = quoted && group !== 'both' ? group.find((e) => e.mark?.quote)?.mark?.quote : null;
+    const actors = group === 'both' ? members.map((m) => m.userId) : [...new Set(group.map((e) => e.actorId))];
+    lines.push({ text, actors, ...(quote && { quote }) });
+  };
 
   const started = ofType('book_started');
   if (started.length) {
     const s = subject(started);
-    lines.push(s === 'You both' ? `📖 Started ${title}` : `📖 ${s} started ${title}`);
+    push(s === 'You both' ? `📖 Started ${title}` : `📖 ${s} started ${title}`, started);
   }
 
   const marks = ofType('mark_created').filter((e) => e.mark);
   for (const [kind, [emoji, verb, one, many]] of Object.entries(MARK_LINES)) {
     const group = marks.filter((e) => e.mark!.kind === kind);
-    if (group.length) lines.push(`${emoji} ${subject(group)} ${verb} ${qty(group.length, one, many)}`);
+    if (group.length) push(`${emoji} ${subject(group)} ${verb} ${qty(group.length, one, many)}`, group, kind !== 'reply');
   }
 
   const reactions = marks.filter((e) => e.mark!.kind === 'reaction');
@@ -69,23 +76,23 @@ export function describeDay(events: TimelineEvent[], members: TimelineMember[], 
   const shared = [...byPassage.values()].filter((g) => subject(g) === 'You both');
   if (shared.length) {
     const passage = shared.length === 1 ? 'the same passage' : `the same ${shared.length} passages`;
-    lines.push(`${emojiOf(shared[0][0].mark!.emoji)} You both reacted to ${passage}`);
+    push(`${emojiOf(shared[0][0].mark!.emoji)} You both reacted to ${passage}`, shared.flat(), true);
   }
   const solo = reactions.filter((e) => !shared.some((g) => g.includes(e)));
   if (solo.length) {
-    lines.push(`${emojiOf(solo[0].mark!.emoji)} ${subject(solo)} reacted to ${qty(solo.length, 'passage', 'passages')}`);
+    push(`${emojiOf(solo[0].mark!.emoji)} ${subject(solo)} reacted to ${qty(solo.length, 'passage', 'passages')}`, solo, true);
   }
 
   const revealed = ofType('answer_revealed');
   const discussed = discussedChapters(events, toc);
-  if (discussed.length) lines.push(`${DISCUSSED} ${chapterList.format(discussed.map((c) => c.label))}`);
+  if (discussed.length) push(`${DISCUSSED} ${chapterList.format(discussed.map((c) => c.label))}`, 'both');
   const guesses = revealed.filter((e) => e.data.kind === 'guess').length;
-  if (guesses) lines.push(`🎯 You guessed each other's reaction${guesses === 1 ? '' : ` ${guesses} times`}`);
+  if (guesses) push(`🎯 You guessed each other's reaction${guesses === 1 ? '' : ` ${guesses} times`}`, 'both');
 
   const finished = ofType('book_finished');
   if (finished.length) {
     const s = subject(finished);
-    lines.push(s === 'You both' ? '📚 Finished the book together' : `📚 ${s} finished the book`);
+    push(s === 'You both' ? '📚 Finished the book together' : `📚 ${s} finished the book`, finished);
   }
   return lines;
 }

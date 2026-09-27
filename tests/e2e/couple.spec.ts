@@ -18,6 +18,8 @@ async function profile(page: Page, name: string, colorIndex: number) {
   await page.locator('input[name=color]').nth(colorIndex).check({ force: true });
 }
 
+const shelf = (page: Page) => page.getByRole('list', { name: 'Our shelf' });
+
 async function shot(page: Page, name: string) {
   const path = join(testResultsDir, `${name}.png`);
   await page.screenshot({ path, fullPage: true });
@@ -55,8 +57,8 @@ test('couple flow: sign up, join, upload books, exceed 50MB limit', async ({ bas
     await shot(B, '2-b-join-form');
     await B.getByRole('button', { name: 'Join' }).click();
     await B.waitForURL('**/library');
-    const readersB = await B.getByRole('list', { name: 'Readers' }).innerText();
-    expect(readersB.split('\n').map((s) => s.trim()).filter(Boolean).sort()).toEqual(['Alex', 'Bea']);
+    const readersB = await B.getByRole('heading', { level: 1 }).innerText();
+    expect(readersB.split('&').map((s) => s.trim()).sort()).toEqual(['Alex', 'Bea']);
     expect(await B.getByRole('heading', { name: 'Invite your partner' }).count()).toBe(0);
     await shot(B, '3-b-library-joined');
 
@@ -75,20 +77,20 @@ test('couple flow: sign up, join, upload books, exceed 50MB limit', async ({ bas
     // Upload alice.epub
     await A.locator('input[type=file]').setInputFiles('./fixtures/alice.epub');
     await A.getByRole('button', { name: 'Upload' }).click();
-    await A.getByRole('cell', { name: "Alice's Adventures in Wonderland" }).waitFor();
+    await shelf(A).getByRole('link', { name: "Alice's Adventures in Wonderland" }).waitFor();
     await shot(A, '5-a-uploaded');
 
     // B sees the book
     await B.reload();
-    const row = await B.getByRole('row', { name: /Alice's Adventures in Wonderland/ }).innerText();
-    expect(row).toMatch(/Alice's Adventures in Wonderland\s+Lewis Carroll\s+Alex/);
+    const row = await shelf(B).getByRole('listitem').filter({ hasText: "Alice's Adventures in Wonderland" }).innerText();
+    expect(row).toMatch(/Alice's Adventures in Wonderland\s+Lewis Carroll/);
     await shot(B, '6-b-sees-book');
 
     // B re-uploads alice.epub (same bytes)
     await B.locator('input[type=file]').setInputFiles('./fixtures/alice.epub');
     await B.getByRole('button', { name: 'Upload' }).click();
     await B.locator('main [role=status]').filter({ hasText: 'already' }).waitFor();
-    expect(await B.getByRole('row', { name: /Alice's Adventures/ }).count()).toBe(1);
+    expect(await shelf(B).getByRole('listitem').filter({ hasText: "Alice's Adventures" }).count()).toBe(1);
 
     // B uploads package.json (not an EPUB)
     await B.locator('input[type=file]').setInputFiles('./package.json');
@@ -100,8 +102,8 @@ test('couple flow: sign up, join, upload books, exceed 50MB limit', async ({ bas
     await B.getByRole('button', { name: 'Upload' }).click();
     await B.locator('main [role=status]').filter({ hasText: 'Pride and Prejudice' }).waitFor({ timeout: 60_000 });
     await A.reload();
-    const table = await A.getByRole('table').innerText();
-    expect(table).toMatch(/Pride and Prejudice\s+Jane Austen\s+Bea/);
+    const table = await shelf(A).innerText();
+    expect(table).toMatch(/Pride and Prejudice\s+Jane Austen/);
     await shot(A, '8-a-library-two-books');
 
     // Create and upload a 50 MB + 1 byte file

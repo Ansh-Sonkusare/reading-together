@@ -23,6 +23,7 @@ test('reading together today starts a streak, and a met goal shows a check for b
     await expect(page.getByTestId('streak')).toHaveText('🔥 1-day reading streak');
   }
 
+  await a.getByText('Set a daily goal').click();
   const form = a.getByRole('form', { name: 'Reading goal' });
   await form.getByLabel('Daily goal').fill('2');
   await form.getByLabel('Unit').selectOption('pages_per_day');

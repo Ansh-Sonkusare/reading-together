@@ -17,7 +17,7 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
   const error = mine ? "You're already in a couple." : status === 'full' ? FULL : status === 'invalid' ? INVALID : null;
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-10">
-      <section className="flex flex-col gap-5 rounded-sheet border bg-card p-6 [&_input:not([type=radio])]:rounded-xl [&_input:not([type=radio])]:bg-background">
+      <section className="flex flex-col gap-5 rounded-sheet border bg-card p-6">
         <div className="flex flex-col gap-1.5">
           <h1 className="text-3xl">Join your partner&apos;s library</h1>
           {!error && <p className="text-muted-foreground">Pick your name and your ink. Your partner&apos;s ink is already taken.</p>}

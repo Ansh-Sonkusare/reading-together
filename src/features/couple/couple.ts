@@ -9,9 +9,11 @@ export type Result = { error: string } | undefined;
 export const FULL = 'This couple already has two readers.';
 export const INVALID = "That invite link isn't valid.";
 
+// {partner} is filled with the partner's name.
 const RPC_ERRORS: Record<string, string> = {
   'couple is full': FULL,
   'invalid invite code': INVALID,
+  'ink taken': '{partner} already uses that ink. Pick another.',
 };
 
 export async function getUserId(): Promise<string | null> {
@@ -58,7 +60,13 @@ export async function joinCouple(code: string, name: string, color: Color): Prom
   const { error } = await db.rpc('join_couple', { invite_code: code, name, color });
   if (!error) return;
   if (error.code === '23505') return { error: "You're already in a couple." };
-  return { error: RPC_ERRORS[error.message] ?? 'Could not join this couple.' };
+  const message = RPC_ERRORS[error.message] ?? 'Could not join this couple.';
+  return { error: message.includes('{partner}') ? message.replace('{partner}', await partnerName(code)) : message };
+}
+
+async function partnerName(code: string): Promise<string> {
+  const { data } = await createAdminClient().from('couple').select('member(name)').eq('invite_code', code).maybeSingle();
+  return data?.member[0]?.name ?? 'Your partner';
 }
 
 // Non-members can't read the couple through RLS, so peek with the admin client

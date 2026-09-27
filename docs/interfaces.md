@@ -10,9 +10,10 @@ member   (user_id uuid pk → auth.users, couple_id → couple, name, color text
           timezone text not null default 'UTC' check is a pg_timezone_names name)
          -- at most 2 members per couple (trigger)
          -- color is one of the six inks (check color = any(inks())), unique(couple_id, color): partners never share an ink (U0)
-book     (id, couple_id, title, author, sha256 text, storage_path, spine_lengths int[], toc jsonb null, added_by, created_at,
+book     (id, couple_id, title, author, sha256 text, storage_path, spine_lengths int[], toc jsonb null, cover_path text null, added_by, created_at,
           unique(couple_id, sha256))
          -- toc: [{ spine, label }] from the EPUB nav (else NCX), first entry per spine; null before F3 or when no entry hits the spine (D18)
+         -- cover_path: covers/{couple_id}/{book_id}.{jpg|png|webp|gif}, null when the EPUB has no usable cover (U2)
          -- no client insert policy: only the uploadBook server action inserts, with the service role (D13)
 progress (user_id, book_id, pos numeric, max_pos numeric, locator jsonb, updated_at, pk(user_id, book_id))
          -- pos = start of the visible page (where to reopen); max_pos = greatest(max_pos, end of visible page), never decreases
@@ -61,6 +62,8 @@ Members may update only their own `name`, `color`, `avatar_url`, `timezone`.
 
 Private bucket `books`, object path `{couple_id}/{book_id}.epub`, readable and writable only by that couple's members. `uploadBook` writes the object with the member's own session, then inserts the `book` row with the service role.
 
+Private bucket `covers` (U2), object path `{couple_id}/{book_id}.{jpg|png|webp|gif}`: couple members select and insert (same folder rule as `books`); images only, up to 10 MB. `addBook` extracts the cover at upload (`epubCover`: EPUB3 `properties="cover-image"`, else EPUB2 `<meta name="cover">`) and stores it with the member's session; `scripts/backfill-covers.mjs` (service role, idempotent) fills older books. Pages show covers through 600 s signed URLs.
+
 Private bucket `memories` (P43), object path `{couple_id}/{mark_id}.{jpg|png|webp|heic|heif}`: couple members select and insert, only the uploader deletes. The bucket allows `image/jpeg|png|webp|heic|heif` up to 10 MB. A `memory` mark's `media_url` is that storage path (never a public URL), and `mark_insert` / `mark_update` require it (`memory_media_ok`); every other kind has `media_url` null. Clients show it through a 60 s signed URL.
 
 ## Rules enforced in the database (RLS and triggers)
@@ -81,7 +84,7 @@ Private bucket `memories` (P43), object path `{couple_id}/{mark_id}.{jpg|png|web
 - `/discuss/[bookId]/[spine]`: the chapter's questions and guess card (P32); 404 for front matter (`chapterTitle` null).
 - `/together/book/[bookId]`: the timeline; the `💬 You discussed {labels, joined by Intl.ListFormat}` line (front matter left out) links each chapter to its `/discuss` page.
 - `POST /api/push/dispatch`: called only by `event_push`; 401 without the secret. Loads the event with the service role, words it with `notificationFor`, sends Web Push (VAPID) to each of the partner's `push_sub` rows. `src/proxy.ts` must let it, `/sw.js` and `/manifest.webmanifest` through without a session (open follow-up from P33).
-- `/library` and `/together` mount `<EnableNotifications/>`: permission is requested only on its button click. `/sw.js` (public/) shows the push and opens or focuses its `url` on click.
+- `/library` mounts `<EnableNotifications/>`: permission is requested only on its button click. `/sw.js` (public/) shows the push and opens or focuses its `url` on click.
 
 ## Realtime channels
 
@@ -134,7 +137,7 @@ revealedBy({ ids, maxPos }, marks): Mark[]    // unseen, top-level, in-text mark
 //   (<li role=img aria-label="Bookmark: {label}">); it never paints on the text
 BOOKMARK_LABELS   // First quote we both loved · Favorite chapter · Funny part · Important conversation (+ custom text)
 useInbox(meId): Mark[]   // the partner's sends, newest first, live over inbox:{meId} (client-side kind check)
-<Inbox meId partner books />   // /library "From {partner}": quote, optional message, link /book/{id}?mark={markId}
+<Inbox meId partner books />   // marks' original; /library now renders features/couple/inbox.tsx's Inbox (same contract, quote cards in the partner's ink)
 // /book/[id]?mark={id}: the server reads that mark's locator (RLS) and the reader opens there instead of progress.locator
 toPaintMarks(anchors, members): PaintMark[]   // one per CFI in each author's latest coloured mark there (else their ink); a note → 'note';
     // both partners → 'underline' in the blend of their two inks
@@ -171,7 +174,10 @@ useProgressSaver(bookId, userId, initial: Progress | null): { save(pos, pageEndP
 usePartnerProgress(bookId, partnerId | null, initial: Progress | null): Progress | null   // client; live via book:{id}
     // (replaces the drafted useProgressPair: "me" is the reader's own relocate pos, so only the partner needs a hook)
 getMyCouple(): Promise<{ id; inviteCode; members: { userId; name; color }[] } | null>   // server only
-listBooks(coupleId, members): Promise<{ id; title; author; addedBy; createdAt }[]>       // server only
+listBooks(coupleId): Promise<{ id; title; author; coverUrl | null; spineLengths; places: { userId; pos; updatedAt }[] }[]>   // server only
+ribbonOf(book, members, meId) → { total, marks: RibbonMark[] }; lastRead(books, meId) → Book | null   // DuetRibbon props; the continue-reading book
+addBook(db, admin, file) → UploadResult   // features/couple/add-book.ts: uploadBook's body, free of server-only (tests/db/cover.test.ts)
+epubCover(bytes) → { bytes, type, ext } | null   // features/couple/epub-cover.ts, no imports (Node runs it in the backfill script)
 uploadBookAction(prev, formData{file}) → { ok: string } | { error: string }              // server action
 
 // features/notify

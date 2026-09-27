@@ -3,20 +3,21 @@
 _Update before ending every session._
 
 ## Now
-- Phase 0 (planning). Docs drafted: `docs/map.md`, `docs/interfaces.md`, `docs/decisions.md`, `PLAN.md`.
-- Waiting on the owner's answers to the open questions in `PLAN.md` (the grill).
+- P01 scaffold is merged (Next 16, Tailwind 4 + shadcn, vitest, Supabase CLI 2, real `fixtures/alice.epub`).
+- P02 (schema, gates, DB tests) and P03 (reader engine spike) are running in parallel in worktrees.
+- Next up: P04 (verify skill) + P11 (auth/couple) once P02 lands; P12-P15 fan out after that.
 
 ## Workstreams
-| WS | Owner | State |
-|---|---|---|
-| A schema/RLS | none | not started |
-| B reader | none | not started |
-| C marks | none | not started |
-| D couple/library | none | not started |
-| E together | none | phase 3 |
+| WS | State |
+|---|---|
+| A schema/RLS | P02 wip |
+| B reader | P03 wip |
+| C marks | waiting on P02, P03 |
+| D couple/library | waiting on P02 |
+| E together | phase 3 |
 
 ## Contract requests
-_(workstreams ask WS-A for schema changes here)_
+_none_
 
 ## Blockers
 _none_

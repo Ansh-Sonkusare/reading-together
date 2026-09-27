@@ -11,7 +11,7 @@ export default defineConfig({
   webServer: {
     command: `pnpm dev --port ${PORT}`,
     url: `http://localhost:${PORT}/dev/reader`,
-    reuseExistingServer: false,
+    reuseExistingServer: Boolean(process.env.E2E_PORT),
     timeout: 120_000,
   },
 });

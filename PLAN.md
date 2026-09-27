@@ -62,7 +62,8 @@ Public-domain catalogue (D1), native apps, groups of more than two, PDFs, DRM bo
 | P12 | Upload EPUB → Storage, `sha256` + `spine_lengths`, shared library | D | verify: A uploads, B sees the book | done |
 | P13a | Reader engine behind `ReaderHandle` (foliate): render, paginate, relocate → Locator/pos, select, paint, goTo, font size, per-chapter length check; `/dev/reader` page; Playwright e2e | B | `pnpm test:e2e` reader spec: pos stable across font sizes in the real app | done |
 | P13b | Reader page wired to data: open a book from Storage, save progress (debounced, max_pos = page end), restore position | B | verify: reopening restores the position | wip |
-| P14 | Marks: selection menu, highlight, 7 reactions, note, reply thread, per-person colours, realtime | C | verify: A reacts and B sees it within 2 seconds; B replies and A sees it | todo |
+| P14a | Marks data + components: createMark/useMarks with Realtime, same-range merge for painting, SelectionMenu (highlight, 7 reactions, note), ThreadPanel (replies), per-person colours | C | unit + DB tests; component test renders the 7 reactions | wip |
+| P14b | Wire marks into /book/[id]: select → menu → mark painted; markClick → thread; live for the partner | C | verify: A reacts and B sees it within 2 seconds; B replies and A sees it | todo |
 | P15 | Progress pair bar "Alex p.42 · you p.38" | D | verify: both positions shown and updated live | wip |
 | P21 | Reveal-on-reach: marks ahead are invisible, then appear with "✨ new from Alex" | C | verify: gate scenario done by hand in the UI | todo |
 | P22 | Re-anchor a mark by text quote when its CFI misses | B | verify: a highlight lands on the same text at font sizes S and L | todo |

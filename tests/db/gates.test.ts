@@ -54,7 +54,7 @@ beforeAll(async () => {
   coupleAB = await ok(B.db.rpc('join_couple', { invite_code: inviteAB }));
   await ok(C.db.rpc('create_couple', { name: 'Cam', color: '#2563eb' }));
   const book = await ok(
-    A.db
+    admin
       .from('book')
       .insert({ couple_id: coupleAB, title: 'Alice', added_by: A.id, spine_lengths: [1000, 1000, 1000, 1000] })
       .select()
@@ -83,6 +83,20 @@ describe('couple scope', () => {
   it('clients cannot insert couple or member rows directly', async () => {
     expect((await D.db.from('couple').insert({})).error?.code).toBe('42501');
     expect((await D.db.from('member').insert({ user_id: D.id, couple_id: coupleAB })).error?.code).toBe('42501');
+  });
+});
+
+describe('books (D13)', () => {
+  it('a member cannot insert a book row, even into their own couple', async () => {
+    const { error } = await A.db.from('book').insert({ couple_id: coupleAB, title: 'Forged', added_by: A.id, spine_lengths: [1] });
+    expect(error?.code).toBe('42501');
+    expect(await ok(A.db.from('book').select('id').eq('title', 'Forged'))).toEqual([]);
+  });
+
+  it('refuses a second book with the same sha256 in one couple', async () => {
+    const row = { couple_id: coupleAB, title: 'Twin', added_by: A.id, spine_lengths: [1], sha256: `sha-${run}` };
+    await write(admin.from('book').insert(row));
+    expect((await admin.from('book').insert(row)).error?.code).toBe('23505');
   });
 });
 
@@ -118,7 +132,7 @@ describe('spoiler gate', () => {
   });
 
   it('refuses a reply whose parent is in another book', async () => {
-    const other = await ok(A.db.from('book').insert({ couple_id: coupleAB, title: 'Other', added_by: A.id, spine_lengths: [10] }).select().single());
+    const other = await ok(admin.from('book').insert({ couple_id: coupleAB, title: 'Other', added_by: A.id, spine_lengths: [10] }).select().single());
     await setPos(A, other.id, 0.5);
     const { error } = await A.db.from('mark').insert({ book_id: other.id, author_id: A.id, kind: 'reply', pos: 0.1, parent_id: behindId });
     expect(error?.code).toBe('42501');
@@ -132,7 +146,7 @@ describe('events', () => {
   });
 
   it('hides mark_created events ahead of the reader', async () => {
-    const book = await ok(A.db.from('book').insert({ couple_id: coupleAB, title: 'Gate', added_by: A.id, spine_lengths: [10, 10] }).select().single());
+    const book = await ok(admin.from('book').insert({ couple_id: coupleAB, title: 'Gate', added_by: A.id, spine_lengths: [10, 10] }).select().single());
     await setPos(A, book.id, 0.5);
     await setPos(B, book.id, 0.2);
     const mark = await ok(A.db.from('mark').insert({ book_id: book.id, author_id: A.id, kind: 'highlight', pos: 0.4 }).select().single());

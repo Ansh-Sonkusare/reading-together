@@ -51,6 +51,16 @@ describe('notificationFor', () => {
     });
   });
 
+  it('a memory added to a passage shows its caption', () => {
+    const memory = mark({ kind: 'memory', body: 'Dinner at our favorite restaurant ❤️', locator: locator('She smiled at him across the table.') });
+    expect(notificationFor(markEvent(0.5), memory, null, members, ALEX, 'Alice')).toEqual({
+      title: '📸 Sam added a memory to a passage',
+      body: 'Dinner at our favorite restaurant ❤️',
+      url: '/book/b1',
+    });
+    expect(notificationFor(markEvent(0.5), mark({ ...memory, body: null }), null, members, ALEX, 'Alice')?.body).toBe('“She smiled at him across the table.”');
+  });
+
   it('a finished chapter invites the partner', () => {
     const event: NotifyEvent = { type: 'chapter_finished', actor_id: SAM, book_id: 'b1', pos: null, data: { spine: 4 } };
     expect(notificationFor(event, null, null, members, ALEX, 'Alice')).toEqual({

@@ -63,7 +63,7 @@ export function notificationFor(
     case 'send':
       return { title: `📨 ${name} sent you a passage`, body: textOf(mark), url: book };
     case 'memory':
-      return { title: `📷 ${name} added a memory`, body: textOf(mark), url: book };
+      return { title: `📸 ${name} added a memory to a passage`, body: textOf(mark), url: book };
     case 'bookmark':
       return null;
   }

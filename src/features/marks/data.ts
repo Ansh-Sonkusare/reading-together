@@ -5,7 +5,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { joinChannel } from '../../lib/realtime';
 import { createBrowserClient } from '../../lib/supabase';
 import type { Database, TablesInsert } from '@/lib/types';
-import { groupByAnchor, revealedBy, type Anchor, type Mark, type NewMark } from './model';
+import type { Locator, Pos } from '@/features/reader';
+import { groupByAnchor, memoryExt, revealedBy, type Anchor, type Mark, type NewMark } from './model';
 
 type Client = SupabaseClient<Database>;
 
@@ -29,6 +30,38 @@ export async function createMark(db: Client, input: NewMark): Promise<Mark> {
   const { data, error } = await db.from('mark').insert(row).select().single();
   if (error) throw error;
   return data as Mark;
+}
+
+export type NewMemory = { bookId: string; locator: Locator; pos: Pos; photo: Blob; caption: string | null };
+
+// The photo goes first, to the path the mark will own, so a mark never points at a missing photo;
+// a failed insert removes the photo so none is orphaned.
+export async function addMemory(db: Client, input: NewMemory): Promise<Mark> {
+  const ext = memoryExt(input.photo);
+  const { data: coupleId, error: cErr } = await db.rpc('my_couple_id');
+  if (cErr) throw cErr;
+  const id = crypto.randomUUID();
+  const path = `${coupleId}/${id}.${ext}`;
+  const bucket = db.storage.from('memories');
+  const up = await bucket.upload(path, input.photo, { contentType: input.photo.type });
+  if (up.error) throw up.error;
+  const { data, error } = await db
+    .from('mark')
+    .insert({ id, kind: 'memory', book_id: input.bookId, locator: input.locator, pos: input.pos, body: input.caption, media_url: path })
+    .select()
+    .single();
+  if (error) {
+    await bucket.remove([path]);
+    throw error;
+  }
+  return data as Mark;
+}
+
+// Short-lived: the thread fetches a fresh one each time it renders the photo.
+export async function memoryPhotoUrl(db: Client, path: string): Promise<string> {
+  const { data, error } = await db.storage.from('memories').createSignedUrl(path, 60);
+  if (error) throw error;
+  return data.signedUrl;
 }
 
 type Change = (marks: Mark[]) => Mark[];

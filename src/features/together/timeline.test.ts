@@ -74,6 +74,14 @@ describe('describeDay', () => {
     expect(day([q(0), q(1), q(2)])).toEqual(['💬 You discussed Chapters 1, 2 and 3']);
   });
 
+  it('says who added a memory, and counts it as one of the memories created', () => {
+    const memory = (actorId: string) => ev('mark_created', actorId, { mark: { kind: 'memory', emoji: null, cfi: 'c' } });
+    expect(day([memory(SAM)])).toEqual(['📸 Sam added a memory']);
+    expect(day([memory(SAM)], SAM)).toEqual(['📸 You added a memory']);
+    expect(day([memory(ME), memory(ME)])).toEqual(['📸 You added 2 memories']);
+    expect(memoriesLine([memory(SAM), highlight(ME)])).toBe('❤️ 2 memories created');
+  });
+
   it('skips mark events whose mark the viewer cannot read, and ignores chapter_finished', () => {
     expect(day([ev('mark_created', SAM, { mark: null }), ev('chapter_finished', ME, { data: { spine: 0 } })])).toEqual([]);
   });

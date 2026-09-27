@@ -56,6 +56,8 @@ Members may update only their own `name`, `color`, `avatar_url`, `timezone`.
 
 Private bucket `books`, object path `{couple_id}/{book_id}.epub`, readable and writable only by that couple's members. `uploadBook` writes the object with the member's own session, then inserts the `book` row with the service role.
 
+Private bucket `memories` (P43), object path `{couple_id}/{mark_id}.{jpg|png|webp|heic|heif}`: couple members select and insert, only the uploader deletes. The bucket allows `image/jpeg|png|webp|heic|heif` up to 10 MB. A `memory` mark's `media_url` is that storage path (never a public URL), and `mark_insert` / `mark_update` require it (`memory_media_ok`); every other kind has `media_url` null. Clients show it through a 60 s signed URL.
+
 ## Rules enforced in the database (RLS and triggers)
 
 1. **Couple scope**: every row is visible only to members of its couple.
@@ -107,11 +109,14 @@ displayPage(pos, spineLengths): number     // floor(chars before pos / 1500) + 1
 
 // features/marks
 createMark(db, input: NewMark): Promise<Mark>   // a reply copies its parent's locator and pos
+addMemory(db, { bookId, locator, pos, photo: Blob, caption | null }): Promise<Mark>   // P43: memoryExt checks type and size, uploads to
+    // memories/{couple}/{uuid}.{ext}, then inserts the kind 'memory' mark with that id at the anchor's locator/pos; a failed insert removes the photo
+memoryPhotoUrl(db, path): Promise<string>   // 60 s signed URL
 useMarks(bookId, { myMaxPos }): { marks: Mark[]; anchors: Anchor[]; revealed: Mark[] }   // live over marks:{id} via joinChannel;
     // re-fetches when myMaxPos (useProgressSaver's savedMaxPos) changes, so a partner's earlier marks appear once reached;
     // revealed = the latest batch a re-fetch newly returned past the previous fetch's max_pos (revealedBy), for the toast
 revealedBy({ ids, maxPos }, marks): Mark[]    // unseen, top-level, in-text marks with pos > maxPos
-<RevealToast mark partner onShow onClose />   // role=status "✨ New from {partner}: {emoji | 'a note' | 'a highlight'}" + Show (opens
+<RevealToast mark partner onShow onClose />   // role=status "✨ New from {partner}: {emoji | 'a note' | 'a memory' | 'a highlight'}" + Show (opens
     // the thread); 8 s. Never a count or hint of marks still ahead (D9): it only describes marks RLS already returned
 // bookmark and send marks carry a locator but aren't anchors: groupByAnchor skips them, so they're never painted or threaded
 <BookmarksPanel bookmarks members onGo(mark) onClose />   // header "Bookmarks" button on /book; label + quote, click → goTo
@@ -124,6 +129,8 @@ toPaintMarks(anchors, members): PaintMark[]   // one per CFI; both partners → 
     // 7 reactions by aria-label + Highlight + Note + Bookmark (label picker) + "Send to {partner}" (optional message; solo: hidden);
     // kept inside the viewport; dismisses on Escape, a click outside it, or a click into the book (window blur)
 <ThreadPanel anchor members meId onReply(body) onClose />   // bottom sheet below md, side panel at md+; Escape closes
+    // memories render in time order with the anchor's marks as <li aria-label="Memory"> (img alt "Memory photo", "📸 {You|name}: caption");
+    // "Add a memory 📸" opens form "Add a memory" (Photo, Caption, Save memory) and calls addMemory itself; the mark arrives over marks:{bookId}
 // /book/[id]: select → SelectionMenu; markClick(id) → ThreadPanel for anchors.find(a => a.cfi === id);
 //   replies parent to the anchor's first mark. Overlay test hook: foliate overlay <g data-mark-id={cfi} fill={color}>
 // lib/realtime.ts

@@ -16,7 +16,7 @@ Each phase ends in a **demo you can check in two browsers** (two accounts, one c
 ### 0. Scaffold and contract (serial, one agent)
 - `pnpm create next-app`, Tailwind + shadcn, vitest, Supabase CLI and local stack.
 - Migrations for every table in `interfaces.md`, including the RLS spoiler gate and reveal gate, and triggers that write `event`.
-- **SQL tests for the gates** (pgTAP or vitest against local Supabase): A at pos 0.5, B at 0.2, B can't select A's mark at 0.4 but can see it in `mark_locked`, then B moves to 0.5 and can select it.
+- **SQL tests for the gates** (pgTAP or vitest against local Supabase): A at pos 0.5, B at 0.2, B can't select A's mark at 0.4 or even count it, then B moves to 0.5 and can select it.
 - Stub `features/*/index.ts` with the signatures from `interfaces.md`, throwing `not implemented`.
 - ✅ Demo: `pnpm test` is green, including the gate tests.
 
@@ -28,7 +28,7 @@ Each phase ends in a **demo you can check in two browsers** (two accounts, one c
 - ✅ Demo: A highlights and reacts, and B sees it within 2 seconds. B replies, and A sees the reply.
 
 ### 2. Spoiler lock and bookmarks (parallel: B, C)
-- **C** 🔒 chips from `mark_locked` that unlock live as progress moves. Bookmarks with labels. "Reminded me of you" send.
+- **C** Marks ahead appear live as your progress reaches them (with a small "✨ new from Alex" reveal). Bookmarks with labels. "Reminded me of you" send.
 - **B** Re-anchor a mark by text quote when its CFI misses. Test at font sizes S, M and L.
 - ✅ Demo: the gate test from Phase 0, done by hand in the UI.
 
@@ -48,5 +48,6 @@ Each phase ends in a **demo you can check in two browsers** (two accounts, one c
 ## Out of scope (for now)
 Public-domain catalogue (D1), native apps, groups of more than two, PDFs, DRM books, AI-generated discussion questions.
 
-## Open questions (the grill)
-These are answered in chat, and the answers are recorded as decisions in `docs/decisions.md`.
+## Open questions
+Answered decisions live in `docs/decisions.md`. Still open:
+- "Sarah finished Chapter 12" pushes and the exact partner position while they're ahead: are those spoilers? (Default for now: show them.)

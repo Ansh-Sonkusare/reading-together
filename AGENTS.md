@@ -26,7 +26,6 @@ A couples' shared EPUB reader with per-person highlights, reactions, threads and
 | Contract between parts | `docs/interfaces.md` |
 | Why | `docs/decisions.md` |
 | Competitors and reader tech | `docs/research/` |
-| Prompt for the build orchestrator | `docs/prompts/build.md` |
 
 ## Workstream ownership
 

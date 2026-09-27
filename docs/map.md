@@ -1,6 +1,6 @@
 # Map
 
-How the idea (`docs/idea.md`) turns into a small set of primitives, and where each one lives. Status: **draft until the open questions in `PLAN.md` are answered.**
+How the idea (`docs/idea.md`) turns into a small set of primitives, and where each one lives. Status: platform, backend and spoiler scope decided (D6, D8, D9).
 
 ## Four primitives
 
@@ -13,7 +13,7 @@ Every feature comes from four things. If a new feature needs a fifth, record why
 | **Event** | `event` | An append-only record of what happened and when |
 | **Reveal** | `answer` | A hidden answer that's revealed once both partners have answered |
 
-On top of these sits one rule, the **spoiler gate**: a mark is visible to me if I wrote it, or its position is at or before my position.
+On top of these sits one rule, the **spoiler gate**: a mark exists for me only if I wrote it, or its position is at or before my position.
 
 ## Feature → primitive
 
@@ -31,7 +31,7 @@ On top of these sits one rule, the **spoiler gate**: a mark is visible to me if 
 | Couple memories | Mark `memory` + `media_url` | |
 | Per-person colors, themes | `member.color`, local reader prefs | Reader prefs are device-local |
 | Notifications | Event → push | Personal wording comes from the event plus the mark text |
-| Spoiler protection | Spoiler gate (RLS) | Locked marks show as `🔒 Sarah left a reaction` |
+| Spoiler protection | Spoiler gate (RLS) | Marks ahead of you are **invisible, not just locked**: no 🔒 chip, since a chip's position and kind is itself a spoiler (D9) |
 | Discussion questions | Reveal (`kind = question`) | Questions are a static list per chapter in v1 |
 | Guess their reaction | Reveal (`kind = guess`) | Same mechanism, different prompt |
 | Stats dashboard | SQL views over Mark and Event | |
@@ -73,7 +73,7 @@ type Locator = {
 ```
 reading-together/
 ├── AGENTS.md  CLAUDE.md  PLAN.md
-├── docs/  idea.md map.md interfaces.md decisions.md research/ prompts/
+├── docs/  idea.md map.md interfaces.md decisions.md research/
 ├── notes/status.md
 ├── supabase/migrations/        ← WS-A owns
 └── src/

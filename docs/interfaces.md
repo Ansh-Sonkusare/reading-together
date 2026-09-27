@@ -25,7 +25,7 @@ push_sub (user_id, endpoint, keys jsonb)
 ## Rules enforced in the database (RLS and triggers)
 
 1. **Couple scope**: every row is visible only to members of its couple.
-2. **Spoiler gate** on `mark` select: `author_id = auth.uid() OR pos <= my_pos(book_id)`. For locked marks, a separate view `mark_locked` exposes only `(id, author_id, kind, spine)`, which is enough to draw the 🔒 chip without leaking content.
+2. **Spoiler gate** on `mark` select: `author_id = auth.uid() OR pos <= my_pos(book_id)`. Marks ahead of you are hidden entirely, including the fact that they exist (D9). There is no locked view. Realtime inserts that fail RLS are never delivered, so nothing leaks.
 3. **Reveal gate** on `answer` select: you see your own answer, and your partner's only once you've answered the same prompt.
 4. **Events are written by triggers only**, never by the client. Clients can't insert into `event`.
 5. `mark.pos` must be ≤ the author's own `progress.pos` + ε. You can't annotate text you haven't reached.
@@ -42,12 +42,12 @@ push_sub (user_id, endpoint, keys jsonb)
 openBook(bookId): Promise<ReaderHandle>
 ReaderHandle.onRelocate(cb: (loc: Locator, pos: number) => void)
 ReaderHandle.onSelect(cb: (sel: { locator: Locator; pos: number; text: string }) => void)
-ReaderHandle.paint(marks: VisibleMark[], locked: LockedMark[])
+ReaderHandle.paint(marks: Mark[])
 ReaderHandle.goTo(locator: Locator)
 
 // features/marks
 createMark(input: NewMark): Promise<Mark>
-useMarks(bookId): { visible: VisibleMark[]; locked: LockedMark[] }
+useMarks(bookId): Mark[]   // re-fetches when my progress passes new marks
 
 // features/couple
 useProgressPair(bookId): { me: Progress; partner: Progress | null }

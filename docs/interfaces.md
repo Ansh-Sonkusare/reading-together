@@ -82,7 +82,7 @@ Private bucket `memories` (P43), object path `{couple_id}/{mark_id}.{jpg|png|web
 - `marks:{bookId}` (mark) and `progress:{bookId}` (progress): postgres_changes, one channel per feature so names never collide in one client. RLS still applies, and the client re-fetches marks when its own progress moves past new ones.
   Two client gotchas (P15): call `realtime.setAuth(session.access_token)` before joining, or the join can go out as anon and RLS delivers nothing; and don't join an identical channel before the previous leave resolves (StrictMode remount), because Realtime keys the subscription by its params and the late leave kills the new one.
 - `discussion:{bookId}:{spine}` (event, answer_revealed): the discussion page's reveal.
-- `sync:{bookId}` (P51, replaces the drafted `presence:book:{id}`): presence `{ userId }` says who's in the book; broadcast `signal` `{ type: invite|accept|decline|leave, by }` and `locator` `{ by, locator }` (leader only, 150 ms after its last relocate). Ephemeral, nothing stored. Public channel, like the others; a private channel needs realtime.messages RLS.
+- `sync:{bookId}` (P51, replaces the drafted `presence:book:{id}`): presence `{ userId }` says who's in the book; broadcast `signal` `{ type: invite|accept|decline|leave, by }` and `locator` `{ by, locator }` (leader only, 150 ms after its last relocate). Ephemeral, nothing stored. **Private** (F1): joined with `joinChannel(..., { private: true })`; the realtime.messages policies `book_topic_receive`/`book_topic_send` allow broadcast and presence only when `can_use_book_topic(realtime.topic())`, i.e. the topic is `sync:<uuid>` and you are a member of that book's couple. Anything else, a malformed topic included, is refused (CHANNEL_ERROR, ~5 s). A public channel of the same name is a separate topic and never sees private traffic. A new `<feature>:<bookId>` broadcast/presence channel extends the prefix list in `can_use_book_topic`.
 
 ## Client module surfaces (signatures only)
 
@@ -134,7 +134,7 @@ toPaintMarks(anchors, members): PaintMark[]   // one per CFI; both partners → 
 // /book/[id]: select → SelectionMenu; markClick(id) → ThreadPanel for anchors.find(a => a.cfi === id);
 //   replies parent to the anchor's first mark. Overlay test hook: foliate overlay <g data-mark-id={cfi} fill={color}>
 // lib/realtime.ts
-joinChannel(db, name, listen, onSubscribed): leave   // waits for the previous leave, setAuth, then subscribes
+joinChannel(db, name, listen, onSubscribed, { private? }): leave   // waits for the previous leave, setAuth, then subscribes; private for broadcast/presence
 
 // features/sync (P51)
 reduce(s: SyncState, e: SyncEvent, me): SyncState   // pure; SyncState solo | partnerHere | inviting | invited{from} | leading | following{leader}

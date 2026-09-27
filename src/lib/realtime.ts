@@ -10,6 +10,7 @@ export function joinChannel(
   name: string,
   listen: (channel: RealtimeChannel) => RealtimeChannel,
   onSubscribed: () => void,
+  opts: { private?: boolean } = {},
 ): () => void {
   let channel: RealtimeChannel | null = null;
   let live = true;
@@ -19,7 +20,7 @@ export function joinChannel(
     // Without this the join can go out before the client has handed Realtime the session, and RLS then sees anon.
     await db.realtime.setAuth(data.session?.access_token ?? null);
     if (!live) return;
-    channel = listen(db.channel(name)).subscribe((status) => status === 'SUBSCRIBED' && onSubscribed());
+    channel = listen(db.channel(name, { config: { private: opts.private ?? false } })).subscribe((status) => status === 'SUBSCRIBED' && onSubscribed());
   });
   return () => {
     live = false;

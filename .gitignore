@@ -42,3 +42,6 @@ next-env.d.ts
 .claude/worktrees/
 test-results/
 playwright-report/
+!.env.example
+.verify/
+supabase/.temp/

@@ -67,6 +67,13 @@ export async function myPage(page: Page): Promise<number> {
   return Number(/you p\.(\d+)$/.exec((await pair(page).textContent())!)![1]);
 }
 
+export async function pageUntil(page: Page, done: (pos: string | null) => boolean) {
+  for (let i = 0; i < 40 && !done(await myPos(page).textContent()); i++) {
+    await turn(page, () => page.getByRole('button', { name: 'Next page' }).click());
+  }
+  expect(done(await myPos(page).textContent())).toBe(true);
+}
+
 export const CHAPTER_1 = '2.000087';
 export const thread = (page: Page) => page.getByRole('region', { name: 'Thread' });
 

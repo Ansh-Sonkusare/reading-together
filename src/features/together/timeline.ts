@@ -27,8 +27,15 @@ const MONTHS = ['Jan.', 'Feb.', 'March', 'April', 'May', 'June', 'July', 'Aug.',
 const qty = (n: number, one: string, many: string) => (n === 1 ? `a ${one}` : `${n} ${many}`);
 const emojiOf = (r: Reaction | null) => REACTIONS.find((x) => x.key === r)?.emoji ?? '💭';
 
+export const DISCUSSED = '💬 You discussed';
+
+export function discussedSpines(events: TimelineEvent[]): number[] {
+  const spines = events.filter((e) => e.type === 'answer_revealed' && e.data.kind === 'question' && e.data.spine !== undefined).map((e) => e.data.spine!);
+  return [...new Set(spines)].sort((a, b) => a - b);
+}
+
 function chapters(spines: number[]): string {
-  const names = [...new Set(spines)].sort((a, b) => a - b).map((s) => String(s + 1));
+  const names = spines.map((s) => String(s + 1));
   if (names.length === 1) return `Chapter ${names[0]}`;
   return `Chapters ${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }
@@ -68,8 +75,8 @@ export function describeDay(events: TimelineEvent[], members: TimelineMember[], 
   }
 
   const revealed = ofType('answer_revealed');
-  const questions = revealed.filter((e) => e.data.kind === 'question' && e.data.spine !== undefined);
-  if (questions.length) lines.push(`💬 You discussed ${chapters(questions.map((e) => e.data.spine!))}`);
+  const discussed = discussedSpines(events);
+  if (discussed.length) lines.push(`${DISCUSSED} ${chapters(discussed)}`);
   const guesses = revealed.filter((e) => e.data.kind === 'guess').length;
   if (guesses) lines.push(`🎯 You guessed each other's reaction${guesses === 1 ? '' : ` ${guesses} times`}`);
 

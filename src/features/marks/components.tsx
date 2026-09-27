@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
-import { X } from 'lucide-react';
+import { Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { InkSwatches } from '@/components/ui/ink';
@@ -11,7 +11,7 @@ import { COLORS, type Color } from '@/features/couple/palette';
 import { createBrowserClient } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { addMemory, memoryPhotoUrl } from './data';
-import { BOOKMARK_LABELS, REACTIONS, describe, inkOf, type Anchor, type Mark, type Member, type Reaction } from './model';
+import { BOOKMARK_LABELS, REACTIONS, canRemove, describe, inkOf, type Anchor, type Mark, type Member, type Reaction } from './model';
 
 const GAP = 8;
 const textarea =
@@ -216,7 +216,26 @@ function MemoryPhoto({ path }: { path: string }) {
   return src ? <img src={src} alt="Memory photo" className="max-h-64 w-full rounded-lg object-cover" /> : <div className="h-40 w-full animate-pulse rounded-lg bg-wash" />;
 }
 
-function Line({ mark, members, meId }: { mark: Mark; members: Member[]; meId: string }) {
+const KIND_WORD: Record<Mark['kind'], string> = {
+  highlight: 'highlight',
+  reaction: 'reaction',
+  note: 'note',
+  reply: 'reply',
+  bookmark: 'bookmark',
+  send: 'passage',
+  memory: 'memory',
+};
+
+function RemoveButton({ label, onClick, className }: { label: string; onClick: () => void; className?: string }) {
+  return (
+    <Button variant="quiet" size="icon-sm" aria-label={label} title={label} className={cn('shrink-0 text-pencil hover:text-danger', className)} onClick={onClick}>
+      <Trash2 />
+    </Button>
+  );
+}
+
+function Line({ mark, members, meId, onRemove }: { mark: Mark; members: Member[]; meId: string; onRemove?: () => void }) {
+  const remove = onRemove && <RemoveButton label={`Remove your ${KIND_WORD[mark.kind]}`} onClick={onRemove} className="ml-auto self-start" />;
   const author = members.find((m) => m.userId === mark.author_id);
   const who = mark.author_id === meId ? 'You' : (author?.name ?? 'Reader');
   const ink = inkOf(mark, members);
@@ -224,9 +243,12 @@ function Line({ mark, members, meId }: { mark: Mark; members: Member[]; meId: st
     return (
       <li aria-label="Memory" className="flex flex-col gap-2 rounded-lg border-l-4 bg-wash p-2 text-sm" style={{ borderColor: ink }}>
         {mark.media_url && <MemoryPhoto path={mark.media_url} />}
-        <p>
-          <span className="font-medium">📸 {who}:</span> {mark.body}
-        </p>
+        <div className="flex items-start gap-2">
+          <p>
+            <span className="font-medium">📸 {who}:</span> {mark.body}
+          </p>
+          {remove}
+        </div>
       </li>
     );
   }
@@ -238,6 +260,7 @@ function Line({ mark, members, meId }: { mark: Mark; members: Member[]; meId: st
       <p>
         <span className="font-medium">{who}:</span> {text}
       </p>
+      {remove}
     </li>
   );
 }
@@ -255,28 +278,28 @@ export function ThreadPanel({
   members,
   meId,
   onReply,
+  onRemove,
   onClose,
 }: {
   anchor: Anchor;
   members: Member[];
   meId: string;
   onReply: (body: string) => void;
+  onRemove: (m: Mark) => void;
   onClose: () => void;
 }) {
+  const all = [...anchor.marks, ...anchor.replies];
+  const line = (m: Mark) => <Line key={m.id} mark={m} members={members} meId={meId} onRemove={canRemove(m, all, meId) ? () => onRemove(m) : undefined} />;
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()} title="In the margin">
       <CloseButton onClick={onClose} />
       <blockquote className="border-l-2 border-rule pl-3 text-lg leading-relaxed text-pencil">{anchor.locator.quote?.exact}</blockquote>
       <ol className="flex flex-col gap-2">
-        {anchor.marks.map((m) => (
-          <Line key={m.id} mark={m} members={members} meId={meId} />
-        ))}
+        {anchor.marks.map(line)}
       </ol>
       {anchor.replies.length > 0 && (
         <ol aria-label="Replies" className="flex flex-col gap-2 border-t border-rule pt-3">
-          {anchor.replies.map((m) => (
-            <Line key={m.id} mark={m} members={members} meId={meId} />
-          ))}
+          {anchor.replies.map(line)}
         </ol>
       )}
       <BodyForm label="Reply" submit="Reply" onSubmit={onReply} />
@@ -385,7 +408,9 @@ export function Ribbon({ color, className }: { color: string; className?: string
   return <span aria-hidden className={cn('inline-block shrink-0 [clip-path:polygon(0_0,100%_0,100%_100%,50%_75%,0_100%)]', className)} style={{ background: color }} />;
 }
 
-export function BookmarksPanel({ bookmarks, members, onGo, onClose }: { bookmarks: Mark[]; members: Member[]; onGo: (m: Mark) => void; onClose: () => void }) {
+type BookmarksPanelProps = { bookmarks: Mark[]; members: Member[]; meId: string; onGo: (m: Mark) => void; onRemove: (m: Mark) => void; onClose: () => void };
+
+export function BookmarksPanel({ bookmarks, members, meId, onGo, onRemove, onClose }: BookmarksPanelProps) {
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()} title="Bookmarks">
       <CloseButton onClick={onClose} />
@@ -394,14 +419,15 @@ export function BookmarksPanel({ bookmarks, members, onGo, onClose }: { bookmark
       ) : (
         <ul className="-mx-2 flex flex-col gap-1">
           {bookmarks.map((m) => (
-            <li key={m.id}>
-              <button className="flex w-full gap-3 rounded-lg p-2 text-left transition-colors hover:bg-wash" onClick={() => onGo(m)}>
+            <li key={m.id} className="flex items-start gap-1">
+              <button className="flex min-w-0 flex-1 gap-3 rounded-lg p-2 text-left transition-colors hover:bg-wash" onClick={() => onGo(m)}>
                 <Ribbon color={inkOf(m, members)} className="mt-0.5 h-6 w-3.5" />
                 <span className="flex min-w-0 flex-col gap-1">
                   <span className="font-medium">{m.label}</span>
                   <span className="line-clamp-2 font-serif text-sm text-pencil italic">{m.locator?.quote?.exact}</span>
                 </span>
               </button>
+              {m.author_id === meId && <RemoveButton label={`Remove bookmark ${m.label}`} onClick={() => onRemove(m)} className="mt-1.5" />}
             </li>
           ))}
         </ul>

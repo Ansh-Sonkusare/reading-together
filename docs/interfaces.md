@@ -125,6 +125,8 @@ createMark(db, input: NewMark): Promise<Mark>   // a reply copies its parent's l
 addMemory(db, { bookId, locator, pos, photo: Blob, caption | null }): Promise<Mark>   // P43: memoryExt checks type and size, uploads to
     // memories/{couple}/{uuid}.{ext}, then inserts the kind 'memory' mark with that id at the anchor's locator/pos; a failed insert removes the photo
 memoryPhotoUrl(db, path): Promise<string>   // 60 s signed URL
+removeMark(db, { id, media_url }): Promise<void>   // delete (RLS: author only), then a memory's photo; the DELETE reaches both over marks:{bookId}
+canRemove(mark, marks, meId): boolean   // mine, and no other member's reply descends from it (parent_id cascades, so it would delete their words)
 useMarks(bookId, { myMaxPos }): { marks: Mark[]; anchors: Anchor[]; revealed: Mark[] }   // live over marks:{id} via joinChannel;
     // re-fetches when myMaxPos (useProgressSaver's savedMaxPos) changes, so a partner's earlier marks appear once reached;
     // revealed = the latest batch a re-fetch newly returned past the previous fetch's max_pos (revealedBy), for the toast
@@ -132,7 +134,7 @@ revealedBy({ ids, maxPos }, marks): Mark[]    // unseen, top-level, in-text mark
 <RevealToast mark partner onShow onClose />   // role=status "✨ New from {partner}: {emoji | 'a note' | 'a memory' | 'a highlight'}" + Show (opens
     // the thread); 8 s. Never a count or hint of marks still ahead (D9): it only describes marks RLS already returned
 // bookmark and send marks carry a locator but aren't anchors: groupByAnchor skips them, so they're never painted or threaded
-<BookmarksPanel bookmarks members onGo(mark) onClose />   // Sheet (dialog) "Bookmarks" from the /book top bar; ribbon in inkOf + label + quote, click → goTo
+<BookmarksPanel bookmarks members meId onGo(mark) onRemove(mark) onClose />   // Sheet (dialog) "Bookmarks" from the /book top bar; ribbon in inkOf + label + quote, click → goTo; my own get "Remove bookmark {label}"
 // /book/[id]: a bookmark whose pos is within the visible page [pos, pageEndPos] hangs as a ribbon in its ink from the top edge of the page
 //   (<li role=img aria-label="Bookmark: {label}">); it never paints on the text
 BOOKMARK_LABELS   // First quote we both loved · Favorite chapter · Funny part · Important conversation (+ custom text)
@@ -147,7 +149,8 @@ inkOf(mark, members): string   // mark.color, unless null or now the partner's i
     // apply to Highlight, Note and Bookmark; reactions and sends stay in the author's ink
     // 7 reactions by aria-label + Highlight + Note + Bookmark (label picker) + "Send to {partner}" (optional message; solo: hidden);
     // kept inside the viewport; dismisses on Escape, a click outside it, or a click into the book (window blur)
-<ThreadPanel anchor members meId onReply(body) onClose />   // Sheet (dialog) titled "In the margin": bottom sheet below md, side panel at md+; Escape or Close closes; each line's dot in inkOf
+<ThreadPanel anchor members meId onReply(body) onRemove(mark) onClose />   // Sheet (dialog) titled "In the margin": bottom sheet below md, side panel at md+; Escape or Close closes; each line's dot in inkOf;
+    // a line canRemove allows gets a "Remove your {highlight|reaction|note|reply|memory}" button
     // memories render in time order with the anchor's marks as <li aria-label="Memory"> (img alt "Memory photo", "📸 {You|name}: caption");
     // "Add a memory 📸" opens form "Add a memory" (Photo, Caption, Save memory) and calls addMemory itself; the mark arrives over marks:{bookId}
 // /book/[id]: select → SelectionMenu; markClick(id) → ThreadPanel for anchors.find(a => a.cfi === id);

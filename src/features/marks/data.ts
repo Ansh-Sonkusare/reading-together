@@ -33,6 +33,13 @@ export async function createMark(db: Client, input: NewMark): Promise<Mark> {
   return data as Mark;
 }
 
+// RLS lets only the author delete. A memory's photo goes after its mark, so a mark never points at a missing photo.
+export async function removeMark(db: Client, mark: Pick<Mark, 'id' | 'media_url'>): Promise<void> {
+  const { error } = await db.from('mark').delete().eq('id', mark.id);
+  if (error) throw error;
+  if (mark.media_url) await db.storage.from('memories').remove([mark.media_url]);
+}
+
 export type NewMemory = { bookId: string; locator: Locator; pos: Pos; photo: Blob; caption: string | null };
 
 // The photo goes first, to the path the mark will own, so a mark never points at a missing photo;

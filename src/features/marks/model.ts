@@ -76,6 +76,17 @@ export function revealedBy(before: { ids: Set<string>; maxPos: number }, after: 
   return after.filter((m) => !before.ids.has(m.id) && Number(m.pos) > before.maxPos && !m.parent_id && m.locator && inText(m));
 }
 
+// Only my own marks, and not one the partner replied under: deleting it would cascade to their words.
+export function canRemove(mark: Mark, marks: Mark[], meId: string): boolean {
+  if (mark.author_id !== meId) return false;
+  const byId = new Map(marks.map((m) => [m.id, m]));
+  const under = (m: Mark) => {
+    for (let p = m.parent_id; p; p = byId.get(p)?.parent_id ?? null) if (p === mark.id) return true;
+    return false;
+  };
+  return !marks.some((m) => m.author_id !== meId && under(m));
+}
+
 // The toast's summary of what appeared: the reaction's emoji, else a word for the kind.
 export function describe(m: Mark): string {
   if (m.kind === 'reaction') return REACTIONS.find((r) => r.key === m.emoji)?.emoji ?? 'a reaction';

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { MEMORY_MAX_BYTES, describe as describeMark, groupByAnchor, memoryExt, revealedBy, inkOf, toPaintMarks, type Mark } from './model';
+import { MEMORY_MAX_BYTES, canRemove, describe as describeMark, groupByAnchor, memoryExt, revealedBy, inkOf, toPaintMarks, type Mark } from './model';
 
 const A = 'user-a';
 const B = 'user-b';
@@ -62,6 +62,17 @@ it("paints each anchor in its author's chosen ink; a note keeps its underline", 
   expect(toPaintMarks(groupByAnchor([jadeNote, reactB]), members)).toEqual([
     { id: loc1.cfi, locator: loc1, color: '#1985b2', kind: 'underline' },
   ]);
+});
+
+it("removes only my own marks, and never one the partner replied under", () => {
+  const all = [noteA, reactB, replyB, replyA, hlA];
+  expect(canRemove(noteA, all, A)).toBe(false);
+  expect(canRemove(replyA, all, A)).toBe(true);
+  expect(canRemove(hlA, all, A)).toBe(true);
+  expect(canRemove(reactB, all, A)).toBe(false);
+  expect(canRemove(reactB, all, B)).toBe(true);
+  expect(canRemove(replyB, all, B)).toBe(false);
+  expect(canRemove(noteA, [noteA, reactB], A)).toBe(true);
 });
 
 it("falls back to the author's ink when a mark has none or holds the partner's ink", () => {

@@ -8,7 +8,7 @@ import { DuetRibbon, type RibbonMark } from '@/components/ui/duet-ribbon';
 import { Toast } from '@/components/ui/toast';
 import type { Member } from '@/features/couple/couple';
 import { usePartnerProgress, useProgressSaver, type Progress } from '@/features/couple/progress';
-import { BookmarksPanel, RevealToast, Ribbon, SelectionMenu, ThreadPanel, createMark, inkOf, toPaintMarks, useMarks, type Mark, type NewMark } from '@/features/marks';
+import { BookmarksPanel, RevealToast, Ribbon, SelectionMenu, ThreadPanel, createMark, inkOf, removeMark, toPaintMarks, useMarks, type Mark, type NewMark } from '@/features/marks';
 import { createReader, displayPage, pageCount, ReaderPrefs, type Locator, type Pos, type ReaderHandle, type Toc } from '@/features/reader';
 import { SyncInvite, SyncPill, useSync } from '@/features/sync';
 import { chapterTitle, discussHref } from '@/features/together/discussion';
@@ -81,6 +81,13 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
     reader?.clearSelection();
     setMarkFailed(false);
     createMark(db, input).catch((e) => {
+      console.error(e);
+      setMarkFailed(true);
+    });
+  };
+  const remove = (m: Mark) => {
+    setMarkFailed(false);
+    removeMark(db, m).catch((e) => {
       console.error(e);
       setMarkFailed(true);
     });
@@ -243,7 +250,7 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
       </div>
       {markFailed && (
         <p role="alert" className="fixed inset-x-4 top-16 z-50 mx-auto w-fit rounded-full bg-popover px-5 py-2.5 text-sm text-danger shadow-float">
-          Could not save that. Try again.
+          That didn&apos;t go through. Try again.
         </p>
       )}
       {finished !== null && finishedTitle !== null && (
@@ -286,6 +293,7 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
           members={members}
           meId={userId}
           onReply={(body) => mark({ kind: 'reply', bookId, parentId: thread.marks[0].id, body })}
+          onRemove={remove}
           onClose={() => setThreadCfi(null)}
         />
       )}
@@ -293,6 +301,8 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, toc, 
         <BookmarksPanel
           bookmarks={bookmarks}
           members={members}
+          meId={userId}
+          onRemove={remove}
           onGo={(m) => {
             setBookmarksOpen(false);
             leaveIfFollowing();

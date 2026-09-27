@@ -78,11 +78,20 @@ displayPage(pos, spineLengths): number     // floor(chars before pos / 1500) + 1
 // goTo anchors on the first non-whitespace char at or after the target offset (inter-block whitespace has no box to scroll to)
 
 // features/marks
-createMark(input: NewMark): Promise<Mark>
-useMarks(bookId): Mark[]   // re-fetches when my progress passes new marks
+createMark(db, input: NewMark): Promise<Mark>   // a reply copies its parent's locator and pos
+useMarks(bookId, { myMaxPos }): { marks: Mark[]; anchors: Anchor[] }   // live over marks:{id} via joinChannel;
+    // re-fetches when myMaxPos (useProgressSaver's savedMaxPos) changes, so a partner's earlier marks appear once reached
+toPaintMarks(anchors, members): PaintMark[]   // one per CFI; both partners → 'underline' in the blend of their colours
+<SelectionMenu rect onHighlight onReact(r) onNote(body) onDismiss />   // 7 reactions by aria-label + Highlight + Note;
+    // kept inside the viewport; dismisses on Escape, a click outside it, or a click into the book (window blur)
+<ThreadPanel anchor members meId onReply(body) onClose />   // bottom sheet below md, side panel at md+; Escape closes
+// /book/[id]: select → SelectionMenu; markClick(id) → ThreadPanel for anchors.find(a => a.cfi === id);
+//   replies parent to the anchor's first mark. Overlay test hook: foliate overlay <g data-mark-id={cfi} fill={color}>
+// lib/realtime.ts
+joinChannel(db, name, listen, onSubscribed): leave   // waits for the previous leave, setAuth, then subscribes
 
 // features/couple
-useProgressSaver(bookId, userId, initial: Progress | null): { save(pos, pageEndPos, locator); savedPos }   // client; 1 s debounce,
+useProgressSaver(bookId, userId, initial: Progress | null): { save(pos, pageEndPos, locator); savedPos; savedMaxPos }   // client; 1 s debounce,
     // max_pos = max(initial.max_pos, every pageEndPos seen); flushes on pagehide / visibilitychange hidden via keepalive fetch
 usePartnerProgress(bookId, partnerId | null, initial: Progress | null): Progress | null   // client; live via book:{id}
     // (replaces the drafted useProgressPair: "me" is the reader's own relocate pos, so only the partner needs a hook)

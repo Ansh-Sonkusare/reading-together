@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { joinChannel } from '../../lib/realtime';
 import { createBrowserClient } from '../../lib/supabase';
 import type { Database, TablesInsert } from '@/lib/types';
 import { groupByAnchor, type Anchor, type Mark, type NewMark } from './model';
@@ -53,21 +54,25 @@ export function useMarks(bookId: string, { myMaxPos }: { myMaxPos: number }): { 
       setMarks(mine.reduce((ms, change) => change(ms), data as Mark[]));
     };
 
-    const channel = db
-      .channel(`marks:${bookId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mark', filter: `book_id=eq.${bookId}` }, ({ new: m }) =>
-        apply((ms) => (ms.some((x) => x.id === m.id) ? ms : [...ms, m as Mark])),
-      )
-      // DELETE can't be filtered by column; unknown ids are no-ops.
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'mark' }, ({ old }) =>
-        apply((ms) => ms.filter((x) => x.id !== old.id)),
-      )
-      .subscribe();
+    const leave = joinChannel(
+      db,
+      `marks:${bookId}`,
+      (channel) =>
+        channel
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mark', filter: `book_id=eq.${bookId}` }, ({ new: m }) =>
+            apply((ms) => (ms.some((x) => x.id === m.id) ? ms : [...ms, m as Mark])),
+          )
+          // DELETE can't be filtered by column; unknown ids are no-ops.
+          .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'mark' }, ({ old }) =>
+            apply((ms) => ms.filter((x) => x.id !== old.id)),
+          ),
+      // Catches marks inserted between the first fetch and the join.
+      () => refetch.current(),
+    );
 
-    refetch.current();
     return () => {
       alive = false;
-      void db.removeChannel(channel);
+      leave();
     };
   }, [bookId]);
 

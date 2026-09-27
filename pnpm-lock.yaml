@@ -106,7 +106,7 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  foliate-js@0.0.0: 2f219ff734072dc8bb478a1b81579827a3d5b0256c85f205884642d186536736
+  foliate-js@0.0.0: a9afdd51da83413b3b65788891a8c140effdce52b469658a270ee7a2a51e88fc
 
 importers:
 
@@ -129,7 +129,7 @@ importers:
         version: 2.1.1
       foliate-js:
         specifier: github:johnfactotum/foliate-js#78914aef4466eb960965702401634c2cb348e9b1
-        version: https://codeload.github.com/johnfactotum/foliate-js/tar.gz/78914aef4466eb960965702401634c2cb348e9b1(patch_hash=2f219ff734072dc8bb478a1b81579827a3d5b0256c85f205884642d186536736)
+        version: https://codeload.github.com/johnfactotum/foliate-js/tar.gz/78914aef4466eb960965702401634c2cb348e9b1(patch_hash=a9afdd51da83413b3b65788891a8c140effdce52b469658a270ee7a2a51e88fc)
       frimousse:
         specifier: 0.4.0
         version: 0.4.0(react@19.3.0)(typescript@5.9.3)
@@ -2143,7 +2143,7 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.7
 
-  foliate-js@https://codeload.github.com/johnfactotum/foliate-js/tar.gz/78914aef4466eb960965702401634c2cb348e9b1(patch_hash=2f219ff734072dc8bb478a1b81579827a3d5b0256c85f205884642d186536736): {}
+  foliate-js@https://codeload.github.com/johnfactotum/foliate-js/tar.gz/78914aef4466eb960965702401634c2cb348e9b1(patch_hash=a9afdd51da83413b3b65788891a8c140effdce52b469658a270ee7a2a51e88fc): {}
 
   frimousse@0.4.0(react@19.3.0)(typescript@5.9.3):
     dependencies:

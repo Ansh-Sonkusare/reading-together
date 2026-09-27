@@ -121,7 +121,7 @@ type PillProps = { sync: SyncState; notice: Notice; partnerName: string; partner
 export function SyncPill({ sync, notice, partnerName, partnerColor, onSignal, className }: PillProps) {
   const dot = <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: partnerColor }} />;
   return (
-    <p data-testid="sync-pill" data-state={sync.kind} aria-live="polite" className={cn('flex shrink-0 items-center gap-2 text-sm empty:hidden', className)}>
+    <p data-testid="sync-pill" data-state={sync.kind} aria-live="polite" className={cn('relative flex shrink-0 items-center gap-2 text-sm empty:hidden', className)}>
       {sync.kind === 'partnerHere' || sync.kind === 'invited' ? (
         <>
           {dot}
@@ -149,7 +149,7 @@ export function SyncPill({ sync, notice, partnerName, partnerColor, onSignal, cl
           </Button>
         </>
       ) : null}
-      {notice && <span className="text-pencil">{NOTICES[notice](partnerName)}</span>}
+      {notice && <span className="absolute top-full right-0 mt-1 whitespace-nowrap rounded-sheet bg-leaf px-2 py-0.5 text-xs text-pencil shadow-float">{NOTICES[notice](partnerName)}</span>}
     </p>
   );
 }

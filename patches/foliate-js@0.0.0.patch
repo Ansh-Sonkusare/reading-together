@@ -1,5 +1,5 @@
 diff --git a/paginator.js b/paginator.js
-index 7980c20297049e38b5e5a1d44a9eee11b1fbd68e..ade61bf6a6683b0870ef4e0a5927b513008dfa88 100644
+index 7980c20297049e38b5e5a1d44a9eee11b1fbd68e..3be65d8c5e8fe1eac83178b654cde621e45eff9b 100644
 --- a/paginator.js
 +++ b/paginator.js
 @@ -187,6 +187,7 @@ const getDirection = doc => {
@@ -19,3 +19,11 @@ index 7980c20297049e38b5e5a1d44a9eee11b1fbd68e..ade61bf6a6683b0870ef4e0a5927b513
          this.#column = layout.flow !== 'scrolled'
          this.#layout = layout
          if (this.#column) this.columnize(layout)
+@@ -950,6 +951,7 @@ export class Paginator extends HTMLElement {
+             this.start - size, this.end - size, this.#getRectMapper())
+     }
+     #afterScroll(reason) {
++        if (!this.#view?.document?.body) return
+         const range = this.#getVisibleRange()
+         this.#lastVisibleRange = range
+         // don't set new anchor if relocation was to scroll to anchor

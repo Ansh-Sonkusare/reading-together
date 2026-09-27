@@ -13,6 +13,14 @@ export type ReaderEvents = {
 
 export type ReaderTheme = { background: string; color: string };
 
+// Where a mark's first on-screen line sits (viewport coordinates) and which page margin is beside it.
+export type MarginSpot = { top: number; bottom: number; side: 'left' | 'right' };
+
+// On wide screens the text narrows to leave an outer margin this wide on each side for sticky notes.
+export const NOTE_MARGIN = 208;
+const MARGIN_MIN_WIDTH = 1024;
+const SPREAD_MIN_WIDTH = 1280;
+
 export type ReaderHandle = {
   on<K extends keyof ReaderEvents>(k: K, cb: ReaderEvents[K]): () => void;
   paint(marks: PaintMark[]): void;
@@ -21,6 +29,8 @@ export type ReaderHandle = {
   prev(): Promise<void>;
   setFontScale(scale: number): void;
   setTheme(theme: ReaderTheme): void;
+  /** Painted marks with a line on the current page; marks off-page are absent. */
+  spotsFor(ids: string[]): Map<string, MarginSpot>;
   clearSelection(): void;
   destroy(): void;
 };
@@ -59,6 +69,26 @@ export async function createReader(container: HTMLElement, file: Blob, opts: { s
   // foliate sniffs the format from File.name, so a bare Blob needs one.
   await view.open(file instanceof File ? file : new File([file], 'book.epub'));
   view.renderer.setAttribute('flow', 'paginated');
+  const spread = () => view.clientWidth >= SPREAD_MIN_WIDTH;
+  let fitted = '';
+  // foliate re-renders on a max-inline-size change, so set it only when the value moves.
+  const fitMargins = () => {
+    const w = view.clientWidth;
+    const cols = spread() ? 2 : 1;
+    const inline = w >= MARGIN_MIN_WIDTH ? `${Math.min(720, Math.floor((w - 2 * NOTE_MARGIN) / cols))}px` : '';
+    if (inline === fitted) return;
+    fitted = inline;
+    if (!inline) {
+      view.renderer.removeAttribute('max-column-count');
+      view.renderer.removeAttribute('max-inline-size');
+      return;
+    }
+    view.renderer.setAttribute('max-column-count', String(cols));
+    view.renderer.setAttribute('max-inline-size', inline);
+  };
+  fitMargins();
+  const fit = new ResizeObserver(fitMargins);
+  fit.observe(view);
 
   const posOf = (spine: number, offset: number) => toPos(spine, Math.min(offset, lengths[spine] ?? 0), lengths);
   const locatorOf = (spine: number, range: Range): Locator => {
@@ -206,11 +236,33 @@ export async function createReader(container: HTMLElement, file: Blob, opts: { s
       styles[0] = `html, body { background: ${background} !important; color: ${color} !important; } body * { color: inherit !important; }`;
       view.renderer.setStyles(styles);
     },
+    spotsFor(ids) {
+      const spots = new Map<string, MarginSpot>();
+      if (!shown) return spots;
+      const box = view.getBoundingClientRect();
+      const mid = box.x + box.width / 2;
+      for (const id of ids) {
+        const m = marks.get(id);
+        if (!m || !painted.has(id) || m.locator.spine !== shown.index) continue;
+        const range = anchorRange(shown.doc, m.locator);
+        if (!range) continue;
+        const frame = shown.doc.defaultView?.frameElement?.getBoundingClientRect();
+        for (const r of range.getClientRects()) {
+          const x = r.x + (frame?.x ?? 0) + r.width / 2;
+          if (r.width === 0 || x < box.left || x > box.right) continue;
+          const y = r.y + (frame?.y ?? 0);
+          spots.set(id, { top: y, bottom: y + r.height, side: spread() && x < mid ? 'left' : 'right' });
+          break;
+        }
+      }
+      return spots;
+    },
     clearSelection() {
       shown?.doc.getSelection()?.removeAllRanges();
     },
     destroy() {
       for (const set of Object.values(listeners)) set.clear();
+      fit.disconnect();
       // foliate's close() throws if no section was ever displayed.
       if (shown) view.close();
       view.remove();

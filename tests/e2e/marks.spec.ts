@@ -35,7 +35,7 @@ test('marks: react, reply, note and a shared highlight reach the partner live', 
   await a.getByRole('heading', { name: "Alice's Adventures in Wonderland" }).click();
   await expect(menuA).toBeHidden();
   await select(a, P1);
-  await tap(a, P3);
+  await tap(a, P1);
   await expect(menuA).toBeHidden();
 
   await select(a, P1);

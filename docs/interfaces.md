@@ -53,7 +53,7 @@ Private bucket `books`, object path `{couple_id}/{book_id}.epub`, readable and w
 
 ## Realtime channels
 
-- `book:{id}`: postgres_changes on `mark` and `progress`. RLS still applies, and the client re-fetches marks when its own progress moves past new ones.
+- `marks:{bookId}` (mark) and `progress:{bookId}` (progress): postgres_changes, one channel per feature so names never collide in one client. RLS still applies, and the client re-fetches marks when its own progress moves past new ones.
 - `presence:book:{id}`: current locator, used by sync mode.
 
 ## Client module surfaces (signatures only)

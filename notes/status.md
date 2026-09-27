@@ -3,18 +3,18 @@
 _Update before ending every session._
 
 ## Now
-- P01 scaffold is merged (Next 16, Tailwind 4 + shadcn, vitest, Supabase CLI 2, real `fixtures/alice.epub`).
-- P02 (schema, gates, DB tests) and P03 (reader engine spike) are running in parallel in worktrees.
-- Next up: P04 (verify skill) + P11 (auth/couple) once P02 lands; P12-P15 fan out after that.
+- Done and merged on master: P01, P02, P03, P04, P11, P12, P13a, P13b, P14a, P15, theme fix.
+- Running: P14b (marks wired into the book page, the Phase 1 demo), P32 (discussion + guess reveal), P41 + P42 (timeline + stats; this worker owns migrations right now).
+- Checks on master: unit 21, db 19, e2e 3/3 (reader, couple, book).
+- Verify skill: `.claude/skills/verify-reading-together/` (launch, doctor, drive, cleanup).
 
-## Workstreams
-| WS | State |
-|---|---|
-| A schema/RLS | P02 wip |
-| B reader | P03 wip |
-| C marks | waiting on P02, P03 |
-| D couple/library | waiting on P02 |
-| E together | phase 3 |
+## Next
+P21 reveal-on-reach, P22 re-anchor by quote, P23 bookmarks + send, P31 streaks + goals, P33 web push, P43 memories, P44 themes, P51 sync mode.
+
+## Open items
+- Storage DB test can time out once after a cold start (trail, P02).
+- foliate logs harmless console errors (getComputedStyle / destructure 'style'); nothing observed broken.
+- Chapter titles use spine index + 1; TOC labels are a follow-up.
 
 ## Contract requests
 _none_

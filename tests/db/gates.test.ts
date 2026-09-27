@@ -105,7 +105,7 @@ describe('spoiler gate', () => {
   let behindId: string;
 
   it('hides a mark ahead of the reader, including from count', async () => {
-    aheadId = (await ok(A.db.from('mark').insert({ book_id: bookId, author_id: A.id, kind: 'reaction', emoji: 'emotional', pos: 0.4 }).select().single())).id;
+    aheadId = (await ok(A.db.from('mark').insert({ book_id: bookId, author_id: A.id, kind: 'reaction', emoji: '😭', pos: 0.4 }).select().single())).id;
     behindId = (await ok(B.db.from('mark').insert({ book_id: bookId, author_id: B.id, kind: 'note', body: 'hi', pos: 0.1 }).select().single())).id;
 
     expect(await ok(B.db.from('mark').select('id').eq('id', aheadId))).toEqual([]);

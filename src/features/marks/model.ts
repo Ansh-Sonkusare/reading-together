@@ -1,11 +1,10 @@
 import type { Member } from '@/features/couple/couple';
 import type { Color } from '@/features/couple/palette';
 import type { Locator, PaintMark, Pos } from '@/features/reader';
-import type { Enums, Tables } from '@/lib/types';
+import type { Tables } from '@/lib/types';
 
-export type Reaction = Enums<'reaction'>;
-
-export const REACTIONS: ReadonlyArray<{ key: Reaction; emoji: string; label: string }> = [
+// Quick picks; any other emoji comes from the picker (D22). `key` names them for the guess game.
+export const REACTIONS = [
   { key: 'love', emoji: '❤️', label: 'Love this' },
   { key: 'funny', emoji: '😂', label: 'Funny' },
   { key: 'emotional', emoji: '😭', label: 'Emotional' },
@@ -13,12 +12,12 @@ export const REACTIONS: ReadonlyArray<{ key: Reaction; emoji: string; label: str
   { key: 'interesting', emoji: '🤔', label: 'Interesting' },
   { key: 'favorite', emoji: '🔥', label: 'Favorite' },
   { key: 'think', emoji: '💭', label: 'Made me think' },
-];
+] as const;
 
 // Highlights, notes and bookmarks may take their own ink; without one they're in the author's member ink.
 export type NewMark =
   | { kind: 'highlight'; bookId: string; locator: Locator; pos: Pos; color?: Color }
-  | { kind: 'reaction'; bookId: string; locator: Locator; pos: Pos; emoji: Reaction }
+  | { kind: 'reaction'; bookId: string; locator: Locator; pos: Pos; emoji: string }
   | { kind: 'note'; bookId: string; locator: Locator; pos: Pos; body: string; color?: Color }
   | { kind: 'bookmark'; bookId: string; locator: Locator; pos: Pos; label: string; color?: Color }
   | { kind: 'send'; bookId: string; locator: Locator; pos: Pos; body: string | null }
@@ -89,8 +88,24 @@ export function canRemove(mark: Mark, marks: Mark[], meId: string): boolean {
 
 // The toast's summary of what appeared: the reaction's emoji, else a word for the kind.
 export function describe(m: Mark): string {
-  if (m.kind === 'reaction') return REACTIONS.find((r) => r.key === m.emoji)?.emoji ?? 'a reaction';
+  if (m.kind === 'reaction') return m.emoji ?? 'a reaction';
   return m.kind === 'note' ? 'a note' : m.kind === 'memory' ? 'a memory' : 'a highlight';
+}
+
+export type ReactionChip = { emoji: string; count: number; names: string[]; mine: Mark | undefined };
+
+// Discord-style: one chip per emoji on the passage, in the order each emoji first appeared.
+export function reactionChips(anchor: Anchor, members: Member[], meId: string): ReactionChip[] {
+  const chips = new Map<string, ReactionChip>();
+  for (const m of anchor.marks) {
+    if (m.kind !== 'reaction' || !m.emoji) continue;
+    const chip = chips.get(m.emoji) ?? { emoji: m.emoji, count: 0, names: [], mine: undefined };
+    chip.count++;
+    chip.names.push(m.author_id === meId ? 'You' : (members.find((p) => p.userId === m.author_id)?.name ?? 'Reader'));
+    if (m.author_id === meId) chip.mine = m;
+    chips.set(m.emoji, chip);
+  }
+  return [...chips.values()];
 }
 
 const UNKNOWN_COLOR = '#9ca3af';

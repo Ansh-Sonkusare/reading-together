@@ -138,13 +138,13 @@ isOneToOne: true
                   ]
                 },"mark": {
                   Row: {
-                    "author_id": string,"body": string | null,"book_id": string,"color": string | null,"created_at": string,"emoji": Database["public"]['Enums']["reaction"] | null,"id": string,"kind": Database["public"]['Enums']["mark_kind"],"label": string | null,"locator": Json | null,"media_url": string | null,"parent_id": string | null,"pos": number
+                    "author_id": string,"body": string | null,"book_id": string,"color": string | null,"created_at": string,"emoji": string | null,"id": string,"kind": Database["public"]['Enums']["mark_kind"],"label": string | null,"locator": Json | null,"media_url": string | null,"parent_id": string | null,"pos": number
                   }
                   Insert: {
-                    "author_id"?: string,"body"?: string | null,"book_id": string,"color"?: string | null,"created_at"?: string,"emoji"?: Database["public"]['Enums']["reaction"] | null,"id"?: string,"kind": Database["public"]['Enums']["mark_kind"],"label"?: string | null,"locator"?: Json | null,"media_url"?: string | null,"parent_id"?: string | null,"pos": number
+                    "author_id"?: string,"body"?: string | null,"book_id": string,"color"?: string | null,"created_at"?: string,"emoji"?: string | null,"id"?: string,"kind": Database["public"]['Enums']["mark_kind"],"label"?: string | null,"locator"?: Json | null,"media_url"?: string | null,"parent_id"?: string | null,"pos": number
                   }
                   Update: {
-                    "author_id"?: string,"body"?: string | null,"book_id"?: string,"color"?: string | null,"created_at"?: string,"emoji"?: Database["public"]['Enums']["reaction"] | null,"id"?: string,"kind"?: Database["public"]['Enums']["mark_kind"],"label"?: string | null,"locator"?: Json | null,"media_url"?: string | null,"parent_id"?: string | null,"pos"?: number
+                    "author_id"?: string,"body"?: string | null,"book_id"?: string,"color"?: string | null,"created_at"?: string,"emoji"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["mark_kind"],"label"?: string | null,"locator"?: Json | null,"media_url"?: string | null,"parent_id"?: string | null,"pos"?: number
                   }
                   Relationships: [
                     {
@@ -333,7 +333,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "answer_kind": "question"|"guess","event_type": "book_added"|"book_started"|"mark_created"|"chapter_finished"|"book_finished"|"answer_revealed"|"goal_met","goal_kind": "pages_per_day"|"chapters_per_day","mark_kind": "highlight"|"reaction"|"note"|"reply"|"bookmark"|"send"|"memory","reaction": "love"|"funny"|"emotional"|"surprised"|"interesting"|"favorite"|"think"
+            "answer_kind": "question"|"guess","event_type": "book_added"|"book_started"|"mark_created"|"chapter_finished"|"book_finished"|"answer_revealed"|"goal_met","goal_kind": "pages_per_day"|"chapters_per_day","mark_kind": "highlight"|"reaction"|"note"|"reply"|"bookmark"|"send"|"memory"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -453,7 +453,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "answer_kind": ["question", "guess"],"event_type": ["book_added", "book_started", "mark_created", "chapter_finished", "book_finished", "answer_revealed", "goal_met"],"goal_kind": ["pages_per_day", "chapters_per_day"],"mark_kind": ["highlight", "reaction", "note", "reply", "bookmark", "send", "memory"],"reaction": ["love", "funny", "emotional", "surprised", "interesting", "favorite", "think"]
+            "answer_kind": ["question", "guess"],"event_type": ["book_added", "book_started", "mark_created", "chapter_finished", "book_finished", "answer_revealed", "goal_met"],"goal_kind": ["pages_per_day", "chapters_per_day"],"mark_kind": ["highlight", "reaction", "note", "reply", "bookmark", "send", "memory"]
           }
         }
 } as const

@@ -87,9 +87,9 @@ it('only inks, and only on highlights, notes and bookmarks', async () => {
   const row = { kind: 'highlight' as const, book_id: bookId, locator, pos };
   const offPalette = await A.db.from('mark').insert({ ...row, color: '#000000' });
   expect(offPalette.error?.code).toBe('23514');
-  const reaction = await A.db.from('mark').insert({ ...row, kind: 'reaction', emoji: 'love', color: JADE });
+  const reaction = await A.db.from('mark').insert({ ...row, kind: 'reaction', emoji: '❤️', color: JADE });
   expect(reaction.error?.code).toBe('23514');
-  const control = await A.db.from('mark').insert({ ...row, kind: 'reaction', emoji: 'love' }).select('color').single();
+  const control = await A.db.from('mark').insert({ ...row, kind: 'reaction', emoji: '❤️' }).select('color').single();
   expect(control.error).toBeNull();
   expect(control.data).toEqual({ color: null });
 });

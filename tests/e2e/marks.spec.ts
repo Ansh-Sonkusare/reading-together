@@ -25,7 +25,8 @@ test('marks: react, reply, note and a shared highlight reach the partner live', 
 
   const menuA = await select(a, P1);
   for (const label of REACTION_LABELS) await expect(menuA.getByRole('button', { name: label, exact: true })).toBeVisible();
-  await expect(menuA.getByRole('button')).toHaveCount(11);
+  await expect(menuA.getByRole('button', { name: 'More reactions' })).toBeVisible();
+  await expect(menuA.getByRole('button')).toHaveCount(12);
   for (const label of ['Highlight', 'Note', 'Bookmark', 'Send to Sam']) await expect(menuA.getByRole('button', { name: label, exact: true })).toBeVisible();
   await shoot(a, b, '1-menu');
   await a.keyboard.press('Escape');
@@ -44,9 +45,9 @@ test('marks: react, reply, note and a shared highlight reach the partner live', 
   await shoot(a, b, '2-reacted');
 
   await tap(b, P1);
-  await expect(thread(b)).toContainText('Alex: 😭 Emotional');
+  await expect(thread(b).getByRole('button', { name: '😭 1: Alex', exact: true })).toBeVisible();
   await tap(a, P1);
-  await expect(thread(a)).toContainText('You: 😭 Emotional');
+  await expect(thread(a).getByRole('button', { name: '😭 1: You', exact: true })).toBeVisible();
   await thread(b).getByLabel('Reply').fill('I knowww 😭');
   await thread(b).getByRole('button', { name: 'Reply' }).click();
   await expect(thread(b)).toContainText('You: I knowww 😭');
@@ -218,7 +219,7 @@ test('I can remove my own reaction, note and bookmark; never the partner’s, no
   await thread(a).getByRole('button', { name: 'Close' }).click();
 
   await tap(a, P1);
-  await thread(a).getByRole('button', { name: 'Remove your reaction' }).click();
+  await thread(a).getByRole('button', { name: '😭 1: You', exact: true }).click();
   await expect(thread(a)).toBeHidden();
   await expect.poll(() => paintAt(b, P1), { timeout: LIVE_MS }).toEqual([]);
   expect(await paintAt(a, P1)).toEqual([]);

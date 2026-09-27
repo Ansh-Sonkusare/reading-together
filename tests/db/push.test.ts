@@ -138,7 +138,7 @@ describe('dispatch', () => {
     await ok(B.db.from('push_sub').insert(sub('b2')).select());
     const cfi = `epubcfi(/6/2!/4/2,/1:5,/1:30)-${run}`;
     await markEvent(B, { kind: 'highlight', pos: 0.3, locator: locator(cfi, 'Curiouser and curiouser!') });
-    const reaction = await markEvent(A, { kind: 'reaction', emoji: 'love', pos: 0.3, locator: locator(cfi, 'Curiouser and curiouser!') });
+    const reaction = await markEvent(A, { kind: 'reaction', emoji: '❤️', pos: 0.3, locator: locator(cfi, 'Curiouser and curiouser!') });
 
     const calls: [PushTarget, string][] = [];
     const result = await dispatch(admin, reaction, async (target, payload) => {

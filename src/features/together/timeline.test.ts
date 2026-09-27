@@ -19,7 +19,7 @@ const ev = (type: TimelineEvent['type'], actorId: string, rest: Partial<Timeline
   ...rest,
 });
 const highlight = (actorId: string) => ev('mark_created', actorId, { mark: { kind: 'highlight', emoji: null, cfi: `c-${Math.random()}` } });
-const react = (actorId: string, cfi: string, emoji: 'love' | 'funny') => ev('mark_created', actorId, { mark: { kind: 'reaction', emoji, cfi } });
+const react = (actorId: string, cfi: string, emoji: '❤️' | '😂') => ev('mark_created', actorId, { mark: { kind: 'reaction', emoji, cfi } });
 const day = (events: TimelineEvent[], meId = ME, toc: Toc | null = null) => describeDay(events, members, meId, TITLE, toc).map((l) => l.text);
 
 describe('describeDay', () => {
@@ -33,8 +33,8 @@ describe('describeDay', () => {
         highlight(ME),
         highlight(ME),
         ev('answer_revealed', SAM, { data: { spine: 1, kind: 'question' } }),
-        react(SAM, 'x', 'funny'),
-        react(ME, 'x', 'love'),
+        react(SAM, 'x', '😂'),
+        react(ME, 'x', '❤️'),
         ev('book_finished', ME),
         ev('book_finished', SAM),
       ]),
@@ -58,9 +58,9 @@ describe('describeDay', () => {
   });
 
   it('keeps reactions to different passages apart from shared ones', () => {
-    expect(day([react(ME, 'x', 'love'), react(SAM, 'y', 'funny')])).toEqual(['❤️ You both reacted to 2 passages']);
+    expect(day([react(ME, 'x', '❤️'), react(SAM, 'y', '😂')])).toEqual(['❤️ You both reacted to 2 passages']);
     expect(
-      day([react(ME, 'x', 'love'), react(SAM, 'x', 'love'), react(ME, 'y', 'funny'), react(SAM, 'y', 'funny'), react(SAM, 'z', 'funny')]),
+      day([react(ME, 'x', '❤️'), react(SAM, 'x', '❤️'), react(ME, 'y', '😂'), react(SAM, 'y', '😂'), react(SAM, 'z', '😂')]),
     ).toEqual(['❤️ You both reacted to the same 2 passages', '😂 Sam reacted to a passage']);
   });
 

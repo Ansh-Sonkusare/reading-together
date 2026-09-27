@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { MEMORY_MAX_BYTES, canRemove, describe as describeMark, groupByAnchor, memoryExt, revealedBy, inkOf, toPaintMarks, type Mark } from './model';
+import { MEMORY_MAX_BYTES, canRemove, describe as describeMark, groupByAnchor, memoryExt, revealedBy, inkOf, reactionChips, toPaintMarks, type Mark } from './model';
 
 const A = 'user-a';
 const B = 'user-b';
@@ -28,7 +28,7 @@ const mark = (id: string, author: string, created: string, rest: Partial<Mark>):
 });
 
 const noteA = mark('n', A, '1', { kind: 'note', body: 'This part is so cute.', locator: loc1, pos: 1.01 });
-const reactB = mark('r', B, '2', { kind: 'reaction', emoji: 'love', locator: loc1, pos: 1.01 });
+const reactB = mark('r', B, '2', { kind: 'reaction', emoji: '❤️', locator: loc1, pos: 1.01 });
 const replyB = mark('p1', B, '3', { kind: 'reply', body: 'Agreed!', parent_id: 'n', locator: loc1, pos: 1.01 });
 const replyA = mark('p2', A, '4', { kind: 'reply', body: 'Right?', parent_id: 'p1', locator: loc1, pos: 1.01 });
 const hlA = mark('h', A, '0', { locator: loc2, pos: 2.005 });
@@ -54,7 +54,7 @@ it('paints one mark per anchor, underlined in a blend when both partners marked 
 it("paints each anchor in its author's chosen ink; a note keeps its underline", () => {
   const jadeNote = { ...noteA, color: '#0ca678' };
   const violetHl = { ...hlA, color: '#7048e8' };
-  const jadeReact = mark('rj', A, '3', { kind: 'reaction', emoji: 'love', locator: loc2, pos: 2.005 });
+  const jadeReact = mark('rj', A, '3', { kind: 'reaction', emoji: '❤️', locator: loc2, pos: 2.005 });
   expect(toPaintMarks(groupByAnchor([jadeNote, violetHl, jadeReact]), members)).toEqual([
     { id: loc1.cfi, locator: loc1, color: '#0ca678', kind: 'note' },
     { id: loc2.cfi, locator: loc2, color: '#7048e8', kind: 'highlight' },
@@ -91,9 +91,9 @@ it('keeps bookmarks and sends out of the painted anchors', () => {
 
 it('reveals only unseen top-level text marks past the previous max_pos', () => {
   const seen = { ids: new Set(['h']), maxPos: 1.5 };
-  const early = mark('e', B, '7', { kind: 'reaction', emoji: 'funny', locator: loc1, pos: 1.01 });
+  const early = mark('e', B, '7', { kind: 'reaction', emoji: '😂', locator: loc1, pos: 1.01 });
   expect(revealedBy(seen, [early, hlA, noteA, reactB, replyB, bookmarkA, sendA])).toEqual([]);
-  const ahead = mark('x', B, '8', { kind: 'reaction', emoji: 'emotional', locator: loc2, pos: 2.005 });
+  const ahead = mark('x', B, '8', { kind: 'reaction', emoji: '😭', locator: loc2, pos: 2.005 });
   const aheadNote = mark('y', B, '9', { kind: 'note', body: 'Ha', locator: loc2, pos: 2.005 });
   expect(revealedBy(seen, [hlA, ahead, aheadNote, bookmarkA])).toEqual([ahead, aheadNote]);
   expect([ahead, aheadNote, hlA].map(describeMark)).toEqual(['😭', 'a note', 'a highlight']);
@@ -110,4 +110,17 @@ it('accepts memory photos the bucket accepts and names their extension', () => {
   expect(memoryExt({ type: 'image/heic', size: MEMORY_MAX_BYTES })).toBe('heic');
   expect(() => memoryExt({ type: 'image/gif', size: 1000 })).toThrow('Choose a JPEG, PNG, WebP or HEIC photo.');
   expect(() => memoryExt({ type: 'image/png', size: MEMORY_MAX_BYTES + 1 })).toThrow('Photos can be up to 10 MB.');
+});
+
+it('gathers reactions into one chip per emoji, with who reacted and whether I did', () => {
+  const r = (id: string, author: string, created: string, emoji: string) => mark(id, author, created, { kind: 'reaction', emoji, locator: loc1, pos: 1.01 });
+  const [anchor] = groupByAnchor([noteA, r('1', A, '2', '😭'), r('2', B, '3', '🦄'), r('3', B, '4', '😭')]);
+  expect(reactionChips(anchor, members, B)).toEqual([
+    { emoji: '😭', count: 2, names: ['Alex', 'You'], mine: expect.objectContaining({ id: '3' }) },
+    { emoji: '🦄', count: 1, names: ['You'], mine: expect.objectContaining({ id: '2' }) },
+  ]);
+  expect(reactionChips(anchor, members, A).map((c) => [c.emoji, c.names, c.mine?.id])).toEqual([
+    ['😭', ['You', 'Sam'], '1'],
+    ['🦄', ['Sam'], undefined],
+  ]);
 });

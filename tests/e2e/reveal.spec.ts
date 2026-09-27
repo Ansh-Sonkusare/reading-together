@@ -32,6 +32,7 @@ test('a partner mark ahead is invisible, then revealed with a toast once reached
     expect((await overlays(b)).filter((o) => o.fill === ALEX)).toEqual([]);
     await expect(thread(b)).toHaveCount(0);
     await expect(b.locator('body')).not.toContainText('Emotional');
+    await expect(b.getByRole('button', { name: /^😭/ })).toHaveCount(0);
   };
   await noTrace();
   await b.screenshot({ path: `${SHOTS}/r1-hidden-b-sam.png` });
@@ -42,7 +43,7 @@ test('a partner mark ahead is invisible, then revealed with a toast once reached
   await b.screenshot({ path: `${SHOTS}/r2-revealed-b-sam.png` });
   await toast(b).getByRole('button', { name: 'Show' }).click();
   await expect(toast(b)).toHaveCount(0);
-  await expect(thread(b)).toContainText('Alex: 😭 Emotional');
+  await expect(thread(b).getByRole('button', { name: '😭 1: Alex', exact: true })).toBeVisible();
   await locate(b, CHAPTER_3_TEXT);
   await b.screenshot({ path: `${SHOTS}/r3-thread-b-sam.png` });
 });

@@ -76,7 +76,7 @@ Private bucket `books`, object path `{couple_id}/{book_id}.epub`, readable and w
 - `marks:{bookId}` (mark) and `progress:{bookId}` (progress): postgres_changes, one channel per feature so names never collide in one client. RLS still applies, and the client re-fetches marks when its own progress moves past new ones.
   Two client gotchas (P15): call `realtime.setAuth(session.access_token)` before joining, or the join can go out as anon and RLS delivers nothing; and don't join an identical channel before the previous leave resolves (StrictMode remount), because Realtime keys the subscription by its params and the late leave kills the new one.
 - `discussion:{bookId}:{spine}` (event, answer_revealed): the discussion page's reveal.
-- `presence:book:{id}`: current locator, used by sync mode.
+- `sync:{bookId}` (P51, replaces the drafted `presence:book:{id}`): presence `{ userId }` says who's in the book; broadcast `signal` `{ type: invite|accept|decline|leave, by }` and `locator` `{ by, locator }` (leader only, 150 ms after its last relocate). Ephemeral, nothing stored. Public channel, like the others; a private channel needs realtime.messages RLS.
 
 ## Client module surfaces (signatures only)
 
@@ -124,6 +124,16 @@ toPaintMarks(anchors, members): PaintMark[]   // one per CFI; both partners → 
 //   replies parent to the anchor's first mark. Overlay test hook: foliate overlay <g data-mark-id={cfi} fill={color}>
 // lib/realtime.ts
 joinChannel(db, name, listen, onSubscribed): leave   // waits for the previous leave, setAuth, then subscribes
+
+// features/sync (P51)
+reduce(s: SyncState, e: SyncEvent, me): SyncState   // pure; SyncState solo | partnerHere | inviting | invited{from} | leading | following{leader}
+    // e.by === me is my own action, else the partner's; unexpected events leave s unchanged; simultaneous invites: the smaller user id leads
+useSync(bookId, me, reader): { sync, notice, signal(type), relocated(locator) }   // follower chases the leader's locator with serialised goTo;
+    // the follower's own relocates still save progress (max_pos rises: consented by Accept) but are never broadcast
+<SyncPill sync notice partnerName onSignal />   // /book header, data-testid="sync-pill" data-state={kind}: "{partner} is here" + Read together now,
+    // "Waiting for {partner}…" + Cancel, "Reading together with {partner} ❤️" + Leave, then the last notice (You left… / {partner} left…)
+<SyncInvite partnerName onSignal />   // role=dialog "Read together": "{partner} wants to read together. You'll follow {partner}'s pages." Accept / Not now
+// /book/[id]: a Prev/Next/arrow turn or a bookmark jump while following leaves sync; the partner leaving the book (presence) ends it for both
 
 // features/couple
 useProgressSaver(bookId, userId, initial: Progress | null): { save(pos, pageEndPos, locator); savedPos; savedMaxPos }   // client; 1 s debounce,

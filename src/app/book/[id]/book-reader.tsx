@@ -6,6 +6,7 @@ import type { Member } from '@/features/couple/couple';
 import { usePartnerProgress, useProgressSaver, type Progress } from '@/features/couple/progress';
 import { BookmarksPanel, RevealToast, SelectionMenu, ThreadPanel, createMark, toPaintMarks, useMarks, type Mark, type NewMark } from '@/features/marks';
 import { createReader, displayPage, ReaderPrefs, type Locator, type Pos, type ReaderHandle } from '@/features/reader';
+import { SyncInvite, SyncPill, useSync } from '@/features/sync';
 import { createBrowserClient } from '@/lib/supabase';
 
 type Selected = { locator: Locator; pos: Pos; rect: DOMRect };
@@ -41,6 +42,9 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
   const { marks, anchors, revealed } = useMarks(bookId, { myMaxPos: savedMaxPos });
   const members = useMemo(() => (partner ? [me, partner] : [me]), [me, partner]);
   const thread = anchors.find((a) => a.cfi === threadCfi);
+  const { sync, notice, signal, relocated } = useSync(bookId, userId, reader);
+  // Moving on your own while following leaves sync; the pill says so.
+  const leaveIfFollowing = () => sync.kind === 'following' && signal('leave');
 
   const bookmarks = useMemo(() => marks.filter((m) => m.kind === 'bookmark'), [marks]);
 
@@ -83,6 +87,7 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
       r.on('relocate', (e) => {
         setPos(e.pos);
         save(e.pos, e.pageEndPos, e.locator);
+        relocated(e.locator);
       });
       r.on('select', ({ locator, pos, rect }) => setSelection({ locator, pos, rect }));
       r.on('markClick', ({ id }) => {
@@ -106,6 +111,7 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
   // foliate drops a turn requested while the previous one is still animating.
   const turn = async (dir: 'prev' | 'next') => {
     if (!reader || turning) return;
+    leaveIfFollowing();
     setTurning(true);
     try {
       await reader[dir]();
@@ -131,6 +137,7 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
           Library
         </Link>
         <h1 className="truncate font-semibold">{title}</h1>
+        {partner && <SyncPill sync={sync} notice={notice} partnerName={partner.name} onSignal={signal} />}
         <button className="ml-auto shrink-0 underline" aria-expanded={bookmarksOpen} onClick={() => setBookmarksOpen(!bookmarksOpen)}>
           Bookmarks
         </button>
@@ -189,11 +196,13 @@ export function BookReader({ bookId, title, userId, fileUrl, spineLengths, mine,
           members={members}
           onGo={(m) => {
             setBookmarksOpen(false);
+            leaveIfFollowing();
             if (m.locator) reader?.goTo(m.locator);
           }}
           onClose={() => setBookmarksOpen(false)}
         />
       )}
+      {sync.kind === 'invited' && partner && <SyncInvite partnerName={partner.name} onSignal={signal} />}
       {toast && partner && (
         <RevealToast
           mark={toast}

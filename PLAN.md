@@ -83,4 +83,4 @@ Test book: a public-domain EPUB in `fixtures/` (test data only; D1 still holds f
 
 | # | Problem | WS | Check that proves it | Status |
 |---|---|---|---|---|
-| F1 | Private Realtime channels: `sync:{bookId}` and the other broadcast/presence channels require couple membership (RLS on `realtime.messages`) | A | DB test: another couple's user can't join or send on the channel (positive control: partner can) | wip |
+| F1 | Private Realtime channels: `sync:{bookId}` and the other broadcast/presence channels require couple membership (RLS on `realtime.messages`) | A | DB test: another couple's user can't join or send on the channel (positive control: partner can) | done |

@@ -91,6 +91,7 @@ export function useSync(bookId: string, me: string, reader: ReaderHandle | null)
           });
       },
       () => void l.channel?.track({ userId: me }),
+      { private: true },
     );
     return () => {
       clearTimeout(l.timer);

@@ -278,6 +278,9 @@ isOneToOne: false
             "book_couple_id":
 { Args: { "bid": string }; Returns: string
                            },
+"can_use_book_topic":
+{ Args: { "topic": string }; Returns: boolean
+                           },
 "create_couple":
 { Args: { "color": string,"name": string }; Returns: string
                            },

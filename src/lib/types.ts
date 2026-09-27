@@ -163,13 +163,13 @@ isOneToOne: false
                   ]
                 },"member": {
                   Row: {
-                    "avatar_url": string | null,"color": string | null,"couple_id": string,"name": string | null,"timezone": string,"user_id": string
+                    "avatar_url": string | null,"color": string,"couple_id": string,"name": string | null,"timezone": string,"user_id": string
                   }
                   Insert: {
-                    "avatar_url"?: string | null,"color"?: string | null,"couple_id": string,"name"?: string | null,"timezone"?: string,"user_id": string
+                    "avatar_url"?: string | null,"color": string,"couple_id": string,"name"?: string | null,"timezone"?: string,"user_id": string
                   }
                   Update: {
-                    "avatar_url"?: string | null,"color"?: string | null,"couple_id"?: string,"name"?: string | null,"timezone"?: string,"user_id"?: string
+                    "avatar_url"?: string | null,"color"?: string,"couple_id"?: string,"name"?: string | null,"timezone"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -295,6 +295,9 @@ isOneToOne: false
 "i_answered":
 { Args: { "bid": string,"k": Database["public"]['Enums']["answer_kind"],"key": string,"s": number }; Returns: boolean
                            },
+"inks":
+{ Args: Record<PropertyKey, never>; Returns: (string)[]
+                           },
 "is_couple_member":
 { Args: { "cid": string }; Returns: boolean
                            },
@@ -312,6 +315,9 @@ isOneToOne: false
                            },
 "my_max_pos":
 { Args: { "bid": string }; Returns: number
+                           },
+"nearest_ink":
+{ Args: { "taken"?: (string)[],"want": string }; Returns: string
                            },
 "pos_chars":
 { Args: { "pos": number,"spine_lengths": (number)[] }; Returns: number

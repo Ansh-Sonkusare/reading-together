@@ -6,9 +6,10 @@ Only WS-A edits the schema. Any other workstream that needs a change posts a req
 
 ```sql
 couple   (id uuid pk, invite_code text unique, created_at)
-member   (user_id uuid pk → auth.users, couple_id → couple, name, color text, avatar_url,
+member   (user_id uuid pk → auth.users, couple_id → couple, name, color text not null, avatar_url,
           timezone text not null default 'UTC' check is a pg_timezone_names name)
          -- at most 2 members per couple (trigger)
+         -- color is one of the six inks (check color = any(inks())), unique(couple_id, color): partners never share an ink (U0)
 book     (id, couple_id, title, author, sha256 text, storage_path, spine_lengths int[], toc jsonb null, added_by, created_at,
           unique(couple_id, sha256))
          -- toc: [{ spine, label }] from the EPUB nav (else NCX), first entry per spine; null before F3 or when no entry hits the spine (D18)
@@ -46,8 +47,9 @@ Views (security_invoker, so RLS applies): `couple_stats`; `reading_today (user_i
 
 Clients never insert `couple` or `member` rows; they call:
 
-- `create_couple(name text, color text) → invite_code text`
-- `join_couple(invite_code text, name text = null, color text = null) → couple_id uuid` (raises `couple is full` for a third member)
+- `create_couple(name text, color text) → invite_code text` (color snapped to the nearest ink; null → Rose)
+- `join_couple(invite_code text, name text = null, color text = null) → couple_id uuid` (raises `couple is full` for a third member; color snapped to the nearest ink, raises `ink taken` if that is the partner's; null → first ink the partner doesn't have)
+- `inks() → text[]` (the six lowercase hexes, palette.ts order), `nearest_ink(want text, taken text[] = '{}') → text`: internal helpers, not granted to clients.
 
 - `set_goal(kind goal_kind, target int)`: upserts the caller's couple goal; either partner may call it.
 

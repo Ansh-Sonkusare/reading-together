@@ -1,0 +1,132 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>html, body { margin: 0; height: 100%; } #viewer, foliate-view { display: block; width: 100vw; height: 100vh; }</style>
+<script src="/node_modules/jszip/dist/jszip.min.js"></script>
+<script src="/node_modules/epubjs/dist/epub.min.js"></script>
+</head>
+<body>
+<div id="viewer"></div>
+<script type="module">
+import { canonicalText, spineLength, offsetOf, quoteAt } from '/locator.js';
+
+const params = new URLSearchParams(location.search);
+const engineName = params.get('engine');
+const font = params.get('font') ?? '100';
+const bytes = await (await fetch('/alice.epub')).arrayBuffer();
+
+async function foliate() {
+  await import('/node_modules/foliate-js/view.js');
+  const { Overlayer } = await import('/node_modules/foliate-js/overlayer.js');
+  document.getElementById('viewer').remove();
+  const view = document.createElement('foliate-view');
+  document.body.append(view);
+  let lastRelocate = null;
+  view.addEventListener('relocate', (e) => { lastRelocate = e.detail; });
+  view.addEventListener('draw-annotation', (e) => e.detail.draw(Overlayer.highlight, { color: e.detail.annotation.color }));
+  await view.open(new File([bytes], 'alice.epub'));
+  view.renderer.setAttribute('flow', 'paginated');
+  const css = `html { font-size: ${font}% !important; }`;
+  const contents = () => view.renderer.getContents()[0];
+  return {
+    spineCount: view.book.sections.length,
+    async show(i) { await view.goTo(i); view.renderer.setStyles(css); await settle(); },
+    doc: () => contents().doc,
+    index: () => contents().index,
+    cfiFromRange: (range) => view.getCFI(contents().index, range),
+    rangeFromCfi: (cfi) => view.resolveCFI(cfi).anchor(contents().doc),
+    async goTo(cfi) { await view.goTo(cfi); await settle(); },
+    pageStartRange: () => lastRelocate?.range,
+    async paint(items) {
+      for (const it of items) await view.addAnnotation({ value: it.cfi, color: it.color });
+      return [...contents().overlayer.element.querySelectorAll('g')].map((g) => g.getAttribute('fill')).filter(Boolean);
+    },
+  };
+}
+
+async function epubjs() {
+  const book = ePub(bytes);
+  const rendition = book.renderTo('viewer', { width: '100%', height: '100%', flow: 'paginated', spread: 'auto', method: params.get('method') ?? undefined });
+  rendition.themes.fontSize(`${font}%`);
+  await book.ready;
+  const contents = () => rendition.getContents()[0];
+  return {
+    spineCount: book.spine.length,
+    async show(i) { await rendition.display(i); await settle(); },
+    doc: () => contents().document,
+    index: () => contents().sectionIndex,
+    cfiFromRange: (range) => contents().cfiFromRange(range),
+    rangeFromCfi: (cfi) => contents().range(cfi),
+    async goTo(cfi) { await rendition.display(cfi); await settle(); },
+    pageStartRange: () => contents().range(rendition.currentLocation().start.cfi),
+    async paint(items) {
+      for (const it of items) rendition.annotations.highlight(it.cfi, {}, null, 'hl', { fill: it.color, 'fill-opacity': '0.3' });
+      await settle();
+      return [...document.querySelectorAll('g.hl')].map((g) => g.getAttribute('fill'));
+    },
+  };
+}
+
+const settle = () => new Promise((r) => setTimeout(r, 300));
+
+function findInTextNode(doc, needle) {
+  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    const at = n.data.indexOf(needle);
+    if (at !== -1) {
+      const range = doc.createRange();
+      range.setStart(n, at);
+      range.setEnd(n, at + needle.length);
+      return range;
+    }
+  }
+  throw new Error(`needle not in a single text node: ${needle}`);
+}
+
+const engine = await (engineName === 'foliate' ? foliate() : epubjs());
+window.contentType = () => engine.doc().contentType;
+
+window.spike = {
+  show: (i) => engine.show(i),
+  doc: () => engine.doc(),
+  async spineLengths() {
+    const out = [];
+    for (let i = 0; i < engine.spineCount; i++) {
+      await engine.show(i);
+      out.push(spineLength(engine.doc()));
+    }
+    return out;
+  },
+  async measure(spine, needle, refCfi) {
+    await engine.show(spine);
+    const doc = engine.doc();
+    const range = findInTextNode(doc, needle);
+    doc.getSelection().removeAllRanges();
+    doc.getSelection().addRange(range);
+    const sel = doc.getSelection().getRangeAt(0);
+    const offset = offsetOf(sel.startContainer, sel.startOffset);
+    const cfi = engine.cfiFromRange(sel);
+    const quote = quoteAt(canonicalText(doc), offset, sel.toString().length);
+    await engine.goTo(refCfi ?? cfi);
+    const doc2 = engine.doc();
+    const viaCfi = engine.rangeFromCfi(refCfi ?? cfi);
+    const page = engine.pageStartRange();
+    const other = engine.cfiFromRange(findInTextNode(doc2, needle.split(' ').slice(-1)[0]));
+    const painted = await engine.paint([{ cfi, color: '#e11d48' }, { cfi: other, color: '#2563eb' }]);
+    return {
+      index: engine.index(),
+      sameDocAfterGoTo: doc === doc2,
+      spineLength: spineLength(doc2),
+      locator: { spine, offset, cfi, quote },
+      offsetViaRefCfi: offsetOf(viaCfi.startContainer, viaCfi.startOffset),
+      pageStartOffset: page ? offsetOf(page.startContainer, page.startOffset) : null,
+      painted,
+    };
+  },
+};
+window.spikeReady = true;
+</script>
+</body>
+</html>

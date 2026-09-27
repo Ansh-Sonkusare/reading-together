@@ -1,0 +1,138 @@
+
+## foliate (iframe document: application/xhtml+xml)
+| passage | layout | spine idx | offset | node offset | pos | offset via layout-1 CFI | page-start offset | cfi | painted |
+|---|---|---|---|---|---|---|---|---|---|
+| ch1 start | 100% 390x844 | 2 | 34 | 34 | 2.002944 | 34 | 1 | `epubcfi(/6/6!/4/2[pgepubid00003]/4,/1:1,/1:38)` | #e11d48 #2563eb |
+| ch3 mid | 100% 390x844 | 4 | 4839 | 4839 | 4.504220 | 4839 | 4760 | `epubcfi(/6/10!/4/2[pgepubid00005]/52,/1:14,/1:43)` | #e11d48 #2563eb |
+| ch12 end | 100% 390x844 | 13 | 11603 | 11603 | 13.994088 | 11603 | 11107 | `epubcfi(/6/28!/4/2[pgepubid00014]/136,/3:204,/3:234)` | #e11d48 #2563eb |
+| ch3 end (after <pre>) | 100% 390x844 | 4 | 9563 | 9563 | 4.996457 | 9563 | 9078 | `epubcfi(/6/10!/4/2[pgepubid00005]/98,/1:485,/1:516)` | #e11d48 #2563eb |
+| ch1 start | 160% 390x844 | 2 | 34 | 34 | 2.002944 | 34 | 1 | `epubcfi(/6/6!/4/2[pgepubid00003]/4,/1:1,/1:38)` | #e11d48 #2563eb |
+| ch3 mid | 160% 390x844 | 4 | 4839 | 4839 | 4.504220 | 4839 | 4527 | `epubcfi(/6/10!/4/2[pgepubid00005]/52,/1:14,/1:43)` | #e11d48 #2563eb |
+| ch12 end | 160% 390x844 | 13 | 11603 | 11603 | 13.994088 | 11603 | 11232 | `epubcfi(/6/28!/4/2[pgepubid00014]/136,/3:204,/3:234)` | #e11d48 #2563eb |
+| ch3 end (after <pre>) | 160% 390x844 | 4 | 9563 | 9563 | 4.996457 | 9563 | 9164 | `epubcfi(/6/10!/4/2[pgepubid00005]/98,/1:485,/1:516)` | #e11d48 #2563eb |
+| ch1 start | 100% 1280x800 | 2 | 34 | 34 | 2.002944 | 34 | 1 | `epubcfi(/6/6!/4/2[pgepubid00003]/4,/1:1,/1:38)` | #e11d48 #2563eb |
+| ch3 mid | 100% 1280x800 | 4 | 4839 | 4839 | 4.504220 | 4839 | 3876 | `epubcfi(/6/10!/4/2[pgepubid00005]/52,/1:14,/1:43)` | #e11d48 #2563eb |
+| ch12 end | 100% 1280x800 | 13 | 11603 | 11603 | 13.994088 | 11603 | 7046 | `epubcfi(/6/28!/4/2[pgepubid00014]/136,/3:204,/3:234)` | #e11d48 #2563eb |
+| ch3 end (after <pre>) | 100% 1280x800 | 4 | 9563 | 9563 | 4.996457 | 9563 | 6977 | `epubcfi(/6/10!/4/2[pgepubid00005]/98,/1:485,/1:516)` | #e11d48 #2563eb |
+| ch1 start | 160% 1280x800 | 2 | 34 | 34 | 2.002944 | 34 | 1 | `epubcfi(/6/6!/4/2[pgepubid00003]/4,/1:1,/1:38)` | #e11d48 #2563eb |
+| ch3 mid | 160% 1280x800 | 4 | 4839 | 4839 | 4.504220 | 4839 | 3246 | `epubcfi(/6/10!/4/2[pgepubid00005]/52,/1:14,/1:43)` | #e11d48 #2563eb |
+| ch12 end | 160% 1280x800 | 13 | 11603 | 11603 | 13.994088 | 11603 | 10115 | `epubcfi(/6/28!/4/2[pgepubid00014]/136,/3:204,/3:234)` | #e11d48 #2563eb |
+| ch3 end (after <pre>) | 160% 1280x800 | 4 | 9563 | 9563 | 4.996457 | 9563 | 8187 | `epubcfi(/6/10!/4/2[pgepubid00005]/98,/1:485,/1:516)` | #e11d48 #2563eb |
+ch1 start: pos equal across 4 layouts and via CFI round-trip: YES; browser offset == Node offset: YES  quote={"exact":"Alice was beginning to get very tired","prefix":"HAPTER I.\nDown the Rabbit-Hole\n\n","suffix":" of sitting by her sister on the"}
+ch3 mid: pos equal across 4 layouts and via CFI round-trip: YES; browser offset == Node offset: YES  quote={"exact":"the Dodo replied very gravely","prefix":" said the Mouse.\n\n\n“Of course,” ","suffix":". “What else have you got in you"}
+ch12 end: pos equal across 4 layouts and via CFI round-trip: YES; browser offset == Node offset: YES  quote={"exact":"remembering her own child-life","prefix":"asure in all their simple joys, ","suffix":", and the\nhappy summer days.\n\nTH"}
+ch3 end (after <pre>): pos equal across 4 layouts and via CFI round-trip: YES; browser offset == Node offset: YES  quote={"exact":"coming back to finish his story","prefix":"e had changed his\nmind, and was ","suffix":".\n\n"}
+
+spineLength node vs browser (foliate):
+| spine | node | 100% 390x844 | 160% 390x844 | 100% 1280x800 | 160% 1280x800 | equal |
+|---|---|---|---|---|---|---|
+| 0 | 24 | 24 | 24 | 24 | 24 | YES |
+| 1 | 1424 | 1424 | 1424 | 1424 | 1424 | YES |
+| 2 | 11549 | 11549 | 11549 | 11549 | 11549 | YES |
+| 3 | 10968 | 10968 | 10968 | 10968 | 10968 | YES |
+| 4 | 9597 | 9597 | 9597 | 9597 | 9597 | YES |
+| 5 | 13883 | 13883 | 13883 | 13883 | 13883 | YES |
+| 6 | 12025 | 12025 | 12025 | 12025 | 12025 | YES |
+| 7 | 13881 | 13881 | 13881 | 13881 | 13881 | YES |
+| 8 | 12765 | 12765 | 12765 | 12765 | 12765 | YES |
+| 9 | 13716 | 13716 | 13716 | 13716 | 13716 | YES |
+| 10 | 12688 | 12688 | 12688 | 12688 | 12688 | YES |
+| 11 | 11446 | 11446 | 11446 | 11446 | 11446 | YES |
+| 12 | 10432 | 10432 | 10432 | 10432 | 10432 | YES |
+| 13 | 11672 | 11672 | 11672 | 11672 | 11672 | YES |
+| 14 | 18466 | 18466 | 18466 | 18466 | 18466 | YES |
+
+JS loaded: jszip/dist/jszip.min.js, epubjs/dist/epub.min.js, foliate-js/view.js, foliate-js/progress.js, foliate-js/overlayer.js, foliate-js/text-walker.js, foliate-js/epubcfi.js, foliate-js/vendor/zip.js, foliate-js/epub.js, foliate-js/paginator.js
+raw 494995 B, gzip 142760 B
+
+## epubjs (iframe document: text/html)
+| passage | layout | spine idx | offset | node offset | pos | offset via layout-1 CFI | page-start offset | cfi | painted |
+|---|---|---|---|---|---|---|---|---|---|
+| ch1 start | 100% 390x844 | 2 | 34 | 34 | 2.002944 | 34 | 1 | `epubcfi(/6/6!/4/2[pgepubid00003]/4,/1:1,/1:38)` | #e11d48 #2563eb |
+| ch3 mid | 100% 390x844 | 4 | 4839 | 4839 | 4.504220 | 4839 | 3422 | `epubcfi(/6/10!/4/2[pgepubid00005]/52,/1:14,/1:43)` | #e11d48 #2563eb |
+| ch12 end | 100% 390x844 | 13 | 11603 | 11603 | 13.994088 | 11603 | 10472 | `epubcfi(/6/28!/4/2[pgepubid00014]/136,/3:204,/3:234)` | #e11d48 #2563eb |
+| ch3 end (after <pre>) | 100% 390x844 | 4 | 9562 | 9563 | 4.996353 | 9562 | 8186 | `epubcfi(/6/10!/4/2[pgepubid00005]/98,/1:485,/1:516)` | #e11d48 #2563eb #e11d48 #2563eb |
+| ch1 start | 160% 390x844 | 2 | 34 | 34 | 2.002944 | 34 | 1 | `epubcfi(/6/6!/4/2[pgepubid00003]/4,/1:1,/1:38)` | #e11d48 #2563eb |
+| ch3 mid | 160% 390x844 | 4 | 4839 | 4839 | 4.504220 | 4839 | 4458 | `epubcfi(/6/10!/4/2[pgepubid00005]/52,/1:14,/1:43)` | #e11d48 #2563eb |
+| ch12 end | 160% 390x844 | 13 | 11603 | 11603 | 13.994088 | 11603 | 11175 | `epubcfi(/6/28!/4/2[pgepubid00014]/136,/3:204,/3:234)` | #e11d48 #2563eb |
+| ch3 end (after <pre>) | 160% 390x844 | 4 | 9562 | 9563 | 4.996353 | 9562 | 8830 | `epubcfi(/6/10!/4/2[pgepubid00005]/98,/1:485,/1:516)` | #e11d48 #2563eb #e11d48 #2563eb |
+| ch1 start | 100% 1280x800 | 2 | 34 | 34 | 2.002944 | 34 | 1 | `epubcfi(/6/6!/4/2[pgepubid00003]/4,/1:1,/1:38)` | #e11d48 #2563eb |
+| ch3 mid | 100% 1280x800 | 4 | 4839 | 4839 | 4.504220 | 4839 | 4527 | `epubcfi(/6/10!/4/2[pgepubid00005]/52,/1:14,/1:43)` | #e11d48 #2563eb |
+| ch12 end | 100% 1280x800 | 13 | 11603 | 11603 | 13.994088 | 11603 | 7998 | `epubcfi(/6/28!/4/2[pgepubid00014]/136,/3:204,/3:234)` | #e11d48 #2563eb |
+| ch3 end (after <pre>) | 100% 1280x800 | 4 | 9562 | 9563 | 4.996353 | 9562 | 8012 | `epubcfi(/6/10!/4/2[pgepubid00005]/98,/1:485,/1:516)` | #e11d48 #2563eb #e11d48 #2563eb |
+| ch1 start | 160% 1280x800 | 2 | 34 | 34 | 2.002944 | 34 | 1 | `epubcfi(/6/6!/4/2[pgepubid00003]/4,/1:1,/1:38)` | #e11d48 #2563eb |
+| ch3 mid | 160% 1280x800 | 4 | 4839 | 4839 | 4.504220 | 4839 | 3881 | `epubcfi(/6/10!/4/2[pgepubid00005]/52,/1:14,/1:43)` | #e11d48 #2563eb |
+| ch12 end | 160% 1280x800 | 13 | 11603 | 11603 | 13.994088 | 11603 | 9528 | `epubcfi(/6/28!/4/2[pgepubid00014]/136,/3:204,/3:234)` | #e11d48 #2563eb |
+| ch3 end (after <pre>) | 160% 1280x800 | 4 | 9562 | 9563 | 4.996353 | 9562 | 9485 | `epubcfi(/6/10!/4/2[pgepubid00005]/98,/1:485,/1:516)` | #e11d48 #2563eb #e11d48 #2563eb |
+ch1 start: pos equal across 4 layouts and via CFI round-trip: YES; browser offset == Node offset: YES  quote={"exact":"Alice was beginning to get very tired","prefix":"HAPTER I.\nDown the Rabbit-Hole\n\n","suffix":" of sitting by her sister on the"}
+ch3 mid: pos equal across 4 layouts and via CFI round-trip: YES; browser offset == Node offset: YES  quote={"exact":"the Dodo replied very gravely","prefix":" said the Mouse.\n\n\n“Of course,” ","suffix":". “What else have you got in you"}
+ch12 end: pos equal across 4 layouts and via CFI round-trip: YES; browser offset == Node offset: YES  quote={"exact":"remembering her own child-life","prefix":"asure in all their simple joys, ","suffix":", and the\nhappy summer days.\n\nTH"}
+ch3 end (after <pre>): pos equal across 4 layouts and via CFI round-trip: YES; browser offset == Node offset: NO  quote={"exact":"coming back to finish his story","prefix":"e had changed his\nmind, and was ","suffix":".\n\n"}
+
+spineLength node vs browser (epubjs):
+| spine | node | 100% 390x844 | 160% 390x844 | 100% 1280x800 | 160% 1280x800 | equal |
+|---|---|---|---|---|---|---|
+| 0 | 24 | 25 | 25 | 25 | 25 | NO |
+| 1 | 1424 | 1424 | 1424 | 1424 | 1424 | YES |
+| 2 | 11549 | 11549 | 11549 | 11549 | 11549 | YES |
+| 3 | 10968 | 10967 | 10967 | 10967 | 10967 | NO |
+| 4 | 9597 | 9596 | 9596 | 9596 | 9596 | NO |
+| 5 | 13883 | 13883 | 13883 | 13883 | 13883 | YES |
+| 6 | 12025 | 12025 | 12025 | 12025 | 12025 | YES |
+| 7 | 13881 | 13881 | 13881 | 13881 | 13881 | YES |
+| 8 | 12765 | 12765 | 12765 | 12765 | 12765 | YES |
+| 9 | 13716 | 13716 | 13716 | 13716 | 13716 | YES |
+| 10 | 12688 | 12688 | 12688 | 12688 | 12688 | YES |
+| 11 | 11446 | 11446 | 11446 | 11446 | 11446 | YES |
+| 12 | 10432 | 10432 | 10432 | 10432 | 10432 | YES |
+| 13 | 11672 | 11672 | 11672 | 11672 | 11672 | YES |
+| 14 | 18466 | 18467 | 18467 | 18467 | 18467 | NO |
+
+JS loaded: jszip/dist/jszip.min.js, epubjs/dist/epub.min.js
+raw 321656 B, gzip 92274 B
+
+## epubjs&method=blobUrl (iframe document: application/xhtml+xml)
+| passage | layout | spine idx | offset | node offset | pos | offset via layout-1 CFI | page-start offset | cfi | painted |
+|---|---|---|---|---|---|---|---|---|---|
+| ch1 start | 100% 390x844 | 2 | 34 | 34 | 2.002944 | 34 | 1 | `epubcfi(/6/6!/4/2[pgepubid00003]/4,/1:1,/1:38)` | #e11d48 #2563eb |
+| ch3 mid | 100% 390x844 | 4 | 4839 | 4839 | 4.504220 | 4839 | 3422 | `epubcfi(/6/10!/4/2[pgepubid00005]/52,/1:14,/1:43)` | #e11d48 #2563eb |
+| ch12 end | 100% 390x844 | 13 | 11603 | 11603 | 13.994088 | 11603 | 10472 | `epubcfi(/6/28!/4/2[pgepubid00014]/136,/3:204,/3:234)` | #e11d48 #2563eb |
+| ch3 end (after <pre>) | 100% 390x844 | 4 | 9563 | 9563 | 4.996457 | 9563 | 8187 | `epubcfi(/6/10!/4/2[pgepubid00005]/98,/1:485,/1:516)` | #e11d48 #2563eb #e11d48 #2563eb |
+| ch1 start | 160% 390x844 | 2 | 34 | 34 | 2.002944 | 34 | 1 | `epubcfi(/6/6!/4/2[pgepubid00003]/4,/1:1,/1:38)` | #e11d48 #2563eb |
+| ch3 mid | 160% 390x844 | 4 | 4839 | 4839 | 4.504220 | 4839 | 4458 | `epubcfi(/6/10!/4/2[pgepubid00005]/52,/1:14,/1:43)` | #e11d48 #2563eb |
+| ch12 end | 160% 390x844 | 13 | 11603 | 11603 | 13.994088 | 11603 | 11175 | `epubcfi(/6/28!/4/2[pgepubid00014]/136,/3:204,/3:234)` | #e11d48 #2563eb |
+| ch3 end (after <pre>) | 160% 390x844 | 4 | 9563 | 9563 | 4.996457 | 9563 | 8831 | `epubcfi(/6/10!/4/2[pgepubid00005]/98,/1:485,/1:516)` | #e11d48 #2563eb #e11d48 #2563eb |
+| ch1 start | 100% 1280x800 | 2 | 34 | 34 | 2.002944 | 34 | 1 | `epubcfi(/6/6!/4/2[pgepubid00003]/4,/1:1,/1:38)` | #e11d48 #2563eb |
+| ch3 mid | 100% 1280x800 | 4 | 4839 | 4839 | 4.504220 | 4839 | 4527 | `epubcfi(/6/10!/4/2[pgepubid00005]/52,/1:14,/1:43)` | #e11d48 #2563eb |
+| ch12 end | 100% 1280x800 | 13 | 11603 | 11603 | 13.994088 | 11603 | 7998 | `epubcfi(/6/28!/4/2[pgepubid00014]/136,/3:204,/3:234)` | #e11d48 #2563eb |
+| ch3 end (after <pre>) | 100% 1280x800 | 4 | 9563 | 9563 | 4.996457 | 9563 | 7849 | `epubcfi(/6/10!/4/2[pgepubid00005]/98,/1:485,/1:516)` | #e11d48 #2563eb #e11d48 #2563eb |
+| ch1 start | 160% 1280x800 | 2 | 34 | 34 | 2.002944 | 34 | 1 | `epubcfi(/6/6!/4/2[pgepubid00003]/4,/1:1,/1:38)` | #e11d48 #2563eb |
+| ch3 mid | 160% 1280x800 | 4 | 4839 | 4839 | 4.504220 | 4839 | 3881 | `epubcfi(/6/10!/4/2[pgepubid00005]/52,/1:14,/1:43)` | #e11d48 #2563eb |
+| ch12 end | 160% 1280x800 | 13 | 11603 | 11603 | 13.994088 | 11603 | 9528 | `epubcfi(/6/28!/4/2[pgepubid00014]/136,/3:204,/3:234)` | #e11d48 #2563eb |
+| ch3 end (after <pre>) | 160% 1280x800 | 4 | 9563 | 9563 | 4.996457 | 9563 | 9486 | `epubcfi(/6/10!/4/2[pgepubid00005]/98,/1:485,/1:516)` | #e11d48 #2563eb #e11d48 #2563eb |
+ch1 start: pos equal across 4 layouts and via CFI round-trip: YES; browser offset == Node offset: YES  quote={"exact":"Alice was beginning to get very tired","prefix":"HAPTER I.\nDown the Rabbit-Hole\n\n","suffix":" of sitting by her sister on the"}
+ch3 mid: pos equal across 4 layouts and via CFI round-trip: YES; browser offset == Node offset: YES  quote={"exact":"the Dodo replied very gravely","prefix":" said the Mouse.\n\n\n“Of course,” ","suffix":". “What else have you got in you"}
+ch12 end: pos equal across 4 layouts and via CFI round-trip: YES; browser offset == Node offset: YES  quote={"exact":"remembering her own child-life","prefix":"asure in all their simple joys, ","suffix":", and the\nhappy summer days.\n\nTH"}
+ch3 end (after <pre>): pos equal across 4 layouts and via CFI round-trip: YES; browser offset == Node offset: YES  quote={"exact":"coming back to finish his story","prefix":"e had changed his\nmind, and was ","suffix":".\n\n"}
+
+spineLength node vs browser (epubjs&method=blobUrl):
+| spine | node | 100% 390x844 | 160% 390x844 | 100% 1280x800 | 160% 1280x800 | equal |
+|---|---|---|---|---|---|---|
+| 0 | 24 | 24 | 24 | 24 | 24 | YES |
+| 1 | 1424 | 1424 | 1424 | 1424 | 1424 | YES |
+| 2 | 11549 | 11549 | 11549 | 11549 | 11549 | YES |
+| 3 | 10968 | 10968 | 10968 | 10968 | 10968 | YES |
+| 4 | 9597 | 9597 | 9597 | 9597 | 9597 | YES |
+| 5 | 13883 | 13883 | 13883 | 13883 | 13883 | YES |
+| 6 | 12025 | 12025 | 12025 | 12025 | 12025 | YES |
+| 7 | 13881 | 13881 | 13881 | 13881 | 13881 | YES |
+| 8 | 12765 | 12765 | 12765 | 12765 | 12765 | YES |
+| 9 | 13716 | 13716 | 13716 | 13716 | 13716 | YES |
+| 10 | 12688 | 12688 | 12688 | 12688 | 12688 | YES |
+| 11 | 11446 | 11446 | 11446 | 11446 | 11446 | YES |
+| 12 | 10432 | 10432 | 10432 | 10432 | 10432 | YES |
+| 13 | 11672 | 11672 | 11672 | 11672 | 11672 | YES |
+| 14 | 18466 | 18466 | 18466 | 18466 | 18466 | YES |
+
+JS loaded: jszip/dist/jszip.min.js, epubjs/dist/epub.min.js
+raw 321656 B, gzip 92274 B

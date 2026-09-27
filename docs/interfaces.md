@@ -59,6 +59,7 @@ Private bucket `books`, object path `{couple_id}/{book_id}.epub`, readable and w
 
 - `marks:{bookId}` (mark) and `progress:{bookId}` (progress): postgres_changes, one channel per feature so names never collide in one client. RLS still applies, and the client re-fetches marks when its own progress moves past new ones.
   Two client gotchas (P15): call `realtime.setAuth(session.access_token)` before joining, or the join can go out as anon and RLS delivers nothing; and don't join an identical channel before the previous leave resolves (StrictMode remount), because Realtime keys the subscription by its params and the late leave kills the new one.
+- `discussion:{bookId}:{spine}` (event, answer_revealed): the discussion page's reveal.
 - `presence:book:{id}`: current locator, used by sync mode.
 
 ## Client module surfaces (signatures only)

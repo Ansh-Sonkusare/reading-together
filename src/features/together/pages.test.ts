@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { displayPage } from './pages';
+import { displayPage } from '../reader/locator';
 
 // tests/db/together.test.ts runs display_page() in SQL on these same rows.
 const CASES: [number, number[], number][] = [

@@ -57,12 +57,16 @@ Private bucket `books`, object path `{couple_id}/{book_id}.epub`, readable and w
 ## Client module surfaces (signatures only)
 
 ```ts
-// features/reader
-openBook(bookId): Promise<ReaderHandle>
-ReaderHandle.onRelocate(cb: (loc: Locator, pos: number) => void)
-ReaderHandle.onSelect(cb: (sel: { locator: Locator; pos: number; text: string }) => void)
-ReaderHandle.paint(marks: Mark[])
-ReaderHandle.goTo(locator: Locator)
+// features/reader (shipped in P13a; foliate is imported only by reader.ts)
+createReader(container: HTMLElement, file: Blob, opts: { spineLengths: number[] }): Promise<ReaderHandle>
+ReaderHandle.on('relocate', e => { locator, pos, pageEndPos, spine })   // pageEndPos = pos of last visible char → progress.max_pos
+ReaderHandle.on('select',   e => { locator, pos, text, rect })          // locator.cfi spans the range
+ReaderHandle.on('markClick', e => { id, rect })
+ReaderHandle.on('lengthMismatch', e => { spine, expected, actual })
+ReaderHandle.paint(marks: PaintMark[])     // full set, idempotent; PaintMark = { id, locator, color, kind: 'highlight'|'underline' }
+ReaderHandle.goTo(target: Locator | Pos)   // nothing renders until the first goTo
+ReaderHandle.next() / prev() / setFontScale(n) / destroy()
+// locator.ts: toPos, fromPos, quoteAt, findByQuote, spineLengthsFromEpub, canonicalText, offsetOf, rangeAt
 
 // features/marks
 createMark(input: NewMark): Promise<Mark>

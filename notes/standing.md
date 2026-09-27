@@ -9,3 +9,5 @@
 7. No new dependency when the platform or an installed library covers it. Justify each one you add in the REPORT.
 8. Commit on your worktree branch with plain messages, no Co-Authored-By trailer. Don't merge, rebase or push.
 9. Report: PASS / ISSUES / BLOCKED, branch, head SHA, the acceptance outputs, deviations, follow-ups.
+10. `next dev` appends a `nextjs-agent-rules` block to AGENTS.md. It's committed on master, so leave it alone. Don't revert or edit it.
+11. Next 16 differs from your training data. Read `node_modules/next/dist/docs/` before using a Next API you aren't sure of (for example proxy.ts instead of middleware.ts).

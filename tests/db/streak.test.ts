@@ -187,6 +187,29 @@ describe('goal', () => {
   });
 });
 
+describe('front matter', () => {
+  it('a spine before the first TOC entry counts as no chapter in reading_today or the chapter goal', async () => {
+    const [F, G] = await Promise.all(['f', 'g'].map(user));
+    const invite = await ok(F.db.rpc('create_couple', { name: 'Fen', color: '#e11d48' }));
+    const coupleId = await ok(G.db.rpc('join_couple', { invite_code: invite, name: 'Gus' }));
+    const toc = [{ spine: 1, label: 'Chapter I' }, { spine: 2, label: 'Chapter II' }];
+    const book = (await ok(admin.from('book').insert({ couple_id: coupleId, title: 'FM', added_by: F.id, spine_lengths: [3000, 3000, 3000], toc }).select('id').single())).id;
+    await open(F, book);
+    await write(F.db.rpc('set_goal', { kind: 'chapters_per_day', target: 1 }));
+    const today = () => ok(G.db.from('reading_today').select('chapters').eq('user_id', F.id));
+    const met = () => ok(G.db.from('event').select('data').eq('type', 'goal_met').eq('actor_id', F.id));
+
+    await setPos(F, book, 1.1);
+    expect((await ok(G.db.from('event').select('data').eq('type', 'chapter_finished').eq('actor_id', F.id))).map((e) => e.data)).toEqual([{ spine: 0 }]);
+    expect(await today()).toEqual([{ chapters: 0 }]);
+    expect(await met()).toEqual([]);
+
+    await setPos(F, book, 2.1);
+    expect(await today()).toEqual([{ chapters: 1 }]);
+    expect(await met()).toEqual([{ data: { day: localDay('UTC'), kind: 'chapters_per_day', target: 1 } }]);
+  });
+});
+
 describe('couple scope', () => {
   it('an outsider sees none of the couple’s reading days or today totals, only their own', async () => {
     await setPos(C, cBook, 0.5);

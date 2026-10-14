@@ -89,3 +89,4 @@ Test book: a public-domain EPUB in `fixtures/` (test data only; D1 still holds f
 | U0 | Design foundation: fonts, tokens, primitives (Button, InkSwatches, DuetRibbon, Sheet, Toast), six inks, partners can't share an ink | UI | unit + screenshot review | done |
 | U1 | Per-mark colour (highlight, note, bookmark) + book page redesign | C | e2e: chosen colour painted for both; bookmark ribbon on its page | done |
 | U2 | Library, together, auth, onboarding, discuss redesign + EPUB covers | D | e2e green; screenshots light/dark, desktop/phone | done |
+| F4 | Progress save retries after a failed request instead of waiting for the next page turn | D | unit test: a failed flush is retried and `savedPos` catches up without another `save()` | todo |

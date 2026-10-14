@@ -3,8 +3,10 @@
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { InkSwatches } from '@/components/ui/ink';
+import { createBrowserClient } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { createCoupleAction, joinCoupleAction, signIn, signUp, uploadBookAction } from './actions';
+import type { UploadResult } from './add-book';
 import { MAX_EPUB_BYTES } from './epub-meta';
 import { COLORS } from './palette';
 
@@ -104,8 +106,21 @@ export function JoinForm({ code, partnerColors = [] }: { code: string; partnerCo
 const hasFiles = (e: DragEvent) => e.dataTransfer?.types.includes('Files') ?? false;
 
 /** "Add a book" picker; on desktop an EPUB dropped anywhere on the page uploads straight away. */
+// The EPUB goes straight to Storage: a Vercel function takes at most 4.5 MB of request body (D24).
+async function upload(_: UploadResult, form: FormData): Promise<UploadResult> {
+  const file = form.get('file');
+  if (!(file instanceof File) || file.size === 0) return { error: 'Choose an EPUB file.' };
+  const db = createBrowserClient();
+  const { data: coupleId } = await db.rpc('my_couple_id');
+  if (!coupleId) return { error: 'Create or join a couple first.' };
+  const path = `${coupleId}/${crypto.randomUUID()}.epub`;
+  const { error } = await db.storage.from('books').upload(path, file, { contentType: 'application/epub+zip' });
+  if (error) return { error: 'Could not store the file. Try again.' };
+  return uploadBookAction(path, file.name);
+}
+
 export function UploadForm({ className }: { className?: string }) {
-  const [state, action, pending] = useActionState(uploadBookAction, undefined);
+  const [state, action, pending] = useActionState(upload, undefined);
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const form = useRef<HTMLFormElement>(null);

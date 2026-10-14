@@ -51,7 +51,9 @@ beforeAll(async () => {
 });
 
 it('uploading alice.epub stores its cover for the couple only', async () => {
-  expect(await addBook(A.db, admin, new File([ALICE], 'alice.epub'))).toEqual({ ok: `Added "Alice's Adventures in Wonderland".` });
+  const path = `${coupleId}/${crypto.randomUUID()}.epub`;
+  await ok(A.db.storage.from('books').upload(path, ALICE, { contentType: 'application/epub+zip' }));
+  expect(await addBook(A.db, admin, path, 'alice.epub')).toEqual({ ok: `Added "Alice's Adventures in Wonderland".` });
   const book = await ok(A.db.from('book').select('id, cover_path').eq('couple_id', coupleId).single());
   expect(book.cover_path).toBe(`${coupleId}/${book.id}.jpg`);
   const covers = (u: User) => u.db.storage.from('covers');
@@ -65,4 +67,18 @@ it('uploading alice.epub stores its cover for the couple only', async () => {
 
   await ok(covers(C).upload(`${otherCoupleId}/${crypto.randomUUID()}.jpg`, tiny()));
   expect((await covers(C).upload(`${coupleId}/${crypto.randomUUID()}.jpg`, tiny())).error).not.toBeNull();
+});
+
+it("re-sending a shelved book's path or a second copy never deletes the shelved file", async () => {
+  const { storage_path: shelved } = await ok(A.db.from('book').select('storage_path').eq('couple_id', coupleId).single());
+  const shelf = shelved!;
+  const books = A.db.storage.from('books');
+  expect(await addBook(B.db, admin, shelf, 'alice.epub')).toEqual({ error: 'Choose an EPUB file.' });
+  expect(await addBook(C.db, admin, shelf, 'alice.epub')).toEqual({ error: 'Choose an EPUB file.' });
+
+  const copy = `${coupleId}/${crypto.randomUUID()}.epub`;
+  await ok(books.upload(copy, ALICE, { contentType: 'application/epub+zip' }));
+  expect(await addBook(B.db, admin, copy, 'alice.epub')).toEqual({ ok: `"Alice's Adventures in Wonderland" is already in your library.` });
+  expect((await books.download(copy)).error).not.toBeNull();
+  expect((await ok(books.download(shelf))).size).toBe(ALICE.length);
 });

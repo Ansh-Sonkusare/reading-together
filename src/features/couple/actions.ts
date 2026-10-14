@@ -58,10 +58,8 @@ export async function openInvite(form: FormData) {
   redirect(`/join/${encodeURIComponent(code)}`);
 }
 
-export async function uploadBookAction(_: UploadResult, form: FormData): Promise<UploadResult> {
-  const file = form.get('file');
-  if (!(file instanceof File)) return { error: 'Choose an EPUB file.' };
-  const result = await uploadBook(file);
+export async function uploadBookAction(path: string, fileName: string): Promise<UploadResult> {
+  const result = await uploadBook(path, fileName);
   if (result && 'ok' in result) revalidatePath('/library');
   return result;
 }

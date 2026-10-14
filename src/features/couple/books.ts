@@ -46,8 +46,8 @@ export async function listBooks(coupleId: string): Promise<Book[]> {
   }));
 }
 
-export async function uploadBook(file: File): Promise<UploadResult> {
-  return addBook(await createUserClient(), createAdminClient(), file);
+export async function uploadBook(path: string, fileName: string): Promise<UploadResult> {
+  return addBook(await createUserClient(), createAdminClient(), path, fileName);
 }
 
 /** The book's duet ribbon: both partners' places, me last so my label reads second. */

@@ -8,6 +8,10 @@ export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 60_000,
   use: { baseURL: `http://localhost:${PORT}`, ...devices['Desktop Chrome'] },
+  projects: [
+    { name: 'warm', testMatch: /warm\.setup\.ts/ },
+    { name: 'e2e', dependencies: ['warm'] },
+  ],
   webServer: {
     command: `pnpm dev --port ${PORT}`,
     url: `http://localhost:${PORT}/dev/reader`,

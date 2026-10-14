@@ -11,7 +11,7 @@ import { COLORS, type Color } from '@/features/couple/palette';
 import { createBrowserClient } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { addMemory, memoryPhotoUrl } from './data';
-import { BOOKMARK_LABELS, REACTIONS, canRemove, describe, inkOf, type Anchor, type Mark, type Member } from './model';
+import { BOOKMARK_LABELS, MEMORY_TYPES, REACTIONS, canRemove, describe, inkOf, type Anchor, type Mark, type Member } from './model';
 import { EmojiPanel, ReactionChips } from './reaction-chips';
 
 const GAP = 8;
@@ -345,7 +345,7 @@ function MemoryForm({ anchor }: { anchor: Anchor }) {
     <form onSubmit={save} aria-label="Add a memory" className="flex flex-col gap-2 border-t border-rule pt-3">
       <input
         type="file"
-        accept="image/*"
+        accept={MEMORY_TYPES}
         aria-label="Photo"
         className="text-sm file:mr-2 file:rounded-full file:border-0 file:bg-wash file:px-3 file:py-1 file:text-foreground"
         onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}

@@ -76,9 +76,12 @@ it('only the couple can read a memory photo; another couple can neither read nor
   expect((await bucket(C).upload(`${coupleId}/${crypto.randomUUID()}.jpg`, tiny())).error).not.toBeNull();
 });
 
-it('the bucket takes images only', async () => {
+it('the bucket takes JPEG, PNG and WebP only; not HEIC, which only Safari displays', async () => {
   await ok(bucket(A).upload(`${coupleId}/${crypto.randomUUID()}.png`, tiny('image/png')));
+  await ok(bucket(A).upload(`${coupleId}/${crypto.randomUUID()}.webp`, tiny('image/webp')));
   expect((await bucket(A).upload(`${coupleId}/${crypto.randomUUID()}.txt`, tiny('text/plain'))).error).not.toBeNull();
+  expect((await bucket(A).upload(`${coupleId}/${crypto.randomUUID()}.heic`, tiny('image/heic'))).error).not.toBeNull();
+  expect((await bucket(A).upload(`${coupleId}/${crypto.randomUUID()}.heif`, tiny('image/heif'))).error).not.toBeNull();
 });
 
 it('only the uploader can delete a photo', async () => {

@@ -107,8 +107,10 @@ it('threads a memory with the passage it was added to, in time order', () => {
 
 it('accepts memory photos the bucket accepts and names their extension', () => {
   expect(memoryExt({ type: 'image/jpeg', size: 1000 })).toBe('jpg');
-  expect(memoryExt({ type: 'image/heic', size: MEMORY_MAX_BYTES })).toBe('heic');
-  expect(() => memoryExt({ type: 'image/gif', size: 1000 })).toThrow('Choose a JPEG, PNG, WebP or HEIC photo.');
+  expect(memoryExt({ type: 'image/webp', size: MEMORY_MAX_BYTES })).toBe('webp');
+  expect(() => memoryExt({ type: 'image/heic', size: 1000 })).toThrow('HEIC photos only show in Safari. Choose a JPEG, PNG or WebP photo.');
+  expect(() => memoryExt({ type: 'image/heif', size: 1000 })).toThrow('HEIC photos only show in Safari. Choose a JPEG, PNG or WebP photo.');
+  expect(() => memoryExt({ type: 'image/gif', size: 1000 })).toThrow('Choose a JPEG, PNG or WebP photo.');
   expect(() => memoryExt({ type: 'image/png', size: MEMORY_MAX_BYTES + 1 })).toThrow('Photos can be up to 10 MB.');
 });
 

@@ -25,13 +25,16 @@ export type NewMark =
 
 export const BOOKMARK_LABELS = ['First quote we both loved', 'Favorite chapter', 'Funny part', 'Important conversation'];
 
-const MEMORY_EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'image/heif': 'heif' };
+const MEMORY_EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+export const MEMORY_TYPES = Object.keys(MEMORY_EXT).join(',');
 export const MEMORY_MAX_BYTES = 10 * 1024 * 1024;
 
 // Mirrors the memories bucket's allowed_mime_types and file_size_limit, so a bad photo fails before it's sent.
+// HEIC is refused (D23): only Safari displays it, so a partner on another browser would see a broken photo.
 export function memoryExt(file: { type: string; size: number }): string {
+  if (/^image\/hei[cf]$/.test(file.type)) throw new Error('HEIC photos only show in Safari. Choose a JPEG, PNG or WebP photo.');
   const ext = MEMORY_EXT[file.type];
-  if (!ext) throw new Error('Choose a JPEG, PNG, WebP or HEIC photo.');
+  if (!ext) throw new Error('Choose a JPEG, PNG or WebP photo.');
   if (file.size > MEMORY_MAX_BYTES) throw new Error('Photos can be up to 10 MB.');
   return ext;
 }

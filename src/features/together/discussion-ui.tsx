@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { InkDot } from '@/components/ui/ink';
 import type { Member } from '@/features/couple/couple';
+import { joinChannel } from '@/lib/realtime';
 import { createBrowserClient } from '@/lib/supabase';
 import type { Enums, Tables } from '@/lib/types';
 import { GUESS_OPTIONS, emojiOf, guessKey, parseGuess, revealGuess, type Guess, type GuessReaction } from './discussion';
@@ -26,22 +27,17 @@ function useAnswers(bookId: string, spine: number): { answers: Answer[]; submit:
   }, [bookId, spine]);
 
   useEffect(() => {
-    const db = createBrowserClient();
-    const channel = db
-      .channel(`discussion:${bookId}:${spine}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'event', filter: `book_id=eq.${bookId}` }, ({ new: e }) => {
-        if (e.type === 'answer_revealed' && e.data?.spine === spine) void refetch();
-      })
-      // A reveal can land between the first fetch and Postgres changes going live.
-      .on('system', {}, () => void refetch());
-    let alive = true;
-    // Without a token in the join payload the channel joins as anon and RLS drops every event row.
-    void db.realtime.setAuth().then(() => alive && channel.subscribe());
     void refetch();
-    return () => {
-      alive = false;
-      void db.removeChannel(channel);
-    };
+    return joinChannel(
+      createBrowserClient(),
+      `discussion:${bookId}:${spine}`,
+      (channel) =>
+        channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'event', filter: `book_id=eq.${bookId}` }, ({ new: e }) => {
+          if (e.type === 'answer_revealed' && e.data?.spine === spine) void refetch();
+        }),
+      // A reveal can land between the first fetch and the join.
+      () => void refetch(),
+    );
   }, [bookId, spine, refetch]);
 
   const submit: Submit = async (kind, promptKey, value) => {

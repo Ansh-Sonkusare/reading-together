@@ -2,7 +2,7 @@
 
 Every agent reads this file first, and it's the law. If anything else in the repo contradicts it, this file wins.
 
-A couples' shared EPUB reader with per-person highlights, reactions, threads and a spoiler lock. Idea: `docs/idea.md`.
+A shared EPUB reader for two people with per-person highlights, reactions, threads and a spoiler lock. Idea: `docs/idea.md`.
 
 ## Session protocol (every agent, every time)
 
@@ -34,7 +34,7 @@ A couples' shared EPUB reader with per-person highlights, reactions, threads and
 | A schema/RLS | `supabase/`, `src/lib/types.ts`, `src/lib/supabase.ts` | `src/features/*` |
 | B reader | `src/features/reader/` | `supabase/` |
 | C marks | `src/features/marks/` | `supabase/` |
-| D couple/library/push | `src/features/couple/`, `public/sw.js` | `supabase/` |
+| D shared library/invites/push | `src/features/couple/`, `public/sw.js` | `supabase/` |
 | E together | `src/features/together/` | `supabase/` |
 | Orchestrator | `src/app/`, `AGENTS.md`, `PLAN.md`, merges | none |
 

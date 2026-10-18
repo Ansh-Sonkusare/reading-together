@@ -3,6 +3,7 @@
 _Update before ending every session._
 
 ## Now
+- Documentation wording (2026-10-18): README, brief, design, feature map, plan and agent overview now describe shared reading for two people (D25). Runtime behavior and schema identifiers are unchanged. Validation: wording/diff review and `git diff --check` passed; `pnpm typecheck` and all 115 unit tests passed on the identical application source in the main checkout.
 - Every problem in PLAN.md is done and merged on master: P01-P51 plus follow-ups F1 (private realtime), F2 (discussion entry points), F3 (TOC chapter labels, foliate errors), F4 (progress save retries after a failed request).
 - Checks on master (2026-10-14): unit 115, db 74, e2e 22 specs + 1 warm-up setup (23 passed with `--workers 2`), typecheck green. Under synthetic load (18 CPU burners, load average 24 to 33) the full suite at `--workers 6 --repeat-each 3` passed 67/67 from a cold dev server.
 - Known gaps closed 2026-10-14: front matter out of `day_totals` (D18), discussion page through `joinChannel`, e2e cold-compile flake (warm-up project), HEIC memory photos refused (D23).

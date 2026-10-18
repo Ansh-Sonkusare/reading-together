@@ -1,19 +1,19 @@
 # Reading Together
 
-A shared e-book reader for couples. Two people read the same EPUB, see where the other one is, and leave highlights, reactions, notes and replies for each other in the margins. Each partner writes in their own ink.
+A shared e-book reader. Two people read the same EPUB, see where the other one is, and leave highlights, reactions, notes and replies for each other in the margins. Each reader writes in their own ink.
 
 ## What it does
 
-- **Shared library.** Either partner uploads an EPUB, and both read the same copy.
+- **Shared library.** Either reader uploads an EPUB, and both read the same copy.
 - **Progress for two.** A duet ribbon shows both places in the book: "Alex p.42 · you p.38".
 - **Margins.** Highlight a passage, react (❤️ 😂 😭 😮 🤔 🔥 💭), leave a note, reply in a thread. Everything arrives live, in the author's chosen ink.
-- **Spoiler lock.** Anything your partner left further ahead is invisible, including the fact that it exists, until you reach that page. The database enforces this.
-- **Bookmarks and "this reminded me of you".** Label special pages, or send a passage to your partner's inbox.
-- **Chapter discussions.** Answer questions separately, then see each other's answers. Guess your partner's reaction before it's revealed.
-- **Habits.** A streak for days you both read, a daily goal, and couple stats.
-- **"Our Book" timeline.** A dated story of reading a book together, with photo memories attached to passages.
+- **Spoiler lock.** Anything the other reader left further ahead is invisible, including the fact that it exists, until you reach that page. The database enforces this.
+- **Bookmarks and passage sharing.** Label pages to revisit, or send a passage to the other reader's inbox.
+- **Chapter discussions.** Answer questions separately, then see each other's answers. Guess the other reader's reaction before it's revealed.
+- **Habits.** A streak for days you both read, a daily goal, and shared reading stats.
+- **Reading timeline.** A dated record of reading a book together, with photos and notes attached to passages.
 - **Sync mode.** Read together live: the follower's pages turn with the leader's.
-- **Personal touches.** Reading themes, font size, dark mode, push notifications written in your partner's name.
+- **Personal touches.** Reading themes, font size, dark mode, push notifications written in the other reader's name.
 
 ## Stack
 
@@ -41,10 +41,10 @@ pnpm test:e2e      # two-browser Playwright specs
 ## How it's built
 
 - `docs/idea.md` is the original brief. `docs/map.md` maps every feature onto four primitives: position, mark, event, reveal.
-- `docs/interfaces.md` is the contract between parts; `docs/decisions.md` records why (D1 to D21).
+- `docs/interfaces.md` is the contract between parts; `docs/decisions.md` records design decisions.
 - `docs/design.md` is the visual system: two inks, the duet ribbon, Literata and Onest.
-- `supabase/migrations/` holds the schema. The spoiler gate, reveal gate and couple scope live in row-level security, each with a DB test.
-- `.claude/skills/verify-reading-together/` drives the real app as two partners for verification.
+- `supabase/migrations/` holds the schema. The spoiler gate, reveal gate and shared-library scope live in row-level security, each with a DB test.
+- `.claude/skills/verify-reading-together/` drives the real app as two readers for verification.
 
 ## Deploying
 

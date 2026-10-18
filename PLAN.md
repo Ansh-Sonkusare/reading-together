@@ -2,7 +2,7 @@
 
 Architecture: `docs/map.md`. Contract: `docs/interfaces.md`. Rationale: `docs/decisions.md`.
 
-Each phase ends in a **demo you can check in two browsers** (two accounts, one couple). A phase is done only after that check passes and is recorded in `notes/status.md`.
+Each phase ends in a **demo you can check in two browsers** (two accounts, one shared library). A phase is done only after that check passes and is recorded in `notes/status.md`.
 
 ## How the work runs in parallel
 
@@ -21,7 +21,7 @@ Each phase ends in a **demo you can check in two browsers** (two accounts, one c
 - ✅ Demo: `pnpm test` is green, including the gate tests.
 
 ### 1. Core loop (parallel: A, B, C, D)
-- **D** Sign-up, create couple, invite link, join. Upload EPUB → Storage; compute `sha256` and `spine_lengths` on upload.
+- **D** Sign-up, create a shared library, invite link, join. Upload EPUB → Storage; compute `sha256` and `spine_lengths` on upload.
 - **B** Reader: open from Storage, paginate, compute `Locator`/`pos` on relocate, save progress (debounced), emit selections, paint marks.
 - **C** Selection menu (highlight, 7 reactions, note), thread panel with replies, per-person colours, Realtime subscription.
 - **D** Progress pair bar: "Alex p.42 · you p.38".
@@ -39,11 +39,11 @@ Each phase ends in a **demo you can check in two browsers** (two accounts, one c
 
 ### 4. Memories (parallel: E, C, D)
 - **E** "Our Book" timeline, stats dashboard (SQL views).
-- **C** Couple memories (photo on a mark).
+- **C** Shared reading memories (photo on a mark).
 - **D** Themes, dark mode, reading background, font size.
 
 ### 5. Sync reading mode (one agent)
-- Presence channel; the follower mirrors the leader's `goTo`. Either partner can leave sync.
+- Presence channel; the follower mirrors the leader's `goTo`. Either reader can leave sync.
 
 ## Out of scope (for now)
 Public-domain catalogue (D1), native apps, groups of more than two, PDFs, DRM books, AI-generated discussion questions.
@@ -57,23 +57,23 @@ Public-domain catalogue (D1), native apps, groups of more than two, PDFs, DRM bo
 | P01 | Scaffold: Next.js, pnpm, Tailwind + shadcn, vitest, Supabase CLI as a dev dependency, scripts from AGENTS.md | orch | `pnpm build && pnpm typecheck && pnpm test` | done |
 | P02 | Schema, RLS spoiler and reveal gates, event triggers, generated types | A | `pnpm test:db` runs the gate scenarios against local Supabase | done |
 | P03 | Reader engine spike: foliate-js vs epub.js; compute `pos`, CFI and quote | B | A script shows one passage gets the same `pos` at two font sizes; the loser is written up in decisions | done |
-| P04 | `verify-reading-together` skill: launch, doctor, two browser contexts as two partners | orch | The skill's own run passes and its evidence survives cleanup | done |
-| P11 | Auth, couple, invite link, join (max 2) | D | verify: A invites, B joins, a third account is refused | done |
+| P04 | `verify-reading-together` skill: launch, doctor, two browser contexts as two readers | orch | The skill's own run passes and its evidence survives cleanup | done |
+| P11 | Auth, shared library, invite link, join (max 2) | D | verify: A invites, B joins, a third account is refused | done |
 | P12 | Upload EPUB → Storage, `sha256` + `spine_lengths`, shared library | D | verify: A uploads, B sees the book | done |
 | P13a | Reader engine behind `ReaderHandle` (foliate): render, paginate, relocate → Locator/pos, select, paint, goTo, font size, per-chapter length check; `/dev/reader` page; Playwright e2e | B | `pnpm test:e2e` reader spec: pos stable across font sizes in the real app | done |
 | P13b | Reader page wired to data: open a book from Storage, save progress (debounced, max_pos = page end), restore position | B | verify: reopening restores the position | done |
 | P14a | Marks data + components: createMark/useMarks with Realtime, same-range merge for painting, SelectionMenu (highlight, 7 reactions, note), ThreadPanel (replies), per-person colours | C | unit + DB tests; component test renders the 7 reactions | done |
-| P14b | Wire marks into /book/[id]: select → menu → mark painted; markClick → thread; live for the partner | C | verify: A reacts and B sees it within 2 seconds; B replies and A sees it | done |
+| P14b | Wire marks into /book/[id]: select → menu → mark painted; markClick → thread; live for the other reader | C | verify: A reacts and B sees it within 2 seconds; B replies and A sees it | done |
 | P15 | Progress pair bar "Alex p.42 · you p.38" | D | verify: both positions shown and updated live | done |
 | P21 | Reveal-on-reach: marks ahead are invisible, then appear with "✨ new from Alex" | C | verify: gate scenario done by hand in the UI | done |
 | P22 | Re-anchor a mark by text quote when its CFI misses | B | verify: a highlight lands on the same text at font sizes S and L | done |
-| P23 | Bookmarks with labels, "Reminded me of you" send | C | verify: the send appears in the partner's inbox | done |
+| P23 | Bookmarks with labels, "Reminded me of you" send | C | verify: the send appears in the other reader's inbox | done |
 | P31 | Chapter-finished events, streaks, goals | E | unit tests on the streak calculation + verify: the streak shows | done |
 | P32 | Chapter discussion and guess-the-reaction with blind reveal | E | `pnpm test:db` reveal gate + verify: reveal after both answer | done |
 | P33 | Web push: service worker, subscriptions, edge function wording | D | the edge function test renders the personal wording; subscription stored | done |
 | P41 | "Our Book" timeline | E | verify: timeline lists the day's events | done |
-| P42 | Couple stats dashboard | E | SQL view test with literal counts | done |
-| P43 | Couple memories (photo on a mark) | C | verify: a photo attached to a highlight shows for both | done |
+| P42 | Shared reading stats dashboard | E | SQL view test with literal counts | done |
+| P43 | Shared reading memories (photo on a mark) | C | verify: a photo attached to a highlight shows for both | done |
 | P44 | Themes, dark mode, font size, background | D | verify: prefs persist across reload | done |
 | P51 | Sync reading mode (presence, follow the leader) | B | verify: B's page follows A's page turn | done |
 
@@ -83,10 +83,10 @@ Test book: a public-domain EPUB in `fixtures/` (test data only; D1 still holds f
 
 | # | Problem | WS | Check that proves it | Status |
 |---|---|---|---|---|
-| F1 | Private Realtime channels: `sync:{bookId}` and the other broadcast/presence channels require couple membership (RLS on `realtime.messages`) | A | DB test: another couple's user can't join or send on the channel (positive control: partner can) | done |
+| F1 | Private Realtime channels: `sync:{bookId}` and the other broadcast/presence channels require shared-library membership (RLS on `realtime.messages`) | A | DB test: a user from another library can't join or send on the channel (positive control: other reader can) | done |
 | F2 | Entry points to chapter discussion: "Discuss Chapter N" on the book page after a chapter is finished, and from the timeline's "discussed" lines; e2e specs for discussion and streaks | E | e2e: finishing a chapter shows the link, it opens /discuss and the reveal works; /together shows the streak after both read | done |
 | F3 | Chapter labels from the book's TOC (front matter isn't "Chapter 1"); foliate errors on leaving the reader and on chapter load | B | e2e: finishing Chapter I says "Chapter I"; no uncaught browser errors during book.spec | done |
-| U0 | Design foundation: fonts, tokens, primitives (Button, InkSwatches, DuetRibbon, Sheet, Toast), six inks, partners can't share an ink | UI | unit + screenshot review | done |
+| U0 | Design foundation: fonts, tokens, primitives (Button, InkSwatches, DuetRibbon, Sheet, Toast), six inks, readers can't share an ink | UI | unit + screenshot review | done |
 | U1 | Per-mark colour (highlight, note, bookmark) + book page redesign | C | e2e: chosen colour painted for both; bookmark ribbon on its page | done |
 | U2 | Library, together, auth, onboarding, discuss redesign + EPUB covers | D | e2e green; screenshots light/dark, desktop/phone | done |
 | F4 | Progress save retries after a failed request instead of waiting for the next page turn | D | unit test: a failed flush is retried and `savedPos` catches up without another `save()` | done |
